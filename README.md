@@ -1,7 +1,7 @@
-# Starfox 64: Recompiled
-[Starfox 64: Recompiled](https://github.com/sonicdcer/Starfox64Recomp) is a project that uses [N64: Recompiled](https://github.com/Mr-Wiseguy/N64Recomp) to **statically recompile** Starfox 64 into a native port with many new features, enhancements, and extensive mod support. This project uses [RT64](https://github.com/rt64/rt64) as the rendering engine to provide some of these enhancements.
+# Snowboard Kids 2: Recompiled
+[Snowboard Kids 2: Recompiled](https://github.com/sonicdcer/Starfox64Recomp) is a project that uses [N64: Recompiled](https://github.com/Mr-Wiseguy/N64Recomp) to **statically recompile** Snowboard Kids 2 into a native port with many new features, enhancements, and extensive mod support. This project uses [RT64](https://github.com/rt64/rt64) as the rendering engine to provide some of these enhancements.
 
-[Starfox 64: Recompiled](https://github.com/sonicdcer/Starfox64Recomp) was developed alongside [Starship](https://github.com/HarbourMasters/Starship) with both ports intended to coexist and evolve independently using different technologies. As such, they are considered sibling projects.
+[Snowboard Kids 2: Recompiled](https://github.com/sonicdcer/Starfox64Recomp) was developed alongside [Starship](https://github.com/HarbourMasters/Starship) with both ports intended to coexist and evolve independently using different technologies. As such, they are considered sibling projects.
 
 For a more detailed history, be sure to check out [fox_lore.md](DOCS/fox_lore.md)
 
@@ -95,12 +95,12 @@ Static recompilation is the process of automatically translating an application 
 Unlike N64 ports in the past, this project is not based on the source code provided by a decompilation of the game. This is because static recompilation bypasses the need for decompiled source code when making a port, allowing ports to be made **without source code**. However, the reverse engineering work done by the decompilation team was invaluable for providing some of the enhancements featured in this project. For this reason, the project uses headers and some functions from the [Decompilation Project](https://github.com/sonicdcer/sf64) in order to make modifications to the game. Many thanks to the [decompilation team](https://github.com/sonicdcer/sf64/graphs/contributors) for all of the hard work they've done.
 
 #### Where is the savefile stored?
-- Windows: `%LOCALAPPDATA%\Starfox64Recompiled\saves`
+- Windows: `%LOCALAPPDATA%\SnowboardKids2Recompiled\saves`
 - Linux: `~/.config/StarfoxRecompiled/saves`
 - macOS: `~/Library/Application Support/StarfoxRecompiled/saves`
 
 #### How do I choose a different ROM?
-**You don't.** This project is **only** a port of Starfox 64, and it will only accept one specific ROM: the US version 1.1 (Rev A) of the N64 release of Starfox 64. ROMs in formats other than .z64 will be automatically converted, as long as it is the correct ROM. **It is not an emulator and it cannot run any arbitrary ROM.** 
+**You don't.** This project is **only** a port of Snowboard Kids 2, and it will only accept one specific ROM: the US version 1.1 (Rev A) of the N64 release of Snowboard Kids 2. ROMs in formats other than .z64 will be automatically converted, as long as it is the correct ROM. **It is not an emulator and it cannot run any arbitrary ROM.** 
 
 Instead, you can change the game by installing mods. See the [mod support](#mod-support) section for details.
 
@@ -120,7 +120,7 @@ Building is not required to play this project, as prebuilt binaries (which do no
 * [FreeType](https://freetype.org/) for font rendering, used by RmlUi  
 * [moodycamel::ConcurrentQueue](https://github.com/cameron314/concurrentqueue) for semaphores and fast, lock-free MPMC queues
 * [Gamepad Motion Helpers](https://github.com/JibbSmart/GamepadMotionHelpers) for sensor fusion and calibration algorithms to implement gyro aiming
-* [Starfox 64 Decompilation](https://github.com/sonicdcer/sf64) for headers and some function definitions, used for making patches or some enhancements
+* [Snowboard Kids 2 Decompilation](https://github.com/sonicdcer/sf64) for headers and some function definitions, used for making patches or some enhancements
 * [Ares emulator](https://github.com/ares-emulator/ares) for RSP vector instruction reference implementations, used in RSP recompilation
 
 # Special Thanks:

@@ -5,8 +5,8 @@
     {
       "type": "default",
       "project": "CMakeLists.txt",
-      "projectTarget": "Starfox64Recompiled.exe",
-      "name": "Starfox64Recompiled.exe",
+      "projectTarget": "SnowboardKids2Recompiled.exe",
+      "name": "SnowboardKids2Recompiled.exe",
       "currentDir": "${workspaceRoot}"
     }
   ]

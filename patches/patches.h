@@ -29,54 +29,20 @@
 #define __sinf __sinf_recomp
 #define __cosf __cosf_recomp
 #define sqrtf sqrtf_recomp
+#define osPiStartDma osPiStartDma_recomp
 #define bzero bzero_recomp
 #define gRandFloat sRandFloat
 
 #define INVERT_Y_AXIS_COND_RES (recomp_get_invert_y_axis_mode() == 1 ? 1 : -1)
 
 #include "PR/ultratypes.h"
+#include "PR/os_pi.h"
 #include "PR/gbi.h"
-#include "gfx.h"
-#include "sf64thread.h"
-#include "sf64object.h"
-#include "context.h"
-#include "functions.h"
 #include "rt64_extended_gbi.h"
 #include "graphics.h"
 #include "PR/abi.h"
-#include "audioseq_cmd.h"
-#include "macros.h"
-#include "variables.h"
-#include "debug.h"
-#include "sfx.h"
-#include "sf64event.h"
-#include "sf64_tagging.h"
-#include "assets.h"
-#include "bgm.h"
+
 #include "input.h"
-#include "functions.h"
-
-typedef struct ArwingInfoRecomp {
-    u8 rightWingState;
-    u8 leftWingState;
-    f32 upperRightFlapYrot;
-    f32 bottomRightFlapYrot;
-    f32 upperLeftFlapYrot;
-    f32 bottomLeftFlapYrot;
-    f32 laserGunsYpos;
-    f32 laserGunsXpos;
-    f32 wingsXrot;
-    f32 wingsYrot;
-    f32 wingsZrot;
-    f32 unk_28;
-    u8 drawFace;
-    f32 teamFaceXrot;
-    f32 teamFaceYrot;
-    f32 cockpitGlassXrot;
-    void* actorPtr;
-} ArwingInfoRecomp; // size = 0x40
-
-extern s32 gCamera1Skipped;
 
 #ifndef gEXFillRectangle
 #define gEXFillRectangle(cmd, lorigin, rorigin, ulx, uly, lrx, lry)                         \

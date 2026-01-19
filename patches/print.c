@@ -1,3 +1,4 @@
+#if 0
 #include "patches.h"
 #include "misc_funcs.h"
 
@@ -21,4 +22,12 @@ RECOMP_EXPORT int recomp_printf(const char* fmt, ...) {
     va_end(args);
 
     return ret;
+}
+#endif
+
+int dummydata = 0;
+int dummybss;
+
+int dummyfunc(void) {
+    return 0;
 }

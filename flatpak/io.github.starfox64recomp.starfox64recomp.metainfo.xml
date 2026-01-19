@@ -2,8 +2,8 @@
 <component type="desktop-application">
   <id>io.github.starfox64recomp.starfox64recomp</id>
   
-  <name>Starfox 64: Recompiled</name>
-  <summary>Static recompilation of Starfox 64 for PC.</summary>
+  <name>Snowboard Kids 2: Recompiled</name>
+  <summary>Static recompilation of Snowboard Kids 2 for PC.</summary>
   
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
@@ -17,7 +17,7 @@
   
   <description>
     <p>
-      Starfox 64: Recompiled is a project that uses N64: Recompiled to statically recompile Starfox 64 into a native port with many new features and enhancements. This project uses RT64 as the rendering engine to provide some of these enhancements.
+      Snowboard Kids 2: Recompiled is a project that uses N64: Recompiled to statically recompile Snowboard Kids 2 into a native port with many new features and enhancements. This project uses RT64 as the rendering engine to provide some of these enhancements.
 
       The original game is required to run this project.
 

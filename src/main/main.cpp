@@ -144,7 +144,7 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
     flags |= SDL_WINDOW_VULKAN;
 #endif
 
-    window = SDL_CreateWindow("Starfox 64: Recompiled", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 960,  flags);
+    window = SDL_CreateWindow("Snowboard Kids 2: Recompiled", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 960,  flags);
 #if defined(__linux__)
     SetImageAsIcon("icons/512.png",window);
     if (ultramodern::renderer::get_graphics_config().wm_option == ultramodern::renderer::WindowMode::Fullscreen) { // TODO: Remove once RT64 gets native fullscreen support on Linux
@@ -350,13 +350,12 @@ gpr get_entrypoint_address();
 // array of supported GameEntry objects
 std::vector<recomp::GameEntry> supported_games = {
     {
-        .rom_hash = 0x163fd3fc3813f54eULL,
-        .internal_name = "STARFOX64",
-        .game_id = u8"sf64.n64.us.1.1",
-        .mod_game_id = "sf64",
+        .rom_hash = 0x81f434ff431162ebULL,
+        .internal_name = "SNOWBOARD KIDS2",
+        .game_id = u8"sk2.n64.us",
+        .mod_game_id = "sk2",
         .save_type = recomp::SaveType::Eep4k,
         .is_enabled = true,
-        .decompression_routine = zelda64::decompress_sf64,
         .has_compressed_code = true,
         .entrypoint_address = get_entrypoint_address(),
         .entrypoint = recomp_entrypoint,
