@@ -10,8 +10,8 @@ single_file_output = true
 use_absolute_symbols = true
 
 # Point the recompiler at the symbol files so that it can resolve relocations during recompilation.
-func_reference_syms_file = "dump.toml"
-data_reference_syms_files = [ "data_dump.toml" ]
+func_reference_syms_file = "snowboardkids2-recomp-syms/dump.toml"
+data_reference_syms_files = [ "snowboardkids2-recomp-syms/data_dump.toml" ]
 # data_reference_syms_files = [ "Starfox64RecompSyms/sf64.us.rev1.datasyms.toml", "Starfox64RecompSyms/sf64.us.rev1.datasyms_static.toml" ]
 
 # Tell the recompiler to write the output binary. Doing this instead of using objcopy allows the recompiler to patch MIPS32 relocs.

@@ -19,3 +19,6 @@
 [submodule "lib/sse2neon"]
 	path = lib/sse2neon
 	url = https://github.com/DLTcollab/sse2neon.git
+[submodule "snowboardkids2-recomp-syms"]
+	path = snowboardkids2-recomp-syms
+	url = https://github.com/cdlewis/snowboardkids2-recomp-syms.git
