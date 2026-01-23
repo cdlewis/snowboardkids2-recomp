@@ -1,9 +1,12 @@
-#if 0
+#if 1
 #include "patches.h"
 #include "misc_funcs.h"
 
-typedef unsigned int size_t;
+#define va_end(__list)
+#define va_start(vp, parmN) (vp = ((va_list)&parmN + sizeof(parmN)))
 
+typedef unsigned int size_t;
+typedef char * va_list;
 typedef char* outfun(char*, const char*, size_t);
 
 int _Printf(outfun prout, char* arg, const char* fmt, va_list args);
@@ -24,10 +27,3 @@ RECOMP_EXPORT int recomp_printf(const char* fmt, ...) {
     return ret;
 }
 #endif
-
-int dummydata = 0;
-int dummybss;
-
-int dummyfunc(void) {
-    return 0;
-}
