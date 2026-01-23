@@ -1,25 +1,26 @@
 #include "patches.h"
 #include "misc_funcs.h"
 
-extern OSMesgQueue gPiDmaMsgQueue;
+int dummydata = 0;
+int dummybss;
 
-RECOMP_PATCH void dmaLoadAndInvalidate(
-    void *romStart,
-    void *romEnd,
-    void *ramStart,
-    void *icacheStart,
-    void *icacheEnd,
-    void *dcacheStart,
-    void *dcacheEnd,
-    void *bssStart,
-    void *bssEnd
-) {
+int dummyfunc(void) {
+    return 0;
+}
+
+extern OSMesgQueue gPiDmaMsgQueue;
+extern s32 gFrameBufferFlags[];
+extern s32 gFrameBufferCounters[];
+extern s32 gBufferedFrameCounter;
+
+RECOMP_PATCH void dmaLoadAndInvalidate(void* romStart, void* romEnd, void* ramStart, void* icacheStart, void* icacheEnd,
+                                       void* dcacheStart, void* dcacheEnd, void* bssStart, void* bssEnd) {
     OSIoMesg dmaMessage;
-    void *dummyMessage;
+    void* dummyMessage;
     u32 remainingBytes;
-    void *currentRomOffset;
+    void* currentRomOffset;
     u32 currentChunkSize;
-    void *currentRamDest;
+    void* currentRamDest;
 
     // Zero out BSS or other region if requested
     if (bssEnd != bssStart) {
@@ -41,19 +42,12 @@ RECOMP_PATCH void dmaLoadAndInvalidate(
         currentChunkSize = remainingBytes;
 
         // Cap the transfer size to 0x1000 bytes (4KB)
-        if (remainingBytes >= 0x1001) {
+        if (remainingBytes > 0x1000) {
             currentChunkSize = 0x1000;
         }
 
-        osPiStartDma(
-            &dmaMessage,
-            OS_MESG_PRI_NORMAL,
-            OS_READ,
-            (u32)currentRomOffset,
-            currentRamDest,
-            currentChunkSize,
-            &gPiDmaMsgQueue
-        );
+        osPiStartDma(&dmaMessage, OS_MESG_PRI_NORMAL, OS_READ, (u32) currentRomOffset, currentRamDest, currentChunkSize,
+                     &gPiDmaMsgQueue);
         osRecvMesg(&gPiDmaMsgQueue, &dummyMessage, OS_MESG_BLOCK);
 
         currentRomOffset += currentChunkSize;
@@ -61,3 +55,12 @@ RECOMP_PATCH void dmaLoadAndInvalidate(
         remainingBytes -= currentChunkSize;
     }
 }
+
+#if 0
+RECOMP_PATCH void handleFrameBufferComplete(s32 bufferIndex) {
+    s32 index = bufferIndex & 0xF;
+    gFrameBufferFlags[index] = 0;
+    gBufferedFrameCounter = gFrameBufferCounters[index];
+    recomp_printf("index = %d\n", index);
+}
+#endif
