@@ -43,6 +43,7 @@
 #include "PR/abi.h"
 
 #include "input.h"
+#include "structs.h"
 
 #ifndef gEXFillRectangle
 #define gEXFillRectangle(cmd, lorigin, rorigin, ulx, uly, lrx, lry)                         \

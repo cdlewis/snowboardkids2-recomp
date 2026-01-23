@@ -64,3 +64,42 @@ RECOMP_PATCH void handleFrameBufferComplete(s32 bufferIndex) {
     recomp_printf("index = %d\n", index);
 }
 #endif
+
+#if 0
+extern Node_70B00 D_800A3370_A3F70;
+extern u8 gDisplayFramePending;
+extern s32 gCurrentDoubleBufferIndex;
+extern s32 gFrameCounter;
+extern s32 gCurrentDisplayBufferIndex;
+extern void* gDisplayBufferMsgs;
+
+void sendMessageToThreadSyncQueue(OSMesg message);
+
+RECOMP_PATCH void processDisplayFrameUpdate(void) {
+    Node_70B00* node;
+    Node_70B00* temp;
+
+    temp = D_800A3370_A3F70.list3_next;
+    gDisplayFramePending = 0;
+    if (temp == NULL) {
+        temp = &D_800A3370_A3F70;
+    }
+    node = temp;
+    if (node != NULL) {
+        do {
+            if (node->frameCallbackMsg != 0) {
+                gFrameBufferFlags[gCurrentDoubleBufferIndex] = 1;
+                sendMessageToThreadSyncQueue((OSMesg) node->frameCallbackMsg);
+            }
+            node = node->list3_next;
+        } while (node != NULL);
+    }
+    gFrameCounter = (gFrameCounter + 1) & 0x0FFFFFFF;
+    gCurrentDoubleBufferIndex = (gCurrentDoubleBufferIndex + 1) & 1;
+    gCurrentDisplayBufferIndex = gCurrentDisplayBufferIndex + 1;
+    if (gCurrentDisplayBufferIndex >= 3) {
+        gCurrentDisplayBufferIndex = 0;
+    }
+    sendMessageToThreadSyncQueue((OSMesg) ((u8*) gDisplayBufferMsgs + (gCurrentDisplayBufferIndex * 0x150)));
+}
+#endif
