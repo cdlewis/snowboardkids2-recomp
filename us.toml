@@ -16,7 +16,8 @@ ignored = [
     "cutsceneCmdHelper",
     "renderCutsceneSlotMenu",
     "func_800B3FFC_1E10AC",
-    "gspS2DEX_fifoTextStart"
+    "gspS2DEX_fifoTextStart",
+    "aspMainTextStart"
 ]
 
 renamed = [
