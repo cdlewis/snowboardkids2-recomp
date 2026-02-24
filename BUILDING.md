@@ -20,7 +20,7 @@ For Linux the instructions for Ubuntu are provided, but you can find the equival
 
 ```bash
 # For Ubuntu, simply run:
-sudo apt-get install cmake ninja libsdl2-dev libgtk-3-dev lld llvm clang-15
+sudo apt-get install cmake ninja-build libsdl2-dev libgtk-3-dev lld llvm clang
 ```
 
 ### Windows
@@ -35,26 +35,7 @@ The other tool necessary will be `make` which can be installe via [Chocolatey](h
 choco install make
 ```
 
-## 3. Decompressing the target ROM
-You will need to decompress the 1.1 US N64 Snowboard Kids 2 ROM (md5: 741a94eee093c4c8684e66b89f8685e8) before running the recompiler.
-
-There are a few tools that can do it:
-* This python script from the Snowboard Kids 2 decompilation project: https://github.com/sonicdcer/sf64/blob/master/tools/comptool.py. Setting up the Snowboard Kids 2 Decompilation project and running this command is recommended:
-
-```bash
-make decompress
-```
-
-Alternatively, you can download the python script and mio0 decompressor and run them yourself:
-
-```bash
-python3 comptool.py -dse baserom -m ./tools/mio0 baserom.us.rev1.z64 baserom.us.rev1.uncompressed.z64
-```
-
-Copy the decompressed ROM to the root of the Starfox64Recomp repository with this filename:
-- `starfox64.us.rev1.uncompressed.z64`
-
-## 4. Generating the C code
+## 3. Generating the C code
 
 Now that you have the required files, you must build [N64Recomp](https://github.com/Mr-Wiseguy/N64Recomp) and run it to generate the C code to be compiled. The building instructions can be found [here](https://github.com/Mr-Wiseguy/N64Recomp?tab=readme-ov-file#building). That will build the executables: `N64Recomp` and `RSPRecomp` which you should copy to the root of the Starfox64Recomp repository.
 
@@ -64,7 +45,7 @@ After that, go back to the repository root, and run the following commands:
 ./RSPRecomp aspMain.us.rev1.toml
 ```
 
-## 5. Building the Project
+## 4. Building the Project
 
 Finally, you can build the project! :rocket:
 
@@ -77,7 +58,7 @@ cmake -S . -B build-cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang 
 cmake --build build-cmake --target SnowboardKids2Recompiled -j$(nproc) --config Release # or Debug
 ```
 
-## 6. Success
+## 5. Success
 
 Voilà! You should now have a `SnowboardKids2Recompiled` executable in the build directory! If you used Visual Studio this will be `out/build/x64-[Configuration]` and if you used the provided CMake commands then this will be `build-cmake`. You will need to run the executable out of the root folder of this project or copy the assets folder to the build folder to run it.
 
