@@ -15,6 +15,7 @@ RecompiledPatches/
 # Linux build output
 build/
 build-cmake
+build-n64recomp/
 *.o
 
 # Windows build output
