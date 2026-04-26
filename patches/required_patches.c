@@ -66,7 +66,7 @@ RECOMP_PATCH void handleFrameBufferComplete(s32 bufferIndex) {
 #endif
 
 #if 0
-extern Node_70B00 D_800A3370_A3F70;
+extern Node_70B00 gRootViewport;
 extern u8 gDisplayFramePending;
 extern s32 gCurrentDoubleBufferIndex;
 extern s32 gFrameCounter;
@@ -79,10 +79,10 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
     Node_70B00* node;
     Node_70B00* temp;
 
-    temp = D_800A3370_A3F70.list3_next;
+    temp = gRootViewport.list3_next;
     gDisplayFramePending = 0;
     if (temp == NULL) {
-        temp = &D_800A3370_A3F70;
+        temp = &gRootViewport;
     }
     node = temp;
     if (node != NULL) {
@@ -126,16 +126,16 @@ extern void initGraphicsSystem(void);
 extern s32 gFrameBufferFlags[];
 extern s32 gFrameCounter;
 extern s32 gBufferedFrameCounter;
-extern s32 D_8009AFD0_9BBD0;
+extern s32 gFrameSkipCounter;
 extern u32 __additional_scanline_0;
 extern u8 gDisplayFramePending;
-extern void *D_800A3360_A3F60;
-extern void *D_800A3364_A3F64;
-extern void *D_800A3368_A3F68;
+extern void *gDramStack;
+extern void *gOutputBuffer;
+extern void *gYieldBuffer;
 extern long long int rspbootTextStart[];
 extern long long int aspMainTextStart[];
-extern Gfx D_8009AED0_9BAD0[];
-extern s32 D_8009AFE0_9BBE0[];
+extern Gfx gDefaultRenderDisplayList[];
+extern s32 microcodeGroups[];
 
 typedef struct {
     /* 0x00 */ u32 type;
@@ -165,7 +165,7 @@ typedef struct {
 extern void *gDisplayBufferMsgs;
 void *allocateMemoryNode(s32, u32, u8 *);
 
-RECOMP_PATCH void func_8006DC40_6E840(void) __attribute__((optnone)) {
+RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
     DisplayBufferMsg *msg;
     u8 exists;
     s32 i;
@@ -175,16 +175,16 @@ RECOMP_PATCH void func_8006DC40_6E840(void) __attribute__((optnone)) {
     initLinearAllocator();
     initGraphicsArenas();
 
-    D_800A3360_A3F60 = allocateMemoryNode(0, 0x400, &exists);
-    D_800A3364_A3F64 = allocateMemoryNode(0, 0x10000, &exists);
-    D_800A3368_A3F68 = allocateMemoryNode(0, 0xC00, &exists);
+    gDramStack = allocateMemoryNode(0, 0x400, &exists);
+    gOutputBuffer = allocateMemoryNode(0, 0x10000, &exists);
+    gYieldBuffer = allocateMemoryNode(0, 0xC00, &exists);
     initGraphicsSystem();
 
     gFrameBufferFlags[0] = 0;
     gFrameBufferFlags[1] = 0;
     gFrameCounter = 1;
     gBufferedFrameCounter = 0;
-    D_8009AFD0_9BBD0 = 0;
+    gFrameSkipCounter = 0;
     __additional_scanline_0 = 0;
     gDisplayFramePending = 0;
 
@@ -193,7 +193,7 @@ RECOMP_PATCH void func_8006DC40_6E840(void) __attribute__((optnone)) {
     for (i = 0; i < 3; msg++, i++) {
         gfx = msg->displayList;
         gSPSegment(gfx++, 0, 0);
-        gSPDisplayList(gfx++, D_8009AED0_9BAD0);
+        gSPDisplayList(gfx++, gDefaultRenderDisplayList);
         gDPSetScissor(gfx++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         gDPSetCycleType(gfx++, G_CYC_FILL);
         gDPSetRenderMode(gfx++, G_RM_NOOP, G_RM_NOOP2);
@@ -221,14 +221,14 @@ RECOMP_PATCH void func_8006DC40_6E840(void) __attribute__((optnone)) {
         msg->ucode_boot_size = (u32) aspMainTextStart;
         msg->ucode_boot_size = msg->ucode_boot_size - ((u32) rspbootTextStart);
         
-        msg->ucode = (void*)D_8009AFE0_9BBE0[0];
-        msg->output_buff_size = (void*)D_8009AFE0_9BBE0[1];
+        msg->ucode = (void*)microcodeGroups[2];
+        msg->output_buff_size = (void*)microcodeGroups[3];
         msg->ucode_data_size = 0x800;
-        msg->ucode_data = D_800A3360_A3F60;
+        msg->ucode_data = gDramStack;
         msg->dram_stack_size = 0x400;
-        msg->dram_stack = D_800A3364_A3F64;
+        msg->dram_stack = gOutputBuffer;
         msg->task_2C = (u32)msg->dram_stack + 0x10000;
-        msg->output_buff = D_800A3368_A3F68;
+        msg->output_buff = gYieldBuffer;
         msg->yield_data_size = 0xC00;
     }
 }
