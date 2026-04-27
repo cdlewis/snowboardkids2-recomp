@@ -65,46 +65,12 @@ RECOMP_PATCH void handleFrameBufferComplete(s32 bufferIndex) {
 }
 #endif
 
-#if 0
-extern Node_70B00 gRootViewport;
-extern u8 gDisplayFramePending;
-extern s32 gCurrentDoubleBufferIndex;
-extern s32 gFrameCounter;
-extern s32 gCurrentDisplayBufferIndex;
-extern void* gDisplayBufferMsgs;
-
-void sendMessageToThreadSyncQueue(OSMesg message);
-
-RECOMP_PATCH void processDisplayFrameUpdate(void) {
-    Node_70B00* node;
-    Node_70B00* temp;
-
-    temp = gRootViewport.list3_next;
-    gDisplayFramePending = 0;
-    if (temp == NULL) {
-        temp = &gRootViewport;
-    }
-    node = temp;
-    if (node != NULL) {
-        do {
-            if (node->frameCallbackMsg != 0) {
-                gFrameBufferFlags[gCurrentDoubleBufferIndex] = 1;
-                sendMessageToThreadSyncQueue((OSMesg) node->frameCallbackMsg);
-            }
-            node = node->list3_next;
-        } while (node != NULL);
-    }
-    gFrameCounter = (gFrameCounter + 1) & 0x0FFFFFFF;
-    gCurrentDoubleBufferIndex = (gCurrentDoubleBufferIndex + 1) & 1;
-    gCurrentDisplayBufferIndex = gCurrentDisplayBufferIndex + 1;
-    if (gCurrentDisplayBufferIndex >= 3) {
-        gCurrentDisplayBufferIndex = 0;
-    }
-    sendMessageToThreadSyncQueue((OSMesg) ((u8*) gDisplayBufferMsgs + (gCurrentDisplayBufferIndex * 0x150)));
-}
-#endif
-
-#if 0
+/* Reimplement initDisplayBuffers without the per-buffer gDPFullSync.
+ * The original DL ends with gDPFullSync + gSPEndDisplayList; under RT64 LLE
+ * each fullsync is a workload boundary that triggers a buffer swap, so the
+ * init task's sync collides with the merged graphics task's sync (see
+ * graphics_patch.c) and produces flicker. We drop it; the trailing
+ * gSPEndDisplayList still terminates the DL cleanly. */
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
@@ -205,7 +171,6 @@ RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
         gDPSetFillColor(gfx++, 0x10001);
         gDPFillRectangle(gfx++, 0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1);
         gDPPipeSync(gfx++);
-        gDPFullSync(gfx++);
         gSPEndDisplayList(gfx++);
 
         msg->yield_data_ptr = &gAuxFrameBuffers[i];
@@ -213,7 +178,7 @@ RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
         msg->unk4E = 2;
 
         msg->data_ptr = msg->displayList;
-        msg->data_size = 0x78;
+        msg->data_size = 0x70;
         msg->type = 1;
         msg->flags = 0;
         msg->ucode_boot = rspbootTextStart;
@@ -232,4 +197,3 @@ RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
         msg->yield_data_size = 0xC00;
     }
 }
-#endif
