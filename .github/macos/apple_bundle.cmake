@@ -23,8 +23,16 @@ set(ICNS_FILE ${CMAKE_BINARY_DIR}/resources/AppIcon.icns)
 add_custom_command(
         OUTPUT ${ICONSET_DIR}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${ICONSET_DIR}
+        COMMAND sips -z 16 16 ${ICON_SOURCE} --out ${ICONSET_DIR}/icon_16x16.png
+        COMMAND sips -z 32 32 ${ICON_SOURCE} --out ${ICONSET_DIR}/icon_16x16@2x.png
+        COMMAND sips -z 32 32 ${ICON_SOURCE} --out ${ICONSET_DIR}/icon_32x32.png
+        COMMAND sips -z 64 64 ${ICON_SOURCE} --out ${ICONSET_DIR}/icon_32x32@2x.png
+        COMMAND sips -z 128 128 ${ICON_SOURCE} --out ${ICONSET_DIR}/icon_128x128.png
+        COMMAND sips -z 256 256 ${ICON_SOURCE} --out ${ICONSET_DIR}/icon_128x128@2x.png
+        COMMAND sips -z 256 256 ${ICON_SOURCE} --out ${ICONSET_DIR}/icon_256x256.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${ICON_SOURCE} ${ICONSET_DIR}/icon_256x256@2x.png
         COMMAND ${CMAKE_COMMAND} -E copy ${ICON_SOURCE} ${ICONSET_DIR}/icon_512x512.png
-        COMMAND ${CMAKE_COMMAND} -E copy ${ICON_SOURCE} ${ICONSET_DIR}/icon_512x512@2x.png
+        COMMAND sips -z 1024 1024 ${ICON_SOURCE} --out ${ICONSET_DIR}/icon_512x512@2x.png
         COMMAND touch ${ICONSET_DIR}
         COMMENT "Creating iconset directory and copying PNG file"
 )
@@ -33,7 +41,8 @@ add_custom_command(
 add_custom_command(
         OUTPUT ${ICNS_FILE}
         DEPENDS ${ICONSET_DIR}
-        COMMAND iconutil -c icns ${ICONSET_DIR} -o ${ICNS_FILE}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
+        COMMAND sips -s format icns ${ICON_SOURCE} --out ${ICNS_FILE}
         COMMENT "Converting iconset to icns"
 )
 
