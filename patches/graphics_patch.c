@@ -14,6 +14,7 @@
 #include "PR/mbi.h"
 #include "PR/gbi.h"
 #include "PR/ucode.h"
+#include "rt64_extended_gbi.h"
 
 #define RECOMP_PATCH __attribute__((section(".recomp_patch")))
 
@@ -87,6 +88,10 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
          * final gDPFullSync. Init's clear of gFrameBuffer thus happens BEFORE any
          * graphics renders into it; graphics' content survives to the final fullsync. */
         gfx = mergedDL;
+
+        /* Enable RT64 extended commands for the merged task before any child
+         * display list can emit gEX* commands. */
+        gEXEnable(gfx++);
 
         /* Init runs first under the boot ucode (which we set below to F3DEX2). */
         gSPDisplayList(gfx++, initMsg->t.t.data_ptr);
