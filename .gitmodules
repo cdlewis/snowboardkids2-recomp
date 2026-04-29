@@ -15,7 +15,7 @@
 	url = https://github.com/rt64/rt64.git
 [submodule "lib/sk2-decomp"]
 	path = lib/sk2-decomp
-	url = https://github.com/sonicdcer/snowboardkids2-decomp.git
+	url = https://github.com/cdlewis/snowboardkids2-decomp.git
 [submodule "lib/sse2neon"]
 	path = lib/sse2neon
 	url = https://github.com/DLTcollab/sse2neon.git
