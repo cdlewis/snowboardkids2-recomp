@@ -56,6 +56,7 @@ static ViewportNode *vp_unk8_next(ViewportNode *n) {
     return *(ViewportNode **)((u8 *)n + 0x08);
 }
 
+
 RECOMP_PATCH void setModelCameraTransform(void *arg0, s16 originX, s16 originY,
                                           s16 left, s16 top, s16 right, s16 bottom) {
     ViewportNode *node = (ViewportNode *)arg0;
@@ -122,3 +123,4 @@ RECOMP_PATCH void updateViewportBounds(void) {
         node = vp_unk8_next(node);
     } while (node != NULL);
 }
+
