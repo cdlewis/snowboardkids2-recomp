@@ -30,6 +30,52 @@
                     </button>
                 </div>
             </div>
+            <div class="config-debug__option-controls">
+                <div class="config-debug__select-wrapper">
+                    <div class="config-debug__select-label"><div>Port 1</div></div>
+                    <select data-value="controller_port_0" style="nav-up: #cont_kb_toggle">
+                        <option value="0">Auto</option>
+                        <option value="1">None</option>
+                        <option data-if="controller_assignment_option_count > 2" value="2">{{get_controller_assignment_option_name(2)}}</option>
+                        <option data-if="controller_assignment_option_count > 3" value="3">{{get_controller_assignment_option_name(3)}}</option>
+                        <option data-if="controller_assignment_option_count > 4" value="4">{{get_controller_assignment_option_name(4)}}</option>
+                        <option data-if="controller_assignment_option_count > 5" value="5">{{get_controller_assignment_option_name(5)}}</option>
+                    </select>
+                </div>
+                <div class="config-debug__select-wrapper">
+                    <div class="config-debug__select-label"><div>Port 2</div></div>
+                    <select data-value="controller_port_1" style="nav-up: #cont_kb_toggle">
+                        <option value="0">Auto</option>
+                        <option value="1">None</option>
+                        <option data-if="controller_assignment_option_count > 2" value="2">{{get_controller_assignment_option_name(2)}}</option>
+                        <option data-if="controller_assignment_option_count > 3" value="3">{{get_controller_assignment_option_name(3)}}</option>
+                        <option data-if="controller_assignment_option_count > 4" value="4">{{get_controller_assignment_option_name(4)}}</option>
+                        <option data-if="controller_assignment_option_count > 5" value="5">{{get_controller_assignment_option_name(5)}}</option>
+                    </select>
+                </div>
+                <div class="config-debug__select-wrapper">
+                    <div class="config-debug__select-label"><div>Port 3</div></div>
+                    <select data-value="controller_port_2" style="nav-up: #cont_kb_toggle">
+                        <option value="0">Auto</option>
+                        <option value="1">None</option>
+                        <option data-if="controller_assignment_option_count > 2" value="2">{{get_controller_assignment_option_name(2)}}</option>
+                        <option data-if="controller_assignment_option_count > 3" value="3">{{get_controller_assignment_option_name(3)}}</option>
+                        <option data-if="controller_assignment_option_count > 4" value="4">{{get_controller_assignment_option_name(4)}}</option>
+                        <option data-if="controller_assignment_option_count > 5" value="5">{{get_controller_assignment_option_name(5)}}</option>
+                    </select>
+                </div>
+                <div class="config-debug__select-wrapper">
+                    <div class="config-debug__select-label"><div>Port 4</div></div>
+                    <select data-value="controller_port_3" style="nav-up: #cont_kb_toggle">
+                        <option value="0">Auto</option>
+                        <option value="1">None</option>
+                        <option data-if="controller_assignment_option_count > 2" value="2">{{get_controller_assignment_option_name(2)}}</option>
+                        <option data-if="controller_assignment_option_count > 3" value="3">{{get_controller_assignment_option_name(3)}}</option>
+                        <option data-if="controller_assignment_option_count > 4" value="4">{{get_controller_assignment_option_name(4)}}</option>
+                        <option data-if="controller_assignment_option_count > 5" value="5">{{get_controller_assignment_option_name(5)}}</option>
+                    </select>
+                </div>
+            </div>
             <div class="config__wrapper input-config">
                 <div class="input-config__horizontal-split">
                     <div class="input-config__mappings" data-event-mouseout="set_input_row_focus(-1)">

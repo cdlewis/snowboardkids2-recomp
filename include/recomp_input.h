@@ -77,6 +77,10 @@ namespace recomp {
     void get_gyro_deltas(float* x, float* y);
     void get_mouse_deltas(float* x, float* y);
     void get_right_analog(float* x, float* y);
+    float get_input_analog_for_controller(int controller_num, const InputField& field);
+    float get_input_analog_for_controller(int controller_num, const std::span<const recomp::InputField> fields);
+    bool get_input_digital_for_controller(int controller_num, const InputField& field);
+    bool get_input_digital_for_controller(int controller_num, const std::span<const recomp::InputField> fields);
 
     enum class InputDevice {
         Controller,
@@ -166,6 +170,12 @@ namespace recomp {
     void handle_events();
 
     ultramodern::input::connected_device_info_t get_connected_device_info(int controller_num);
+    std::vector<std::string> get_controller_assignment_options();
+    int get_controller_port_assignment_option(int controller_num);
+    void set_controller_port_assignment_option(int controller_num, int option_index);
+    std::vector<std::string> get_controller_port_assignment_config();
+    void set_controller_port_assignment_config(const std::vector<std::string>& assignments);
+    int get_mirror_input_ports();
     
     // Rumble strength ranges from 0 to 100.
     int get_rumble_strength();

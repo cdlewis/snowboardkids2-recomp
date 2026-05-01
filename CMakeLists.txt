@@ -397,6 +397,7 @@ endif()
 
 build_vertex_shader(SnowboardKids2Recompiled "shaders/InterfaceVS.hlsl" "shaders/InterfaceVS.hlsl")
 build_pixel_shader(SnowboardKids2Recompiled "shaders/InterfacePS.hlsl" "shaders/InterfacePS.hlsl")
+build_pixel_shader(SnowboardKids2Recompiled "shaders/SnowOverlayPS.hlsl" "shaders/SnowOverlayPS.hlsl")
 
 # Embed all .nrm files in the "mods" directory
 file(GLOB NRM_FILES "${CMAKE_SOURCE_DIR}/mods/*.nrm")

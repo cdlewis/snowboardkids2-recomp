@@ -104,6 +104,22 @@ static bool sample_positions_supported = false;
 static bool cont_active = true;
 
 static recomp::InputDevice cur_device = recomp::InputDevice::Controller;
+static std::vector<std::string> controller_assignment_options;
+
+static void refresh_controller_assignment_options(bool dirty_model = true) {
+    controller_assignment_options = recomp::get_controller_assignment_options();
+    if (dirty_model && controls_model_handle) {
+        controls_model_handle.DirtyVariable("controller_assignment_option_count");
+        controls_model_handle.DirtyVariable("controller_port_0");
+        controls_model_handle.DirtyVariable("controller_port_1");
+        controls_model_handle.DirtyVariable("controller_port_2");
+        controls_model_handle.DirtyVariable("controller_port_3");
+    }
+}
+
+void recompui::update_controller_assignment_options() {
+    refresh_controller_assignment_options();
+}
 
 int recomp::get_scanned_input_index() {
     return scanned_input_index;
@@ -735,8 +751,37 @@ public:
             throw std::runtime_error("Failed to make RmlUi data model for the controls config menu");
         }
 
+        refresh_controller_assignment_options();
+
         constructor.BindFunc("input_count", [](Rml::Variant& out) { out = static_cast<uint64_t>(recomp::get_num_inputs()); } );
         constructor.BindFunc("input_device_is_keyboard", [](Rml::Variant& out) { out = cur_device == recomp::InputDevice::Keyboard; } );
+        constructor.BindFunc("controller_assignment_option_count", [](Rml::Variant& out) {
+            out = static_cast<int>(controller_assignment_options.size());
+        });
+
+        constructor.RegisterTransformFunc("get_controller_assignment_option_name", [](const Rml::VariantList& inputs) {
+            size_t option_index = inputs.at(0).Get<size_t>();
+            if (option_index < controller_assignment_options.size()) {
+                return Rml::Variant{controller_assignment_options[option_index]};
+            }
+            return Rml::Variant{""};
+        });
+
+        auto bind_controller_port = [&constructor](const char* name, int port) {
+            constructor.BindFunc(name,
+                [port](Rml::Variant& out) {
+                    out = recomp::get_controller_port_assignment_option(port);
+                },
+                [port](const Rml::Variant& in) {
+                    recomp::set_controller_port_assignment_option(port, in.Get<int>());
+                    refresh_controller_assignment_options();
+                }
+            );
+        };
+        bind_controller_port("controller_port_0", 0);
+        bind_controller_port("controller_port_1", 1);
+        bind_controller_port("controller_port_2", 2);
+        bind_controller_port("controller_port_3", 3);
 
         constructor.RegisterTransformFunc("get_input_name", [](const Rml::VariantList& inputs) {
             return Rml::Variant{recomp::get_input_name(static_cast<recomp::GameInput>(inputs.at(0).Get<size_t>()))};

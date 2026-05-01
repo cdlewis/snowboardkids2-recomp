@@ -1,5 +1,7 @@
 #include <atomic>
 #include <mutex>
+#include <algorithm>
+#include <cstdlib>
 
 #include "ultramodern/ultramodern.hpp"
 #include "recomp.h"
@@ -11,13 +13,35 @@
 #include "GamepadMotion.hpp"
 
 constexpr float axis_threshold = 0.5f;
+constexpr int max_n64_controllers = 4;
+constexpr SDL_JoystickID disconnected_controller_id = -1;
+constexpr const char* controller_assignment_auto = "";
+constexpr const char* controller_assignment_none = "none";
+
+static int mirror_input_ports = []() {
+    const char* env = std::getenv("RECOMP_MIRROR_INPUTS");
+    if (env == nullptr || env[0] == '\0') {
+        return 0;
+    }
+
+    char* end = nullptr;
+    long value = std::strtol(env, &end, 10);
+    if (end == env) {
+        return 0;
+    }
+
+    return std::clamp(static_cast<int>(value), 0, max_n64_controllers);
+}();
 
 struct ControllerState {
     SDL_GameController* controller;
+    std::string device_key;
+    std::string display_name;
+    int connection_order;
     std::array<float, 3> latest_accelerometer;
     GamepadMotion motion;
     uint32_t prev_gyro_timestamp;
-    ControllerState() : controller{}, latest_accelerometer{}, motion{}, prev_gyro_timestamp{} {
+    ControllerState() : controller{}, device_key{}, display_name{}, connection_order{}, latest_accelerometer{}, motion{}, prev_gyro_timestamp{} {
         motion.Reset();
         motion.SetCalibrationMode(GamepadMotionHelpers::CalibrationMode::Stillness | GamepadMotionHelpers::CalibrationMode::SensorFusion);
     };
@@ -29,8 +53,15 @@ static struct {
     int numkeys = 0;
     std::atomic_int32_t mouse_wheel_pos = 0;
     std::mutex cur_controllers_mutex;
-    std::vector<SDL_GameController*> cur_controllers{};
     std::unordered_map<SDL_JoystickID, ControllerState> controller_states;
+    std::array<SDL_JoystickID, max_n64_controllers> port_controllers{
+        disconnected_controller_id,
+        disconnected_controller_id,
+        disconnected_controller_id,
+        disconnected_controller_id,
+    };
+    std::array<std::string, max_n64_controllers> desired_port_controllers{};
+    int next_connection_order = 0;
     
     std::array<float, 2> rotation_delta{};
     std::array<float, 2> mouse_delta{};
@@ -38,8 +69,8 @@ static struct {
     std::array<float, 2> pending_rotation_delta{};
     std::array<float, 2> pending_mouse_delta{};
 
-    float cur_rumble;
-    bool rumble_active;
+    std::array<float, max_n64_controllers> cur_rumble{};
+    std::array<bool, max_n64_controllers> rumble_active{};
 } InputState;
 
 static struct {
@@ -56,6 +87,142 @@ enum class InputType {
     ControllerDigital,
     ControllerAnalog // Axis input_id values are the SDL value + 1
 };
+
+static std::string get_controller_device_key(SDL_GameController* controller) {
+    SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
+    char guid_str[33]{};
+    SDL_JoystickGetGUIDString(SDL_JoystickGetGUID(joystick), guid_str, sizeof(guid_str));
+
+    const char* name = SDL_GameControllerName(controller);
+    const char* serial = SDL_GameControllerGetSerial(controller);
+
+    std::string key = guid_str;
+    key += "|";
+    key += name != nullptr ? name : "";
+    key += "|";
+    key += serial != nullptr ? serial : "";
+    return key;
+}
+
+static std::string get_controller_display_name(SDL_GameController* controller) {
+    const char* name = SDL_GameControllerName(controller);
+    if (name == nullptr || name[0] == '\0') {
+        return "Controller";
+    }
+
+    return name;
+}
+
+static std::vector<SDL_JoystickID> sorted_controller_ids_locked() {
+    std::vector<SDL_JoystickID> ids;
+    ids.reserve(InputState.controller_states.size());
+    for (const auto& [id, state] : InputState.controller_states) {
+        if (state.controller != nullptr) {
+            ids.push_back(id);
+        }
+    }
+
+    std::sort(ids.begin(), ids.end(), [](SDL_JoystickID lhs, SDL_JoystickID rhs) {
+        return InputState.controller_states[lhs].connection_order < InputState.controller_states[rhs].connection_order;
+    });
+
+    return ids;
+}
+
+static bool is_controller_assigned_locked(SDL_JoystickID controller_id) {
+    return std::find(InputState.port_controllers.begin(), InputState.port_controllers.end(), controller_id) != InputState.port_controllers.end();
+}
+
+static void refresh_port_assignments_locked() {
+    InputState.port_controllers.fill(disconnected_controller_id);
+
+    for (int port = 0; port < max_n64_controllers; port++) {
+        const std::string& desired = InputState.desired_port_controllers[port];
+        if (desired.empty() || desired == controller_assignment_none) {
+            continue;
+        }
+
+        for (SDL_JoystickID id : sorted_controller_ids_locked()) {
+            const ControllerState& state = InputState.controller_states[id];
+            if (!is_controller_assigned_locked(id) && state.device_key == desired) {
+                InputState.port_controllers[port] = id;
+                break;
+            }
+        }
+    }
+
+    for (int port = 0; port < max_n64_controllers; port++) {
+        if (!InputState.desired_port_controllers[port].empty()) {
+            continue;
+        }
+
+        for (SDL_JoystickID id : sorted_controller_ids_locked()) {
+            if (!is_controller_assigned_locked(id)) {
+                InputState.port_controllers[port] = id;
+                break;
+            }
+        }
+    }
+}
+
+static ControllerState* get_controller_for_port_locked(int controller_num) {
+    if (controller_num < 0 || controller_num >= max_n64_controllers) {
+        return nullptr;
+    }
+
+    SDL_JoystickID controller_id = InputState.port_controllers[controller_num];
+    auto find_it = InputState.controller_states.find(controller_id);
+    if (find_it == InputState.controller_states.end() || find_it->second.controller == nullptr) {
+        return nullptr;
+    }
+
+    return &find_it->second;
+}
+
+static bool open_controller_device_locked(int device_index) {
+    if (!SDL_IsGameController(device_index)) {
+        return false;
+    }
+
+    SDL_JoystickID instance_id = SDL_JoystickGetDeviceInstanceID(device_index);
+    if (InputState.controller_states.find(instance_id) != InputState.controller_states.end()) {
+        return false;
+    }
+
+    SDL_GameController* controller = SDL_GameControllerOpen(device_index);
+    if (controller == nullptr) {
+        return false;
+    }
+
+    SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
+    instance_id = SDL_JoystickInstanceID(joystick);
+    ControllerState& state = InputState.controller_states[instance_id];
+    state.controller = controller;
+    state.device_key = get_controller_device_key(controller);
+    state.display_name = get_controller_display_name(controller);
+    state.connection_order = InputState.next_connection_order++;
+
+    if (SDL_GameControllerHasSensor(controller, SDL_SensorType::SDL_SENSOR_GYRO) && SDL_GameControllerHasSensor(controller, SDL_SensorType::SDL_SENSOR_ACCEL)) {
+        SDL_GameControllerSetSensorEnabled(controller, SDL_SensorType::SDL_SENSOR_GYRO, SDL_TRUE);
+        SDL_GameControllerSetSensorEnabled(controller, SDL_SensorType::SDL_SENSOR_ACCEL, SDL_TRUE);
+    }
+
+    return true;
+}
+
+static bool sync_connected_controllers_locked() {
+    bool changed = false;
+    const int joystick_count = SDL_NumJoysticks();
+    for (int device_index = 0; device_index < joystick_count; device_index++) {
+        changed |= open_controller_device_locked(device_index);
+    }
+
+    if (changed) {
+        refresh_port_assignments_locked();
+    }
+
+    return changed;
+}
 
 void set_scanned_input(recomp::InputField value) {
     scanning_device.store(recomp::InputDevice::COUNT);
@@ -102,6 +269,11 @@ bool should_override_keystate(SDL_Scancode key, SDL_Keymod mod) {
 
 bool sdl_event_filter(void* userdata, SDL_Event* event) {
     switch (event->type) {
+    case SDL_EventType::SDL_WINDOWEVENT:
+        if (event->window.event != SDL_WINDOWEVENT_RESIZED && event->window.event != SDL_WINDOWEVENT_SIZE_CHANGED) {
+            queue_if_enabled(event);
+        }
+        break;
     case SDL_EventType::SDL_KEYDOWN:
         {
             SDL_KeyboardEvent* keyevent = &event->key;
@@ -133,25 +305,31 @@ bool sdl_event_filter(void* userdata, SDL_Event* event) {
     case SDL_EventType::SDL_CONTROLLERDEVICEADDED:
         {
             SDL_ControllerDeviceEvent* controller_event = &event->cdevice;
-            SDL_GameController* controller = SDL_GameControllerOpen(controller_event->which);
             printf("Controller added: %d\n", controller_event->which);
-            if (controller != nullptr) {
-                printf("  Instance ID: %d\n", SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller)));
-                ControllerState& state = InputState.controller_states[SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller))];
-                state.controller = controller;
-
-                if (SDL_GameControllerHasSensor(controller, SDL_SensorType::SDL_SENSOR_GYRO) && SDL_GameControllerHasSensor(controller, SDL_SensorType::SDL_SENSOR_ACCEL)) {
-                    SDL_GameControllerSetSensorEnabled(controller, SDL_SensorType::SDL_SENSOR_GYRO, SDL_TRUE);
-                    SDL_GameControllerSetSensorEnabled(controller, SDL_SensorType::SDL_SENSOR_ACCEL, SDL_TRUE);
+            {
+                std::lock_guard lock{ InputState.cur_controllers_mutex };
+                if (open_controller_device_locked(controller_event->which)) {
+                    refresh_port_assignments_locked();
                 }
+                printf("  Instance ID: %d\n", SDL_JoystickGetDeviceInstanceID(controller_event->which));
             }
+            recompui::update_controller_assignment_options();
         }
         break;
     case SDL_EventType::SDL_CONTROLLERDEVICEREMOVED:
         {
             SDL_ControllerDeviceEvent* controller_event = &event->cdevice;
             printf("Controller removed: %d\n", controller_event->which);
-            InputState.controller_states.erase(controller_event->which);
+            {
+                std::lock_guard lock{ InputState.cur_controllers_mutex };
+                auto find_it = InputState.controller_states.find(controller_event->which);
+                if (find_it != InputState.controller_states.end()) {
+                    SDL_GameControllerClose(find_it->second.controller);
+                    InputState.controller_states.erase(find_it);
+                }
+                refresh_port_assignments_locked();
+            }
+            recompui::update_controller_assignment_options();
         }
         break;
     case SDL_EventType::SDL_QUIT: {
@@ -470,17 +648,14 @@ void recomp::poll_inputs() {
     InputState.keys = SDL_GetKeyboardState(&InputState.numkeys);
     InputState.keymod = SDL_GetModState();
 
+    bool controller_list_changed = false;
     {
         std::lock_guard lock{ InputState.cur_controllers_mutex };
-        InputState.cur_controllers.clear();
-
-        for (const auto& [id, state] : InputState.controller_states) {
-            (void)id; // Avoid unused variable warning.
-            SDL_GameController* controller = state.controller;
-            if (controller != nullptr) {
-                InputState.cur_controllers.push_back(controller);
-            }
-        }
+        controller_list_changed = sync_connected_controllers_locked();
+        refresh_port_assignments_locked();
+    }
+    if (controller_list_changed) {
+        recompui::update_controller_assignment_options();
     }
 
     // Read the deltas while resetting them to zero.
@@ -514,18 +689,35 @@ void recomp::poll_inputs() {
 }
 
 void recomp::set_rumble(int controller_num, bool on) {
-    if (controller_num == 0) {
-        InputState.rumble_active = on;
+    if (controller_num >= 0 && controller_num < max_n64_controllers) {
+        InputState.rumble_active[controller_num] = on;
     }
 }
 
 ultramodern::input::connected_device_info_t recomp::get_connected_device_info(int controller_num) {
-    switch (controller_num) {
-        case 0:
+    if (mirror_input_ports > 0 && controller_num >= 0 && controller_num < mirror_input_ports) {
+        return ultramodern::input::connected_device_info_t {
+            .connected_device = ultramodern::input::Device::Controller,
+            .connected_pak = ultramodern::input::Pak::RumblePak,
+        };
+    }
+
+    if (controller_num == 0) {
+        return ultramodern::input::connected_device_info_t {
+            .connected_device = ultramodern::input::Device::Controller,
+            .connected_pak = ultramodern::input::Pak::RumblePak,
+        };
+    }
+
+    {
+        std::lock_guard lock{ InputState.cur_controllers_mutex };
+        sync_connected_controllers_locked();
+        if (get_controller_for_port_locked(controller_num) != nullptr) {
             return ultramodern::input::connected_device_info_t {
                 .connected_device = ultramodern::input::Device::Controller,
                 .connected_pak = ultramodern::input::Pak::RumblePak,
             };
+        }
     }
 
     return ultramodern::input::connected_device_info_t {
@@ -542,34 +734,38 @@ static float smoothstep(float from, float to, float amount) {
 // Update rumble to attempt to mimic the way n64 rumble ramps up and falls off
 void recomp::update_rumble() {
     // Note: values are not accurate! just approximations based on feel
-    if (InputState.rumble_active) {
-        InputState.cur_rumble += 0.17f;
-        if (InputState.cur_rumble > 1) InputState.cur_rumble = 1;
-    } else {
-        InputState.cur_rumble *= 0.92f;
-        InputState.cur_rumble -= 0.01f;
-        if (InputState.cur_rumble < 0) InputState.cur_rumble = 0;
-    }
-    float smooth_rumble = smoothstep(0, 1, InputState.cur_rumble);
-
-    uint16_t rumble_strength = smooth_rumble * (recomp::get_rumble_strength() * 0xFFFF / 100);
     uint32_t duration = 1000000; // Dummy duration value that lasts long enough to matter as the game will reset rumble on its own.
     {
         std::lock_guard lock{ InputState.cur_controllers_mutex };
-        for (const auto& controller : InputState.cur_controllers) {
-            SDL_GameControllerRumble(controller, 0, rumble_strength, duration);
+        for (int port = 0; port < max_n64_controllers; port++) {
+            if (InputState.rumble_active[port]) {
+                InputState.cur_rumble[port] += 0.17f;
+                if (InputState.cur_rumble[port] > 1) InputState.cur_rumble[port] = 1;
+            } else {
+                InputState.cur_rumble[port] *= 0.92f;
+                InputState.cur_rumble[port] -= 0.01f;
+                if (InputState.cur_rumble[port] < 0) InputState.cur_rumble[port] = 0;
+            }
+
+            ControllerState* state = get_controller_for_port_locked(port);
+            if (state != nullptr) {
+                float smooth_rumble = smoothstep(0, 1, InputState.cur_rumble[port]);
+                uint16_t rumble_strength = smooth_rumble * (recomp::get_rumble_strength() * 0xFFFF / 100);
+                SDL_GameControllerRumble(state->controller, 0, rumble_strength, duration);
+            }
         }
     }
 }
 
-bool controller_button_state(int32_t input_id) {
+bool controller_button_state_for_port(int controller_num, int32_t input_id) {
     if (input_id >= 0 && input_id < SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_MAX) {
         SDL_GameControllerButton button = (SDL_GameControllerButton)input_id;
         bool ret = false;
         {
             std::lock_guard lock{ InputState.cur_controllers_mutex };
-            for (const auto& controller : InputState.cur_controllers) {
-                ret |= SDL_GameControllerGetButton(controller, button);
+            ControllerState* state = get_controller_for_port_locked(controller_num);
+            if (state != nullptr) {
+                ret = SDL_GameControllerGetButton(state->controller, button);
             }
         }
 
@@ -578,9 +774,18 @@ bool controller_button_state(int32_t input_id) {
     return false;
 }
 
+bool controller_button_state(int32_t input_id) {
+    for (int port = 0; port < max_n64_controllers; port++) {
+        if (controller_button_state_for_port(port, input_id)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static std::atomic_bool right_analog_suppressed = false;
 
-float controller_axis_state(int32_t input_id, bool allow_suppression) {
+float controller_axis_state_for_port(int controller_num, int32_t input_id, bool allow_suppression) {
     if (abs(input_id) - 1 < SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_MAX) {
         SDL_GameControllerAxis axis = (SDL_GameControllerAxis)(abs(input_id) - 1);
         bool negative_range = input_id < 0;
@@ -588,8 +793,9 @@ float controller_axis_state(int32_t input_id, bool allow_suppression) {
 
         {
             std::lock_guard lock{ InputState.cur_controllers_mutex };
-            for (const auto& controller : InputState.cur_controllers) {
-                float cur_val = SDL_GameControllerGetAxis(controller, axis) * (1/32768.0f);
+            ControllerState* state = get_controller_for_port_locked(controller_num);
+            if (state != nullptr) {
+                float cur_val = SDL_GameControllerGetAxis(state->controller, axis) * (1/32768.0f);
                 if (negative_range) {
                     cur_val = -cur_val;
                 }
@@ -606,6 +812,14 @@ float controller_axis_state(int32_t input_id, bool allow_suppression) {
         return std::clamp(ret, 0.0f, 1.0f);
     }
     return false;
+}
+
+float controller_axis_state(int32_t input_id, bool allow_suppression) {
+    float ret = 0.0f;
+    for (int port = 0; port < max_n64_controllers; port++) {
+        ret += controller_axis_state_for_port(port, input_id, allow_suppression);
+    }
+    return std::clamp(ret, 0.0f, 1.0f);
 }
 
 float recomp::get_input_analog(const recomp::InputField& field) {
@@ -630,10 +844,31 @@ float recomp::get_input_analog(const recomp::InputField& field) {
     }
 }
 
+float recomp::get_input_analog_for_controller(int controller_num, const recomp::InputField& field) {
+    switch ((InputType)field.input_type) {
+    case InputType::ControllerDigital:
+        return controller_button_state_for_port(controller_num, field.input_id) ? 1.0f : 0.0f;
+    case InputType::ControllerAnalog:
+        return controller_axis_state_for_port(controller_num, field.input_id, true);
+    case InputType::Keyboard:
+    case InputType::Mouse:
+    case InputType::None:
+        return 0.0f;
+    }
+}
+
 float recomp::get_input_analog(const std::span<const recomp::InputField> fields) {
     float ret = 0.0f;
     for (const auto& field : fields) {
         ret += get_input_analog(field);
+    }
+    return std::clamp(ret, 0.0f, 1.0f);
+}
+
+float recomp::get_input_analog_for_controller(int controller_num, const std::span<const recomp::InputField> fields) {
+    float ret = 0.0f;
+    for (const auto& field : fields) {
+        ret += get_input_analog_for_controller(controller_num, field);
     }
     return std::clamp(ret, 0.0f, 1.0f);
 }
@@ -661,10 +896,31 @@ bool recomp::get_input_digital(const recomp::InputField& field) {
     }
 }
 
+bool recomp::get_input_digital_for_controller(int controller_num, const recomp::InputField& field) {
+    switch ((InputType)field.input_type) {
+    case InputType::ControllerDigital:
+        return controller_button_state_for_port(controller_num, field.input_id);
+    case InputType::ControllerAnalog:
+        return controller_axis_state_for_port(controller_num, field.input_id, true) >= axis_threshold;
+    case InputType::Keyboard:
+    case InputType::Mouse:
+    case InputType::None:
+        return false;
+    }
+}
+
 bool recomp::get_input_digital(const std::span<const recomp::InputField> fields) {
     bool ret = 0;
     for (const auto& field : fields) {
         ret |= get_input_digital(field);
+    }
+    return ret;
+}
+
+bool recomp::get_input_digital_for_controller(int controller_num, const std::span<const recomp::InputField> fields) {
+    bool ret = 0;
+    for (const auto& field : fields) {
+        ret |= get_input_digital_for_controller(controller_num, field);
     }
     return ret;
 }
@@ -730,6 +986,88 @@ void recomp::get_right_analog(float* x, float* y) {
 
 void recomp::set_right_analog_suppressed(bool suppressed) {
     right_analog_suppressed.store(suppressed);
+}
+
+std::vector<std::string> recomp::get_controller_assignment_options() {
+    std::vector<std::string> options{ "Auto", "None" };
+
+    std::lock_guard lock{ InputState.cur_controllers_mutex };
+    for (SDL_JoystickID id : sorted_controller_ids_locked()) {
+        const ControllerState& state = InputState.controller_states[id];
+        options.push_back(state.display_name);
+    }
+
+    return options;
+}
+
+int recomp::get_controller_port_assignment_option(int controller_num) {
+    if (controller_num < 0 || controller_num >= max_n64_controllers) {
+        return 0;
+    }
+
+    std::lock_guard lock{ InputState.cur_controllers_mutex };
+    const std::string& desired = InputState.desired_port_controllers[controller_num];
+    if (desired.empty()) {
+        return 0;
+    }
+    if (desired == controller_assignment_none) {
+        return 1;
+    }
+
+    int option_index = 2;
+    for (SDL_JoystickID id : sorted_controller_ids_locked()) {
+        const ControllerState& state = InputState.controller_states[id];
+        if (state.device_key == desired) {
+            return option_index;
+        }
+        option_index++;
+    }
+
+    return 0;
+}
+
+void recomp::set_controller_port_assignment_option(int controller_num, int option_index) {
+    if (controller_num < 0 || controller_num >= max_n64_controllers) {
+        return;
+    }
+
+    std::lock_guard lock{ InputState.cur_controllers_mutex };
+    if (option_index <= 0) {
+        InputState.desired_port_controllers[controller_num] = controller_assignment_auto;
+    } else if (option_index == 1) {
+        InputState.desired_port_controllers[controller_num] = controller_assignment_none;
+    } else {
+        std::vector<SDL_JoystickID> ids = sorted_controller_ids_locked();
+        size_t controller_index = static_cast<size_t>(option_index - 2);
+        if (controller_index < ids.size()) {
+            InputState.desired_port_controllers[controller_num] = InputState.controller_states[ids[controller_index]].device_key;
+        }
+    }
+    refresh_port_assignments_locked();
+}
+
+std::vector<std::string> recomp::get_controller_port_assignment_config() {
+    std::vector<std::string> assignments;
+    assignments.reserve(max_n64_controllers);
+
+    std::lock_guard lock{ InputState.cur_controllers_mutex };
+    for (const std::string& assignment : InputState.desired_port_controllers) {
+        assignments.push_back(assignment);
+    }
+
+    return assignments;
+}
+
+void recomp::set_controller_port_assignment_config(const std::vector<std::string>& assignments) {
+    std::lock_guard lock{ InputState.cur_controllers_mutex };
+    for (int port = 0; port < max_n64_controllers; port++) {
+        InputState.desired_port_controllers[port] = port < assignments.size() ? assignments[port] : std::string{};
+    }
+    refresh_port_assignments_locked();
+}
+
+int recomp::get_mirror_input_ports() {
+    return mirror_input_ports;
 }
 
 bool recomp::game_input_disabled() {

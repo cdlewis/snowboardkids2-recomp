@@ -6,11 +6,13 @@
 #include "RmlUi/Core.h"
 #include "nfd.h"
 #include <filesystem>
+#include <fstream>
 
 static std::string version_string;
 
 Rml::DataModelHandle model_handle;
 bool mm_rom_valid = false;
+static constexpr const char* launcher_background_src = "?/launcher/background";
 
 extern std::vector<recomp::GameEntry> supported_games;
 
@@ -63,6 +65,15 @@ public:
 
     }
     void load_document() override {
+        const std::filesystem::path background_path = zelda64::get_asset_path("launcher_background.png");
+        std::ifstream background_file{background_path, std::ios::binary};
+        if (background_file) {
+            std::vector<char> background_bytes{
+                std::istreambuf_iterator<char>{background_file},
+                std::istreambuf_iterator<char>{}
+            };
+            recompui::queue_image_from_bytes_file(launcher_background_src, background_bytes);
+        }
 		launcher_context = recompui::create_context(zelda64::get_asset_path("launcher.rml"));
     }
     void register_events(recompui::UiEventListenerInstancer& listener) override {
