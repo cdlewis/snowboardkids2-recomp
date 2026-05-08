@@ -4,6 +4,9 @@
 #define RECOMP_EXPORT __attribute__((section(".recomp_export")))
 #define RECOMP_PATCH __attribute__((section(".recomp_patch")))
 #define RECOMP_FORCE_PATCH __attribute__((section(".recomp_force_patch")))
+#ifndef M2CTX
+#define M2CTX
+#endif
 #define RECOMP_DECLARE_EVENT(func)                                                          \
     _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"") \
         __attribute__((noinline, weak, used, section(".recomp_event"))) void func {         \
@@ -42,8 +45,18 @@
 #include "graphics.h"
 #include "PR/abi.h"
 
+#include "core/buffers.h"
+#include "data/data_table.h"
+#include "gamestate.h"
+#include "graphics/graphics.h"
+#include "graphics/sprite_rdp.h"
+#include "graphics/tiled_sprite_grid.h"
+#include "math/geometry.h"
+#include "race/race_effects.h"
+#include "race/race_session.h"
+#include "system/task_scheduler.h"
+
 #include "input.h"
-#include "structs.h"
 
 #ifndef gEXFillRectangle
 #define gEXFillRectangle(cmd, lorigin, rorigin, ulx, uly, lrx, lry)                         \

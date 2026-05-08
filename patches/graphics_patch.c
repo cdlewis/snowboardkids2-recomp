@@ -14,25 +14,13 @@
 #include "PR/mbi.h"
 #include "PR/gbi.h"
 #include "PR/ucode.h"
+#ifndef M2CTX
+#define M2CTX
+#endif
+#include "graphics/graphics.h"
 #include "rt64_extended_gbi.h"
 
 #define RECOMP_PATCH __attribute__((section(".recomp_patch")))
-
-typedef struct ViewportNode {
-    u8 _pad00[0x10];
-    /* 0x10 */ struct ViewportNode* list3_next;
-    u8 _pad14[0x88];
-    /* 0x9C */ struct FrameCallbackMsg* frameCallbackMsg;
-} ViewportNode;
-
-typedef struct FrameCallbackMsg {
-    /* 0x00 */ OSTask t;
-    /* 0x40 */ OSMesgQueue* msgQueue;
-    /* 0x44 */ s32 msgData;
-    /* 0x48 */ void* auxBuffer;
-    /* 0x4C */ u16 scanlineValue;
-    /* 0x4E */ u16 taskFlags;
-} FrameCallbackMsg;
 
 extern ViewportNode gRootViewport;
 extern s32 gFrameBufferFlags[];
@@ -43,7 +31,6 @@ extern u8 gDisplayFramePending;
 extern void* gDisplayBufferMsgs;
 
 void sendMessageToThreadSyncQueue(OSMesg message);
-void* arenaAlloc16(s32 size);
 
 RECOMP_PATCH void processDisplayFrameUpdate(void) {
     ViewportNode* node;

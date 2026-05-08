@@ -7,54 +7,13 @@
  * views consistently opt into RT64's widescreen handling. Smaller framed views
  * keep their authored bounds.
  */
-#include "PR/ultratypes.h"
+#include "patches.h"
 
 #define RECOMP_PATCH __attribute__((section(".recomp_patch")))
-
-typedef struct ViewportNode {
-    u8 _pad00[0x10];
-    /* 0x10 */ struct ViewportNode *list3_next;
-    u8 _pad14[0x84];
-    /* 0x98 */ void *_displayListPtr;
-    /* 0x9C */ void *_frameCallbackMsg;
-    /* 0xA0 */ s16 originX;
-    /* 0xA2 */ s16 originY;
-    /* 0xA4 */ s16 viewportLeft;
-    /* 0xA6 */ s16 viewportTop;
-    /* 0xA8 */ s16 viewportRight;
-    /* 0xAA */ s16 viewportBottom;
-    /* 0xAC */ s16 offsetX;
-    /* 0xAE */ s16 offsetY;
-    /* 0xB0 */ s16 clipLeft;
-    /* 0xB2 */ s16 clipTop;
-    /* 0xB4 */ s16 clipRight;
-    /* 0xB6 */ s16 clipBottom;
-    u8 _padB8[0x10];
-    /* 0xC8 */ s16 _viewportWidth;
-    /* 0xCA */ s16 _viewportHeight;
-    /* 0xCC */ s16 _unkCC;
-    /* 0xCE */ s16 _unkCE;
-    /* 0xD0 */ s16 unkD0;
-    /* 0xD2 */ s16 unkD2;
-} ViewportNode;
 
 /* The original layout uses a doubly-linked sibling list at 0x08 for the
  * traversal we need; we don't dereference it through this struct. */
 extern ViewportNode gRootViewport;
-
-/* Match the layout used by graphics.c's updateViewportBounds traversal:
- *   node = &gRootViewport;
- *   childNode = node->unk0.next;        // PARENT pointer for non-roots
- *   ...
- *   node = node->unk8.list2_next;       // NEXT sibling/descendant
- * Both are at offsets 0x00 and 0x08. We walk via raw offsets to avoid
- * mirroring the union shape. */
-static ViewportNode *vp_unk0_next(ViewportNode *n) {
-    return *(ViewportNode **)((u8 *)n + 0x00);
-}
-static ViewportNode *vp_unk8_next(ViewportNode *n) {
-    return *(ViewportNode **)((u8 *)n + 0x08);
-}
 
 
 RECOMP_PATCH void setModelCameraTransform(void *arg0, s16 originX, s16 originY,
@@ -95,7 +54,7 @@ RECOMP_PATCH void updateViewportBounds(void) {
 
     node = &gRootViewport;
     do {
-        childNode = vp_unk0_next(node);
+        childNode = node->unk0.next;
         if (childNode != NULL) {
             inheritedCenterX = (u16)childNode->offsetX;
             inheritedCenterY = (u16)childNode->offsetY;
@@ -120,7 +79,7 @@ RECOMP_PATCH void updateViewportBounds(void) {
         if (node->clipRight  < computedLeft) node->clipRight  = computedLeft;
         computedTop  = node->clipTop;
         if (node->clipBottom < computedTop)  node->clipBottom = computedTop;
-        node = vp_unk8_next(node);
+        node = node->unk8.list2_next;
     } while (node != NULL);
 }
 

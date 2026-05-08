@@ -6,18 +6,12 @@
 #define RACE_FOG_MIN 500
 #define RACE_FOG_MAX 32767
 
-typedef struct {
-    s32 x;
-    s32 y;
-    s32 z;
-} RaceDrawDistanceVec3i;
-
 static s32 is_short_race_far_plane(f32 far) {
     return far == 2000.0f || far == 3000.0f || far == 3800.0f;
 }
 
-static s32 is_race_player_camera_viewport(Node_70B00 *node) {
-    Node_70B00 *parent;
+static s32 is_race_player_camera_viewport(ViewportNode *node) {
+    ViewportNode *parent;
     u16 playerIndex;
 
     if (node == NULL || node->slot_index > 3) {
@@ -34,7 +28,7 @@ static s32 is_race_player_camera_viewport(Node_70B00 *node) {
            parent->id == node->id;
 }
 
-static s32 is_race_fog_viewport(Node_70B00 *node) {
+static s32 is_race_fog_viewport(ViewportNode *node) {
     u16 playerIndex;
 
     if (node == NULL || node->id < 0x64 || node->id > 0x67) {
@@ -45,7 +39,7 @@ static s32 is_race_fog_viewport(Node_70B00 *node) {
     return node->slot_index == playerIndex || node->slot_index == (u16)(playerIndex + 4);
 }
 
-RECOMP_PATCH void setViewportPerspective(Node_70B00 *node, f32 fov, f32 aspect, f32 near, f32 far) {
+RECOMP_PATCH void setViewportPerspective(ViewportNode *node, f32 fov, f32 aspect, f32 near, f32 far) {
     if (is_race_player_camera_viewport(node) && is_short_race_far_plane(far)) {
         far = RACE_CAMERA_FAR_PLANE;
     }
@@ -53,14 +47,14 @@ RECOMP_PATCH void setViewportPerspective(Node_70B00 *node, f32 fov, f32 aspect, 
     guPerspective(&node->perspectiveMatrix, &node->perspNorm, fov, aspect, near, far, 1.0f);
 }
 
-extern Node_70B00 *gActiveViewport;
+extern ViewportNode *gActiveViewport;
 
 static s32 race_camera_axis_is_culled(s32 cameraPos, s32 objectPos) {
     return (u32)((cameraPos - objectPos) + RACE_CAMERA_CULL_DISTANCE_FIXED) >
            (u32)(RACE_CAMERA_CULL_DISTANCE_FIXED * 2);
 }
 
-RECOMP_PATCH s32 isObjectCulled(RaceDrawDistanceVec3i *pos) {
+RECOMP_PATCH s32 isObjectCulled(Vec3i *pos) {
     s32 cullDistance;
     s32 cullDistanceDouble;
     s32 cameraX;
@@ -90,10 +84,10 @@ RECOMP_PATCH s32 isObjectCulled(RaceDrawDistanceVec3i *pos) {
     return (u32)((*(s32 *)((u8 *)gActiveViewport + 0x13C) - pos->z) + cullDistance) > (u32)cullDistanceDouble;
 }
 
-extern Node_70B00 gRootViewport;
+extern ViewportNode gRootViewport;
 
 RECOMP_PATCH void setViewportFogById(u16 viewportId, s16 fogMin, s16 fogMax, u8 fogR, u8 fogG, u8 fogB) {
-    Node_70B00 *node = gRootViewport.unk8.list2_next;
+    ViewportNode *node = gRootViewport.unk8.list2_next;
 
     while (node != NULL) {
         if (node->id == viewportId) {

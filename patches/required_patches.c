@@ -74,13 +74,6 @@ RECOMP_PATCH void handleFrameBufferComplete(s32 bufferIndex) {
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
-#define MEMORY_HEAP_SIZE 0x200000
-#define gMemoryHeapEnd (gMemoryHeapBase + MEMORY_HEAP_SIZE)
-
-typedef union {
-    u16 data[SCREEN_HEIGHT * SCREEN_WIDTH];
-    u16 array[SCREEN_HEIGHT][SCREEN_WIDTH];
-} FrameBuffer; // size = 0x25800
 
 extern FrameBuffer gFrameBuffer;
 extern FrameBuffer gAuxFrameBuffers[3];
@@ -101,35 +94,6 @@ extern void *gYieldBuffer;
 extern long long int rspbootTextStart[];
 extern long long int aspMainTextStart[];
 extern Gfx gDefaultRenderDisplayList[];
-extern s32 microcodeGroups[];
-
-typedef struct {
-    /* 0x00 */ u32 type;
-    /* 0x04 */ u32 flags;
-    /* 0x08 */ void *ucode_boot;
-    /* 0x0C */ u32 ucode_boot_size;
-    /* 0x10 */ void *ucode;
-    /* 0x14 */ u32 ucode_size;
-    /* 0x18 */ void *output_buff_size;
-    /* 0x1C */ u32 ucode_data_size;
-    /* 0x20 */ void *ucode_data;
-    /* 0x24 */ u32 dram_stack_size;
-    /* 0x28 */ void *dram_stack;
-    /* 0x2C */ u32 task_2C;
-    /* 0x30 */ void *data_ptr;
-    /* 0x34 */ u32 data_size;
-    /* 0x38 */ void *output_buff;
-    /* 0x3C */ u32 yield_data_size;
-    /* 0x40 */ u32 pad40[2];
-    /* 0x48 */ void *yield_data_ptr;
-    /* 0x4C */ u16 unk4C;
-    /* 0x4E */ u16 unk4E;
-    /* 0x50 */ Gfx displayList[15];
-    u32 pad[34];
-} DisplayBufferMsg;
-
-extern void *gDisplayBufferMsgs;
-void *allocateMemoryNode(s32, u32, u8 *);
 
 RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
     DisplayBufferMsg *msg;
@@ -186,8 +150,8 @@ RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
         msg->ucode_boot_size = (u32) aspMainTextStart;
         msg->ucode_boot_size = msg->ucode_boot_size - ((u32) rspbootTextStart);
         
-        msg->ucode = (void*)microcodeGroups[2];
-        msg->output_buff_size = (void*)microcodeGroups[3];
+        msg->ucode = microcodeGroups[1].ucode;
+        msg->output_buff_size = microcodeGroups[1].ucode_data;
         msg->ucode_data_size = 0x800;
         msg->ucode_data = gDramStack;
         msg->dram_stack_size = 0x400;
