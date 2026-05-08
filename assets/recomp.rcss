@@ -1959,8 +1959,8 @@ scrollbarhorizontal sliderbar {
 
 .bottom-left {
   position: absolute;
-  bottom: 64px;
-  left: 64px;
+  bottom: 64dp;
+  left: 64dp;
   background-color: rgba(12, 42, 96, 0.3);
   padding: 15dp 25dp 20dp 25dp;
   border-radius: 16dp;
@@ -2000,12 +2000,12 @@ scrollbarhorizontal sliderbar {
 }
 
 #menu-container {
-  width: 800px;
+  width: 600dp;
   height: 100%;
   right: 0;
   top: 0;
-  padding-right: 64px;
-  padding-bottom: 64px;
+  padding-right: 64dp;
+  padding-bottom: 34dp;
   position: absolute;
   z-index: 9999;
   display: flex;
@@ -2091,7 +2091,7 @@ scrollbarhorizontal sliderbar {
   padding: 16dp;
   border-radius: 8dp;
   cursor: pointer;
-  margin-bottom: 36px;
+  margin-bottom: 30dp;
   font-family: Fredoka;
   font-weight: 600;
   align-content: flex-end;
