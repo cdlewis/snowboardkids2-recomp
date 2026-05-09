@@ -59,9 +59,9 @@ RECOMP_PATCH void renderPlayerJointShadow(Player *player) {
     }
 
     if (player->jointVertices != NULL && player->jointMatrix != NULL) {
-        gEXMatrixGroupDecomposedNormal(
+        gEXMatrixGroupDecomposedVerts(
             gRegionAllocPtr++,
-            (u32)player,
+            (u32)&player->jointVertices,
             G_EX_PUSH,
             G_MTX_MODELVIEW,
             G_EX_EDIT_NONE
