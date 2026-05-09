@@ -15,8 +15,6 @@
 constexpr float axis_threshold = 0.5f;
 constexpr int max_n64_controllers = 4;
 constexpr SDL_JoystickID disconnected_controller_id = -1;
-constexpr const char* controller_assignment_auto = "";
-constexpr const char* controller_assignment_none = "none";
 
 static int mirror_input_ports = []() {
     const char* env = std::getenv("RECOMP_MIRROR_INPUTS");
@@ -35,13 +33,11 @@ static int mirror_input_ports = []() {
 
 struct ControllerState {
     SDL_GameController* controller;
-    std::string device_key;
-    std::string display_name;
     int connection_order;
     std::array<float, 3> latest_accelerometer;
     GamepadMotion motion;
     uint32_t prev_gyro_timestamp;
-    ControllerState() : controller{}, device_key{}, display_name{}, connection_order{}, latest_accelerometer{}, motion{}, prev_gyro_timestamp{} {
+    ControllerState() : controller{}, connection_order{}, latest_accelerometer{}, motion{}, prev_gyro_timestamp{} {
         motion.Reset();
         motion.SetCalibrationMode(GamepadMotionHelpers::CalibrationMode::Stillness | GamepadMotionHelpers::CalibrationMode::SensorFusion);
     };
@@ -60,7 +56,6 @@ static struct {
         disconnected_controller_id,
         disconnected_controller_id,
     };
-    std::array<std::string, max_n64_controllers> desired_port_controllers{};
     int next_connection_order = 0;
     
     std::array<float, 2> rotation_delta{};
@@ -88,31 +83,6 @@ enum class InputType {
     ControllerAnalog // Axis input_id values are the SDL value + 1
 };
 
-static std::string get_controller_device_key(SDL_GameController* controller) {
-    SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
-    char guid_str[33]{};
-    SDL_JoystickGetGUIDString(SDL_JoystickGetGUID(joystick), guid_str, sizeof(guid_str));
-
-    const char* name = SDL_GameControllerName(controller);
-    const char* serial = SDL_GameControllerGetSerial(controller);
-
-    std::string key = guid_str;
-    key += "|";
-    key += name != nullptr ? name : "";
-    key += "|";
-    key += serial != nullptr ? serial : "";
-    return key;
-}
-
-static std::string get_controller_display_name(SDL_GameController* controller) {
-    const char* name = SDL_GameControllerName(controller);
-    if (name == nullptr || name[0] == '\0') {
-        return "Controller";
-    }
-
-    return name;
-}
-
 static std::vector<SDL_JoystickID> sorted_controller_ids_locked() {
     std::vector<SDL_JoystickID> ids;
     ids.reserve(InputState.controller_states.size());
@@ -137,25 +107,6 @@ static void refresh_port_assignments_locked() {
     InputState.port_controllers.fill(disconnected_controller_id);
 
     for (int port = 0; port < max_n64_controllers; port++) {
-        const std::string& desired = InputState.desired_port_controllers[port];
-        if (desired.empty() || desired == controller_assignment_none) {
-            continue;
-        }
-
-        for (SDL_JoystickID id : sorted_controller_ids_locked()) {
-            const ControllerState& state = InputState.controller_states[id];
-            if (!is_controller_assigned_locked(id) && state.device_key == desired) {
-                InputState.port_controllers[port] = id;
-                break;
-            }
-        }
-    }
-
-    for (int port = 0; port < max_n64_controllers; port++) {
-        if (!InputState.desired_port_controllers[port].empty()) {
-            continue;
-        }
-
         for (SDL_JoystickID id : sorted_controller_ids_locked()) {
             if (!is_controller_assigned_locked(id)) {
                 InputState.port_controllers[port] = id;
@@ -198,8 +149,6 @@ static bool open_controller_device_locked(int device_index) {
     instance_id = SDL_JoystickInstanceID(joystick);
     ControllerState& state = InputState.controller_states[instance_id];
     state.controller = controller;
-    state.device_key = get_controller_device_key(controller);
-    state.display_name = get_controller_display_name(controller);
     state.connection_order = InputState.next_connection_order++;
 
     if (SDL_GameControllerHasSensor(controller, SDL_SensorType::SDL_SENSOR_GYRO) && SDL_GameControllerHasSensor(controller, SDL_SensorType::SDL_SENSOR_ACCEL)) {
@@ -313,7 +262,6 @@ bool sdl_event_filter(void* userdata, SDL_Event* event) {
                 }
                 printf("  Instance ID: %d\n", SDL_JoystickGetDeviceInstanceID(controller_event->which));
             }
-            recompui::update_controller_assignment_options();
         }
         break;
     case SDL_EventType::SDL_CONTROLLERDEVICEREMOVED:
@@ -329,7 +277,6 @@ bool sdl_event_filter(void* userdata, SDL_Event* event) {
                 }
                 refresh_port_assignments_locked();
             }
-            recompui::update_controller_assignment_options();
         }
         break;
     case SDL_EventType::SDL_QUIT: {
@@ -648,14 +595,10 @@ void recomp::poll_inputs() {
     InputState.keys = SDL_GetKeyboardState(&InputState.numkeys);
     InputState.keymod = SDL_GetModState();
 
-    bool controller_list_changed = false;
     {
         std::lock_guard lock{ InputState.cur_controllers_mutex };
-        controller_list_changed = sync_connected_controllers_locked();
+        sync_connected_controllers_locked();
         refresh_port_assignments_locked();
-    }
-    if (controller_list_changed) {
-        recompui::update_controller_assignment_options();
     }
 
     // Read the deltas while resetting them to zero.
@@ -986,84 +929,6 @@ void recomp::get_right_analog(float* x, float* y) {
 
 void recomp::set_right_analog_suppressed(bool suppressed) {
     right_analog_suppressed.store(suppressed);
-}
-
-std::vector<std::string> recomp::get_controller_assignment_options() {
-    std::vector<std::string> options{ "Auto", "None" };
-
-    std::lock_guard lock{ InputState.cur_controllers_mutex };
-    for (SDL_JoystickID id : sorted_controller_ids_locked()) {
-        const ControllerState& state = InputState.controller_states[id];
-        options.push_back(state.display_name);
-    }
-
-    return options;
-}
-
-int recomp::get_controller_port_assignment_option(int controller_num) {
-    if (controller_num < 0 || controller_num >= max_n64_controllers) {
-        return 0;
-    }
-
-    std::lock_guard lock{ InputState.cur_controllers_mutex };
-    const std::string& desired = InputState.desired_port_controllers[controller_num];
-    if (desired.empty()) {
-        return 0;
-    }
-    if (desired == controller_assignment_none) {
-        return 1;
-    }
-
-    int option_index = 2;
-    for (SDL_JoystickID id : sorted_controller_ids_locked()) {
-        const ControllerState& state = InputState.controller_states[id];
-        if (state.device_key == desired) {
-            return option_index;
-        }
-        option_index++;
-    }
-
-    return 0;
-}
-
-void recomp::set_controller_port_assignment_option(int controller_num, int option_index) {
-    if (controller_num < 0 || controller_num >= max_n64_controllers) {
-        return;
-    }
-
-    std::lock_guard lock{ InputState.cur_controllers_mutex };
-    if (option_index <= 0) {
-        InputState.desired_port_controllers[controller_num] = controller_assignment_auto;
-    } else if (option_index == 1) {
-        InputState.desired_port_controllers[controller_num] = controller_assignment_none;
-    } else {
-        std::vector<SDL_JoystickID> ids = sorted_controller_ids_locked();
-        size_t controller_index = static_cast<size_t>(option_index - 2);
-        if (controller_index < ids.size()) {
-            InputState.desired_port_controllers[controller_num] = InputState.controller_states[ids[controller_index]].device_key;
-        }
-    }
-    refresh_port_assignments_locked();
-}
-
-std::vector<std::string> recomp::get_controller_port_assignment_config() {
-    std::vector<std::string> assignments;
-    assignments.reserve(max_n64_controllers);
-
-    std::lock_guard lock{ InputState.cur_controllers_mutex };
-    for (const std::string& assignment : InputState.desired_port_controllers) {
-        assignments.push_back(assignment);
-    }
-
-    return assignments;
-}
-
-void recomp::set_controller_port_assignment_config(const std::vector<std::string>& assignments) {
-    std::lock_guard lock{ InputState.cur_controllers_mutex };
-    for (int port = 0; port < max_n64_controllers; port++) {
-        InputState.desired_port_controllers[port] = port < assignments.size() ? assignments[port] : std::string{};
-    }
-    refresh_port_assignments_locked();
 }
 
 int recomp::get_mirror_input_ports() {

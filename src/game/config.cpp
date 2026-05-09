@@ -386,7 +386,6 @@ bool save_controls_config(const std::filesystem::path& path) {
 
     config_json["keyboard"] = {};
     config_json["controller"] = {};
-    config_json["controller_ports"] = recomp::get_controller_port_assignment_config();
 
     for (size_t i = 0; i < recomp::get_num_inputs(); i++) {
         recomp::GameInput cur_input = static_cast<recomp::GameInput>(i);
@@ -452,8 +451,6 @@ bool load_controls_config(const std::filesystem::path& path) {
     if (!load_input_device_from_json(config_json, recomp::InputDevice::Controller, "controller")) {
         assign_all_mappings(recomp::InputDevice::Controller, recomp::default_n64_controller_mappings);
     }
-
-    recomp::set_controller_port_assignment_config(from_or_default(config_json, "controller_ports", std::vector<std::string>{}));
     return true;
 }
 
