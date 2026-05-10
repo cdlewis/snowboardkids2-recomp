@@ -40,9 +40,8 @@ jobs:
       - name: Checkout submodules
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule sync --recursive
+          git config submodule.snowboardkids2-recomp-syms.url "https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule update --init --recursive
 
       - name: ccache
@@ -151,9 +150,8 @@ jobs:
       - name: Checkout submodules
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule sync --recursive
+          git config submodule.snowboardkids2-recomp-syms.url "https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule update --init --recursive
 
       - name: ccache
@@ -220,9 +218,8 @@ jobs:
       - name: Checkout submodules
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule sync --recursive
+          git config submodule.snowboardkids2-recomp-syms.url "https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule update --init --recursive
 
       - name: ccache
@@ -326,9 +323,8 @@ jobs:
       - name: Checkout submodules
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule sync --recursive
+          git config submodule.snowboardkids2-recomp-syms.url "https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule update --init --recursive
 
       - name: ccache
@@ -446,9 +442,8 @@ jobs:
       - name: Checkout submodules
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
-          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule sync --recursive
+          git config submodule.snowboardkids2-recomp-syms.url "https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git"
           git submodule update --init --recursive
 
       - name: ccache
