@@ -1,5 +1,6 @@
 #include "patches.h"
-#include "misc_funcs.h"
+
+DECLARE_FUNC(void, recomp_load_overlays, u32 rom, void* ram, u32 size);
 
 int dummydata = 0;
 int dummybss;
