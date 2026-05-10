@@ -1,11 +1,7 @@
 # Snowboard Kids 2: Recompiled
-[Snowboard Kids 2: Recompiled](https://github.com/sonicdcer/Starfox64Recomp) is a project that uses [N64: Recompiled](https://github.com/Mr-Wiseguy/N64Recomp) to **statically recompile** Snowboard Kids 2 into a native port with many new features, enhancements, and extensive mod support. This project uses [RT64](https://github.com/rt64/rt64) as the rendering engine to provide some of these enhancements.
+[Snowboard Kids 2: Recompiled](https://github.com/cdlewis/snowboardkids2-recomp) is a project that uses [N64: Recompiled](https://github.com/Mr-Wiseguy/N64Recomp) to **statically recompile** Snowboard Kids 2 into a native port with many new features, enhancements, and extensive mod support. This project uses [RT64](https://github.com/rt64/rt64) as the rendering engine to provide some of these enhancements.
 
-[Snowboard Kids 2: Recompiled](https://github.com/sonicdcer/Starfox64Recomp) was developed alongside [Starship](https://github.com/HarbourMasters/Starship) with both ports intended to coexist and evolve independently using different technologies. As such, they are considered sibling projects.
-
-For a more detailed history, be sure to check out [fox_lore.md](DOCS/fox_lore.md)
-
-### [Download the latest release here](https://github.com/sonicdcer/Starfox64Recomp/releases/latest).
+### [Download the latest release here](https://github.com/cdlewis/snowboardkids2-recomp/releases/latest).
 
 Join the [N64: Recompiled Community Discord](https://discord.gg/AWZThJ4dPf) to discuss this and other N64: Recompiled projects!
 
@@ -96,8 +92,8 @@ Unlike N64 ports in the past, this project is not based on the source code provi
 
 #### Where is the savefile stored?
 - Windows: `%LOCALAPPDATA%\SnowboardKids2Recompiled\saves`
-- Linux: `~/.config/StarfoxRecompiled/saves`
-- macOS: `~/Library/Application Support/StarfoxRecompiled/saves`
+- Linux: `~/.config/SnowboardKids2Recompiled/saves`
+- macOS: `~/Library/Application Support/SnowboardKids2Recompiled/saves`
 
 #### How do I choose a different ROM?
 **You don't.** This project is **only** a port of Snowboard Kids 2, and it will only accept one specific ROM: the US version 1.1 (Rev A) of the N64 release of Snowboard Kids 2. ROMs in formats other than .z64 will be automatically converted, as long as it is the correct ROM. **It is not an emulator and it cannot run any arbitrary ROM.** 
@@ -111,7 +107,7 @@ Yes, if you place a file named `portable.txt` in the same folder as the executab
 * Overlays such as MSI Afterburner and other software such as Wallpaper Engine can cause performance issues with this project that prevent the game from rendering correctly. Disabling such software is recommended.
 
 ## Building
-Building is not required to play this project, as prebuilt binaries (which do not contain game assets) can be found in the [Releases](https://github.com/sonicdcer/Starfox64Recomp/releases/latest) section. Instructions on how to build this project can be found in the [BUILDING.md](BUILDING.md) file.
+Building is not required to play this project, as prebuilt binaries (which do not contain game assets) can be found in the [Releases](https://github.com/cdlewis/snowboardkids2-recomp/releases/latest) section. Instructions on how to build this project can be found in the [BUILDING.md](BUILDING.md) file.
 
 ## Libraries Used and Projects Referenced
 * [RT64](https://github.com/rt64/rt64) for the project's rendering engine

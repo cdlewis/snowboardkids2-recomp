@@ -5,11 +5,11 @@ make -C patches CC=clang LD=ld.lld
 
 Build
 ```sh
-flatpak-builder --force-clean --user --install-deps-from=flathub --repo=repo --install builddir io.github.starfox64recomp.starfox64recomp.json
+flatpak-builder --force-clean --user --install-deps-from=flathub --repo=repo --install builddir io.github.snowboardkids2recomp.snowboardkids2recomp.json
 ```
 
 Bundle
 ```sh
-flatpak build-bundle repo io.github.starfox64recomp.starfox64recomp.flatpak io.github.starfox64recomp.starfox64recomp --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+flatpak build-bundle repo io.github.snowboardkids2recomp.snowboardkids2recomp.flatpak io.github.snowboardkids2recomp.snowboardkids2recomp --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
 ```
 

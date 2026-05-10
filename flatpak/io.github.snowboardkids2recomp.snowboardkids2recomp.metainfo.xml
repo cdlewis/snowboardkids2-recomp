@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.starfox64recomp.starfox64recomp</id>
+  <id>io.github.snowboardkids2recomp.snowboardkids2recomp</id>
   
   <name>Snowboard Kids 2: Recompiled</name>
   <summary>Static recompilation of Snowboard Kids 2 for PC.</summary>
@@ -21,9 +21,9 @@
 
       The original game is required to run this project.
 
-      https://github.com/sonicdcer/Starfox64Recomp
+      https://github.com/cdlewis/snowboardkids2-recomp
     </p>
   </description>
   
-  <launchable type="desktop-id">io.github.starfox64recomp.starfox64recomp.desktop</launchable>
+  <launchable type="desktop-id">io.github.snowboardkids2recomp.snowboardkids2recomp.desktop</launchable>
 </component>

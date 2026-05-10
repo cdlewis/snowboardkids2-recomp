@@ -2,7 +2,7 @@
 Name=Snowboard Kids 2: Recompiled
 Exec=/app/bin/SnowboardKids2Recompiled
 Type=Application
-Icon=io.github.starfox64recomp.starfox64recomp
+Icon=io.github.snowboardkids2recomp.snowboardkids2recomp
 Categories=Game;
 Comment=Static recompilation of Snowboard Kids 2 for PC.
-MimeType=x-scheme-handler/starfox64recomp
+MimeType=x-scheme-handler/snowboardkids2recomp
