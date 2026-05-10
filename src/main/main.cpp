@@ -34,16 +34,12 @@
 #include "zelda_render.h"
 #include "zelda_support.h"
 #include "zelda_game.h"
+#include "recomp_api.h"
 #include "recomp_data.h"
 #include "ovl_patches.hpp"
 #include "librecomp/game.hpp"
 #include "librecomp/mods.hpp"
 #include "librecomp/helpers.hpp"
-
-#include "../../patches/graphics.h"
-#include "../../patches/input.h"
-#include "../../patches/sound.h"
-#include "../../patches/misc_funcs.h"
 
 // #include "mods/mm_recomp_dpad_builtin.h"
 

@@ -36,8 +36,6 @@
 #define bzero bzero_recomp
 #define gRandFloat sRandFloat
 
-#define INVERT_Y_AXIS_COND_RES (recomp_get_invert_y_axis_mode() == 1 ? 1 : -1)
-
 #include "PR/ultratypes.h"
 #include "PR/os_pi.h"
 #include "PR/gbi.h"
@@ -55,8 +53,6 @@
 #include "race/race_effects.h"
 #include "race/race_session.h"
 #include "system/task_scheduler.h"
-
-#include "input.h"
 
 #ifndef gEXFillRectangle
 #define gEXFillRectangle(cmd, lorigin, rorigin, ulx, uly, lrx, lry)                         \

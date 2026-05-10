@@ -1,8 +1,6 @@
 #include <atomic>
 #include "zelda_debug.h"
 #include "librecomp/helpers.hpp"
-// #include "../patches/input.h"
-
 std::atomic<uint16_t> pending_warp = 0xFFFF;
 std::atomic<uint32_t> pending_set_time = 0xFFFF;
 

@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "recomp.h"
+#include "recomp_api.h"
 #include "librecomp/overlays.hpp"
 #include "zelda_config.h"
 #include "recomp_input.h"
@@ -8,9 +9,6 @@
 #include "zelda_render.h"
 #include "zelda_sound.h"
 #include "librecomp/helpers.hpp"
-// #include "../patches/input.h"
-// #include "../patches/graphics.h"
-// #include "../patches/sound.h"
 #include "ultramodern/ultramodern.hpp"
 #include "ultramodern/config.hpp"
 
