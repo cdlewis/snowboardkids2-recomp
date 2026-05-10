@@ -20,7 +20,7 @@ $(C_OBJS): %.o : %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -MMD -MF $(@:.o=.d) -c -o $@
 
 clean:
-	rm -rf $(C_OBJS) $(TARGET) $(C_DEPS)
+	rm -rf *.o *.d $(TARGET)
 
 -include $(C_DEPS)
 

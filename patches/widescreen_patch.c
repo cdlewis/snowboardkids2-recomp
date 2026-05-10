@@ -9,6 +9,8 @@
  */
 #include "patches.h"
 
+extern float recomp_get_target_aspect_ratio(float original);
+
 #define RECOMP_PATCH __attribute__((section(".recomp_patch")))
 
 /* The original layout uses a doubly-linked sibling list at 0x08 for the

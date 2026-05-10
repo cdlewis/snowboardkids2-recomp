@@ -37,7 +37,6 @@
 #include "PR/os_pi.h"
 #include "PR/gbi.h"
 #include "rt64_extended_gbi.h"
-#include "graphics.h"
 #include "PR/abi.h"
 
 #include "core/buffers.h"
@@ -135,7 +134,6 @@ void* memcpy2(void* dest, const void* src, size_t n);
 
 // void set_camera_skipped(bool skipped);
 void clear_camera_skipped();
-float recomp_get_target_aspect_ratio(float);
 // bool camera_was_skipped();
 
 void recomp_crash(const char* err);

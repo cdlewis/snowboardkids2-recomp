@@ -1,7 +1,7 @@
 #if 1
 #include "patches.h"
 
-DECLARE_FUNC(void, recomp_puts, const char* data, u32 size);
+extern void recomp_puts(const char* data, u32 size);
 
 #define va_end(__list)
 #define va_start(vp, parmN) (vp = ((va_list)&parmN + sizeof(parmN)))

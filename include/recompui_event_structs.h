@@ -1,7 +1,7 @@
-#ifndef __UI_FUNCS_H__
-#define __UI_FUNCS_H__
+#ifndef __RECOMPUI_EVENT_STRUCTS_H__
+#define __RECOMPUI_EVENT_STRUCTS_H__
 
-// These two enums must be kept in sync with src/ui/elements/ui_types.h!
+// These two enums must be kept in sync with src/ui/elements/ui_types.h.
 typedef enum {
     UI_EVENT_NONE,
     UI_EVENT_CLICK,

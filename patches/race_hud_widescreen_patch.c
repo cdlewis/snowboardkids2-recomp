@@ -1,5 +1,7 @@
 #include "patches.h"
 
+extern float recomp_get_target_aspect_ratio(float original);
+
 #define ORIGINAL_ASPECT (4.0f / 3.0f)
 #define HUD_ASPECT_LIMIT (16.0f / 9.0f)
 #define HUD_SCREEN_WIDTH 320.0f

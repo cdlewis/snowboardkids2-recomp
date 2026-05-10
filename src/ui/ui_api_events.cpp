@@ -2,6 +2,7 @@
 
 #include "overloaded.h"
 #include "recomp_ui.h"
+#include "recompui_event_structs.h"
 
 #include "core/ui_context.h"
 #include "core/ui_resource.h"
@@ -22,8 +23,6 @@
 
 #include "librecomp/overlays.hpp"
 #include "librecomp/helpers.hpp"
-
-#include "../patches/ui_funcs.h"
 
 struct QueuedCallback {
     recompui::ResourceId resource;
