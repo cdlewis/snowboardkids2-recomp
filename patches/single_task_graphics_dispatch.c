@@ -27,7 +27,7 @@ extern s32 gFrameCounter;
 extern u8 gDisplayFramePending;
 extern void* gDisplayBufferMsgs;
 
-void sendMessageToThreadSyncQueue(OSMesg message);
+void submitDisplayTask(OSMesg message);
 
 RECOMP_PATCH void processDisplayFrameUpdate(void) {
     ViewportNode* node;
@@ -37,6 +37,7 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
     FrameCallbackMsg* initMsg;
     Gfx* mergedDL;
     Gfx* gfx;
+    s32 groupCount = 0;
 
     gDisplayFramePending = 0;
 
@@ -58,6 +59,7 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
         if (msg != NULL) {
             Gfx* wrapper = (Gfx*) msg->t.t.data_ptr;
             if ((wrapper[1].words.w0 >> 24) == G_DL) {
+                groupCount++;
                 if (firstMsg == NULL) {
                     firstMsg = msg;
                 }
@@ -67,7 +69,12 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
         node = node->list3_next;
     }
 
-    if (firstMsg != NULL) {
+    if ((groupCount == 1) && (firstMsg == lastMsg)) {
+        /* Preserve the original task envelope for single draw-group frames. */
+        gFrameBufferFlags[gCurrentDoubleBufferIndex] = 1;
+        submitDisplayTask((OSMesg) firstMsg);
+        submitDisplayTask((OSMesg) initMsg);
+    } else if (firstMsg != NULL) {
         /* Build merged DL — INIT FIRST under F3DEX2, then graphics groups, then ONE
          * final gDPFullSync. Init's clear of gFrameBuffer thus happens BEFORE any
          * graphics renders into it; graphics' content survives to the final fullsync. */
@@ -115,10 +122,10 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
             firstMsg->msgData = lastMsg->msgData;
         }
         gFrameBufferFlags[gCurrentDoubleBufferIndex] = 1;
-        sendMessageToThreadSyncQueue((OSMesg) firstMsg);
+        submitDisplayTask((OSMesg) firstMsg);
     } else {
         /* No graphics this frame — submit init alone like the original. */
-        sendMessageToThreadSyncQueue((OSMesg) initMsg);
+        submitDisplayTask((OSMesg) initMsg);
     }
 
     gFrameCounter = (gFrameCounter + 1) & 0x0FFFFFFF;

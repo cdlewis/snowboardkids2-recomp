@@ -1,68 +1,10 @@
+/*
+ * Reimplement initDisplayBuffers without the per-buffer gDPFullSync.
+ *
+ * See: single_task_graphics_dispatch.c for additional details.
+ */
+
 #include "patches.h"
-
-extern void recomp_load_overlays(u32 rom, void* ram, u32 size);
-
-int dummydata = 0;
-int dummybss;
-
-int dummyfunc(void) {
-    return 0;
-}
-
-extern OSMesgQueue gPiDmaMsgQueue;
-extern s32 gFrameBufferFlags[];
-extern s32 gFrameBufferCounters[];
-extern s32 gBufferedFrameCounter;
-
-RECOMP_PATCH void dmaLoadAndInvalidate(void* romStart, void* romEnd, void* ramStart, void* icacheStart, void* icacheEnd,
-                                       void* dcacheStart, void* dcacheEnd, void* bssStart, void* bssEnd) {
-    OSIoMesg dmaMessage;
-    void* dummyMessage;
-    u32 remainingBytes;
-    void* currentRomOffset;
-    u32 currentChunkSize;
-    void* currentRamDest;
-
-    // Zero out BSS or other region if requested
-    if (bssEnd != bssStart) {
-        bzero(bssStart, bssEnd - bssStart);
-    }
-
-    // @recomp Load the overlay in the recomp runtime.
-    recomp_load_overlays((u32) romStart, ramStart, romEnd - romStart);
-
-    // Invalidate instruction and data caches for specified ranges
-    // osInvalICache(icacheStart, icacheEnd - icacheStart);
-    // osInvalDCache(dcacheStart, dcacheEnd - dcacheStart);
-
-    remainingBytes = romEnd - romStart;
-    currentRomOffset = romStart;
-    currentRamDest = ramStart;
-
-    while (remainingBytes > 0) {
-        currentChunkSize = remainingBytes;
-
-        // Cap the transfer size to 0x1000 bytes (4KB)
-        if (remainingBytes > 0x1000) {
-            currentChunkSize = 0x1000;
-        }
-
-        osPiStartDma(&dmaMessage, OS_MESG_PRI_NORMAL, OS_READ, (u32) currentRomOffset, currentRamDest, currentChunkSize,
-                     &gPiDmaMsgQueue);
-        osRecvMesg(&gPiDmaMsgQueue, &dummyMessage, OS_MESG_BLOCK);
-
-        currentRomOffset += currentChunkSize;
-        currentRamDest += currentChunkSize;
-        remainingBytes -= currentChunkSize;
-    }
-}
-
-/* Reimplement initDisplayBuffers without the per-buffer gDPFullSync.
- * The original DL ends with gDPFullSync + gSPEndDisplayList; under RT64 LLE
- * each fullsync is a workload boundary that triggers a buffer swap, so the
- * init task's sync collides with the merged graphics task's sync (see
- * graphics_patch.c) and produces flicker. We drop it; the trailing
- * gSPEndDisplayList still terminates the DL cleanly. */
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
@@ -138,10 +80,10 @@ RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
         msg->type = 1;
         msg->flags = 0;
         msg->ucode_boot = rspbootTextStart;
-        
+
         msg->ucode_boot_size = (u32) aspMainTextStart;
         msg->ucode_boot_size = msg->ucode_boot_size - ((u32) rspbootTextStart);
-        
+
         msg->ucode = microcodeGroups[1].ucode;
         msg->output_buff_size = microcodeGroups[1].ucode_data;
         msg->ucode_data_size = 0x800;

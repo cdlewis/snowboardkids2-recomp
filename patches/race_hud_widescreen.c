@@ -30,9 +30,8 @@ static s16 hud_widescreen_margin(void) {
 }
 
 static void set_hud_widescreen_align(u16 leftOrigin, u16 rightOrigin, s16 xOffset, s16 yOffset) {
-    Gfx* gfx;
-
-    gfx = gRegionAllocPtr;
+    Gfx* gfx = gRegionAllocPtr;
+    
     gEXSetScissorAlign(gfx++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, -((s32) HUD_SCREEN_WIDTH), 0, 0, 0,
                        (s32) HUD_SCREEN_WIDTH, SCREEN_HEIGHT);
     gDPSetScissor(gfx++, G_SC_NON_INTERLACE, 0, 0, (s32) HUD_SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -61,8 +60,6 @@ static void set_lap_counter_widescreen_align(void) {
 }
 
 static void set_bottom_left_hud_align(void* unused) {
-    (void) unused;
-
     if (hud_widescreen_margin() <= 0) {
         return;
     }
@@ -71,8 +68,6 @@ static void set_bottom_left_hud_align(void* unused) {
 }
 
 static void set_top_right_hud_align(void* unused) {
-    (void) unused;
-
     if (hud_widescreen_margin() <= 0) {
         return;
     }
@@ -82,8 +77,6 @@ static void set_top_right_hud_align(void* unused) {
 }
 
 static void set_bottom_right_hud_align(void* unused) {
-    (void) unused;
-
     if (hud_widescreen_margin() <= 0) {
         return;
     }
@@ -93,8 +86,6 @@ static void set_bottom_right_hud_align(void* unused) {
 }
 
 static void reset_corner_hud_align(void* unused) {
-    (void) unused;
-
     if (hud_widescreen_margin() <= 0) {
         return;
     }
