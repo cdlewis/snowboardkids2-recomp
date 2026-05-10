@@ -57,15 +57,6 @@ RECOMP_PATCH void dmaLoadAndInvalidate(void* romStart, void* romEnd, void* ramSt
     }
 }
 
-#if 0
-RECOMP_PATCH void handleFrameBufferComplete(s32 bufferIndex) {
-    s32 index = bufferIndex & 0xF;
-    gFrameBufferFlags[index] = 0;
-    gBufferedFrameCounter = gFrameBufferCounters[index];
-    recomp_printf("index = %d\n", index);
-}
-#endif
-
 /* Reimplement initDisplayBuffers without the per-buffer gDPFullSync.
  * The original DL ends with gDPFullSync + gSPEndDisplayList; under RT64 LLE
  * each fullsync is a workload boundary that triggers a buffer swap, so the

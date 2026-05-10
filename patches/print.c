@@ -1,4 +1,3 @@
-#if 1
 #include "patches.h"
 
 extern void recomp_puts(const char* data, u32 size);
@@ -27,4 +26,3 @@ RECOMP_EXPORT int recomp_printf(const char* fmt, ...) {
 
     return ret;
 }
-#endif
