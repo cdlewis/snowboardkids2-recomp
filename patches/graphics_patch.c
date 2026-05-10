@@ -14,9 +14,6 @@
 #include "PR/mbi.h"
 #include "PR/gbi.h"
 #include "PR/ucode.h"
-#ifndef M2CTX
-#define M2CTX
-#endif
 #include "graphics/graphics.h"
 #include "rt64_extended_gbi.h"
 
