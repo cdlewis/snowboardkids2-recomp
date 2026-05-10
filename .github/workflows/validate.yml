@@ -35,6 +35,7 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
           submodules: recursive
 
       - name: ccache
@@ -138,6 +139,7 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
           submodules: recursive
 
       - name: ccache
@@ -199,6 +201,7 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
           submodules: recursive
 
       - name: ccache
@@ -297,6 +300,7 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
           submodules: recursive
 
       - name: ccache
@@ -409,6 +413,7 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
           submodules: recursive
 
       - name: ccache
