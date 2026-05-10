@@ -35,8 +35,15 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
-          submodules: recursive
+          submodules: false
+
+      - name: Checkout submodules
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
@@ -139,8 +146,15 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
-          submodules: recursive
+          submodules: false
+
+      - name: Checkout submodules
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
@@ -201,8 +215,15 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
-          submodules: recursive
+          submodules: false
+
+      - name: Checkout submodules
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
@@ -300,8 +321,15 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
-          submodules: recursive
+          submodules: false
+
+      - name: Checkout submodules
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
@@ -413,8 +441,15 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          token: ${{ secrets.PRIVATE_REPO_ACCESS }}
-          submodules: recursive
+          submodules: false
+
+      - name: Checkout submodules
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "git@github.com:cdlewis/snowboardkids2-recomp-syms.git"
+          git config --global url."https://x-access-token:${{ secrets.PRIVATE_REPO_ACCESS }}@github.com/cdlewis/snowboardkids2-recomp-syms.git".insteadOf "https://github.com/cdlewis/snowboardkids2-recomp-syms.git"
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
