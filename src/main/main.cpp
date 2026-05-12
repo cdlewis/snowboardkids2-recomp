@@ -33,7 +33,6 @@
 #include "zelda_sound.h"
 #include "zelda_render.h"
 #include "zelda_support.h"
-#include "zelda_game.h"
 #include "recomp_api.h"
 #include "recomp_data.h"
 #include "ovl_patches.hpp"
@@ -358,7 +357,7 @@ std::vector<recomp::GameEntry> supported_games = {
         .mod_game_id = "sk2",
         .save_type = recomp::SaveType::Eep4k,
         .is_enabled = true,
-        .has_compressed_code = true,
+        .has_compressed_code = false,
         .entrypoint_address = get_entrypoint_address(),
         .entrypoint = recomp_entrypoint,
     },
