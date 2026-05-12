@@ -2,6 +2,9 @@
 #include "effects/nonrace_shadow.h"
 #include "ui/level_preview_3d.h"
 
+extern Gfx *gDisplayListAllocPtr;
+extern s16 gGraphicsMode;
+
 RECOMP_PATCH void renderNonRaceShadow(ShadowEntity *entity) {
     Transform3D matrix;
     s32 shadowAlpha;
@@ -89,16 +92,16 @@ RECOMP_PATCH void renderNonRaceShadow(ShadowEntity *entity) {
         return;
     }
 
-    gEXMatrixGroupDecomposedNormal(gRegionAllocPtr++, (u32)entity, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    gSPMatrix(gRegionAllocPtr++, entity->shadowMatrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gEXMatrixGroupDecomposedNormal(gDisplayListAllocPtr++, (u32)entity, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    gSPMatrix(gDisplayListAllocPtr++, entity->shadowMatrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
     if (gGraphicsMode != 0x200) {
         gGraphicsMode = 0x200;
-        gSPDisplayList(gRegionAllocPtr++, &g_NonRaceShadowDL);
+        gSPDisplayList(gDisplayListAllocPtr++, &g_NonRaceShadowDL);
     }
 
-    gSPVertex(gRegionAllocPtr++, entity->shadowVertices, 4, 0);
+    gSPVertex(gDisplayListAllocPtr++, entity->shadowVertices, 4, 0);
 
-    gSP1Quadrangle(gRegionAllocPtr++, 0, 1, 2, 3, 0);
-    gEXPopMatrixGroup(gRegionAllocPtr++, G_MTX_MODELVIEW);
+    gSP1Quadrangle(gDisplayListAllocPtr++, 0, 1, 2, 3, 0);
+    gEXPopMatrixGroup(gDisplayListAllocPtr++, G_MTX_MODELVIEW);
 }
