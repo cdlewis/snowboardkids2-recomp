@@ -10,7 +10,7 @@ on:
       N64RECOMP_COMMIT:
         type: string
         required: false
-        default: '98bf104b1b5ed83126af8bcab0cc964782617dbf'
+        default: '70a894aad8d3491ca0fccee1f94dae8190845686'
     secrets:
       PRIVATE_REPO_ACCESS:
         required: true
