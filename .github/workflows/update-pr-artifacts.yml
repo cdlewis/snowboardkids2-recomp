@@ -1,10 +1,13 @@
 name: update-pr-artifacts
 
+# Temporarily disable automatic workflow runs to conserve Actions quota.
+# Restore the workflow_run trigger below when CI automation should resume.
 on:
-  workflow_run:
-    workflows: [validate-external, validate-internal]
-    types:
-      - completed
+  workflow_dispatch:
+#  workflow_run:
+#    workflows: [validate-external, validate-internal]
+#    types:
+#      - completed
 
 permissions:
   actions: read

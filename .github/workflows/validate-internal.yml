@@ -1,11 +1,14 @@
 name: validate-internal
 
+# Temporarily disable automatic workflow runs to conserve Actions quota.
+# Restore the push and pull_request triggers below when CI automation should resume.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize]
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - main
+#  pull_request:
+#    types: [opened, synchronize]
 
 jobs:
   build:
