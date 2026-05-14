@@ -23,10 +23,6 @@ typedef struct {
 extern ViewportNode gRootViewport;
 extern ActiveViewportOverlay* gActiveViewport;
 
-RECOMP_PATCH void setViewportPerspective(ViewportNode* node, f32 fov, f32 aspect, f32 near, f32 far) {
-    guPerspective(&node->perspectiveMatrix, &node->perspNorm, fov, aspect, near, far, 1.0f);
-}
-
 RECOMP_PATCH s32 isObjectCulled(Vec3i* arg0) {
     return FALSE;
 }
