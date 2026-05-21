@@ -102,7 +102,7 @@ Rml::Element* get_launcher_menu_item_at_point(Rml::ElementDocument* document, Rm
     document->GetElementsByClassName(menu_items, "menu-list-item");
 
     for (Rml::Element* menu_item : menu_items) {
-        if (!menu_item->HasAttribute("disabled") && point_is_within_element(menu_item, point)) {
+        if (menu_item->IsVisible(true) && !menu_item->HasAttribute("disabled") && point_is_within_element(menu_item, point)) {
             return menu_item;
         }
     }
