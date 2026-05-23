@@ -20,11 +20,21 @@
     position: relative;
     margin: 0;
     padding: space(20) space(24);
+    border-width: space(1);
+    border-color: $color-transparent;
+    border-bottom-width: space(2);
+    border-bottom-color: $color-transparent;
+    border-top-left-radius: $border-radius-sm;
+    border-top-right-radius: $border-radius-sm;
+    border-bottom-right-radius: space(2);
+    border-bottom-left-radius: space(2);
     opacity: 0.9;
     background-color: rgba(0,0,0,0);
     color: $color-text-inactive;
 
     &:selected {
+        border-color: rgb(119, 94, 224);
+        border-bottom-color: rgb(186, 186, 246);
         color: $color-text;
 
         .tab__indicator {

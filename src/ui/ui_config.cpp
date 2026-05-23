@@ -12,12 +12,51 @@
 
 #include "core/ui_context.h"
 
+#include <array>
+
 ultramodern::renderer::GraphicsConfig new_options;
 Rml::DataModelHandle nav_help_model_handle;
 Rml::DataModelHandle general_model_handle;
 Rml::DataModelHandle controls_model_handle;
 Rml::DataModelHandle graphics_model_handle;
 Rml::DataModelHandle sound_options_model_handle;
+
+static constexpr std::array controls_input_display_order = {
+    recomp::GameInput::Y_AXIS_POS,
+    recomp::GameInput::Y_AXIS_NEG,
+    recomp::GameInput::X_AXIS_NEG,
+    recomp::GameInput::X_AXIS_POS,
+
+    recomp::GameInput::A,
+    recomp::GameInput::B,
+
+    recomp::GameInput::Z,
+
+    recomp::GameInput::L,
+    recomp::GameInput::R,
+
+    recomp::GameInput::START,
+
+    recomp::GameInput::DPAD_UP,
+    recomp::GameInput::DPAD_DOWN,
+    recomp::GameInput::DPAD_LEFT,
+    recomp::GameInput::DPAD_RIGHT,
+
+    recomp::GameInput::C_UP,
+    recomp::GameInput::C_DOWN,
+    recomp::GameInput::C_LEFT,
+    recomp::GameInput::C_RIGHT,
+
+    recomp::GameInput::TOGGLE_MENU,
+    recomp::GameInput::ACCEPT_MENU,
+    recomp::GameInput::APPLY_MENU,
+};
+
+static_assert(controls_input_display_order.size() == static_cast<size_t>(recomp::GameInput::COUNT));
+
+static recomp::GameInput get_display_input(size_t display_index) {
+    return controls_input_display_order.at(display_index);
+}
 
 // True if controller config menu is open, false if keyboard config menu is open, undefined otherwise
 bool configuring_controller = false;
@@ -94,6 +133,7 @@ void bind_atomic(Rml::DataModelConstructor& constructor, Rml::DataModelHandle ha
 static int scanned_binding_index = -1;
 static int scanned_input_index = -1;
 static int focused_input_index = -1;
+static int focused_binding_index = -1;
 static int focused_config_option_index = -1;
 
 static bool msaa2x_supported = false;
@@ -104,6 +144,20 @@ static bool sample_positions_supported = false;
 static bool cont_active = true;
 
 static recomp::InputDevice cur_device = recomp::InputDevice::Controller;
+
+static bool can_clear_input_binding(recomp::GameInput input) {
+    return input != recomp::GameInput::TOGGLE_MENU && input != recomp::GameInput::ACCEPT_MENU;
+}
+
+static void clear_input_binding_slot(recomp::GameInput input, size_t binding_index) {
+    if (!can_clear_input_binding(input) || binding_index >= recomp::bindings_per_input) {
+        return;
+    }
+
+    recomp::set_input_binding(input, binding_index, cur_device, recomp::InputField{});
+    controls_model_handle.DirtyVariable("inputs");
+    graphics_model_handle.DirtyVariable("gfx_help__apply");
+}
 
 int recomp::get_scanned_input_index() {
     return scanned_input_index;
@@ -131,6 +185,17 @@ void recomp::cancel_scanning_input() {
     nav_help_model_handle.DirtyVariable("nav_help__accept");
     nav_help_model_handle.DirtyVariable("nav_help__exit");
     graphics_model_handle.DirtyVariable("gfx_help__apply");
+}
+
+void recomp::clear_scanned_input_binding() {
+    if (scanned_input_index != -1 && scanned_binding_index != -1) {
+        clear_input_binding_slot(
+            static_cast<recomp::GameInput>(scanned_input_index),
+            static_cast<size_t>(scanned_binding_index)
+        );
+    }
+
+    recomp::cancel_scanning_input();
 }
 
 void recomp::config_menu_set_cont_or_kb(bool cont_interacted) {
@@ -474,10 +539,32 @@ struct DebugContext {
 
 DebugContext debug_context;
 
-recompui::ContextId config_context;
+recompui::ContextId config_context = recompui::ContextId::null();
+static bool config_menu_uses_launcher_background = false;
 
 recompui::ContextId recompui::get_config_context_id() {
 	return config_context;
+}
+
+static void apply_config_menu_launcher_background_class() {
+    if (config_context == recompui::ContextId::null()) {
+        return;
+    }
+
+    Rml::ElementDocument* doc = config_context.get_document();
+    if (doc == nullptr) {
+        return;
+    }
+
+    Rml::Element* body = doc->GetElementById("config-body");
+    if (body != nullptr) {
+        body->SetClass("config--launcher-background", config_menu_uses_launcher_background);
+    }
+}
+
+void recompui::set_config_menu_uses_launcher_background(bool uses_launcher_background) {
+    config_menu_uses_launcher_background = uses_launcher_background;
+    apply_config_menu_launcher_background_class();
 }
 
 // Helper copied from RmlUi to get a named child.
@@ -528,6 +615,7 @@ public:
     }
     void load_document() override {
 		config_context = recompui::create_context(zelda64::get_asset_path("config_menu.rml"));
+        apply_config_menu_launcher_background_class();
         recompui::update_mod_list(false);
         recompui::get_config_tabset()->AddEventListener(Rml::EventId::Tabchange, &config_tabset_listener);
     }
@@ -548,6 +636,15 @@ public:
                         case Rml::Input::KeyIdentifier::KI_F:
                             graphics_model_handle.DirtyVariable("options_changed");
                             apply_graphics_config();
+                            break;
+                        case Rml::Input::KeyIdentifier::KI_BACK:
+                            if (focused_input_index != -1 && focused_binding_index != -1) {
+                                clear_input_binding_slot(
+                                    static_cast<recomp::GameInput>(focused_input_index),
+                                    static_cast<size_t>(focused_binding_index)
+                                );
+                                event.StopPropagation();
+                            }
                             break;
                     }
                 }
@@ -746,6 +843,10 @@ public:
             return Rml::Variant{recomp::get_input_enum_name(static_cast<recomp::GameInput>(inputs.at(0).Get<size_t>()))};
         });
 
+        constructor.RegisterTransformFunc("get_display_input_index", [](const Rml::VariantList& inputs) {
+            return Rml::Variant{static_cast<uint64_t>(get_display_input(inputs.at(0).Get<size_t>()))};
+        });
+
         constructor.BindEventCallback("set_input_binding",
             [](Rml::DataModelHandle model_handle, Rml::Event& event, const Rml::VariantList& inputs) {
                 scanned_input_index = inputs.at(0).Get<size_t>();
@@ -771,6 +872,9 @@ public:
         constructor.BindEventCallback("clear_input_bindings",
             [](Rml::DataModelHandle model_handle, Rml::Event& event, const Rml::VariantList& inputs) {
                 recomp::GameInput input = static_cast<recomp::GameInput>(inputs.at(0).Get<size_t>());
+                if (!can_clear_input_binding(input)) {
+                    return;
+                }
                 for (size_t binding_index = 0; binding_index < recomp::bindings_per_input; binding_index++) {
                     recomp::set_input_binding(input, binding_index, cur_device, recomp::InputField{});
                 }
@@ -790,11 +894,25 @@ public:
         constructor.BindEventCallback("set_input_row_focus",
             [](Rml::DataModelHandle model_handle, Rml::Event& event, const Rml::VariantList& inputs) {
                 int input_index = inputs.at(0).Get<size_t>();
-                // watch for mouseout being overzealous during event bubbling, only clear if the event's attached element matches the current
-                if (input_index == -1 && event.GetType() == "mouseout" && event.GetCurrentElement() != event.GetTargetElement()) {
+                focused_input_index = input_index;
+                model_handle.DirtyVariable("cur_input_row");
+            });
+
+        constructor.BindEventCallback("set_input_binding_focus",
+            [](Rml::DataModelHandle model_handle, Rml::Event& event, const Rml::VariantList& inputs) {
+                focused_input_index = inputs.at(0).Get<size_t>();
+                focused_binding_index = inputs.at(1).Get<size_t>();
+                model_handle.DirtyVariable("cur_input_row");
+            });
+
+        constructor.BindEventCallback("clear_input_row_focus",
+            [](Rml::DataModelHandle model_handle, Rml::Event& event, const Rml::VariantList& inputs) {
+                // Mouseout bubbles from child controls while the cursor is still inside a row.
+                if (event.GetType() == "mouseout" && event.GetCurrentElement() != event.GetTargetElement()) {
                     return;
                 }
-                focused_input_index = input_index;
+                focused_input_index = -1;
+                focused_binding_index = -1;
                 model_handle.DirtyVariable("cur_input_row");
             });
 
@@ -831,10 +949,10 @@ public:
             virtual bool Get(void* ptr, Rml::Variant& variant) override { return false; }
             virtual bool Set(void* ptr, const Rml::Variant& variant) override { return false; }
 
-            virtual int Size(void* ptr) override { return recomp::get_num_inputs(); }
+            virtual int Size(void* ptr) override { return static_cast<int>(controls_input_display_order.size()); }
             virtual Rml::DataVariable Child(void* ptr, const Rml::DataAddressEntry& address) override {
-                // Encode the input index as the pointer to avoid needing to do any allocations.
-                return Rml::DataVariable(&binding_container_var_instance, (void*)(uintptr_t)address.index);
+                // Encode the real input index as the pointer to avoid needing allocations.
+                return Rml::DataVariable(&binding_container_var_instance, (void*)(uintptr_t)get_display_input(address.index));
             }
         };
 
@@ -847,7 +965,7 @@ public:
             virtual bool Get(void* ptr, Rml::Variant& variant) override { return true; }
             virtual bool Set(void* ptr, const Rml::Variant& variant) override { return false; }
 
-            virtual int Size(void* ptr) override { return recomp::get_num_inputs(); }
+            virtual int Size(void* ptr) override { return static_cast<int>(controls_input_display_order.size()); }
             virtual Rml::DataVariable Child(void* ptr, const Rml::DataAddressEntry& address) override {
                 if (address.name == "array") {
                     return Rml::DataVariable(&binding_array_var_instance, nullptr);

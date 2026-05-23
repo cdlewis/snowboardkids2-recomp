@@ -1,12 +1,12 @@
 <svg width="154" height="154" viewBox="0 0 154 154" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="9" y="9" width="136" height="136" rx="68" fill="white" fill-opacity="0.05" />
+    <rect x="9" y="9" width="136" height="136" rx="68" fill="white" />
     <g clip-path="url(#clip0_162_1132)">
         <path d="M76.9995 37L61.4111 22H92.588L76.9995 37Z" fill="#FFFFFF" />
         <path d="M36.9995 77L21.9995 92.5885L21.9995 61.4115L36.9995 77Z" fill="#FFFFFF" />
         <path d="M117 77L132 61.4115V92.5885L117 77Z" fill="#FFFFFF" />
         <path d="M76.9995 117L92.588 132H61.4111L76.9995 117Z" fill="#FFFFFF" />
     </g>
-    <g opacity="0.1">
+    <g>
         <g clip-path="url(#clip1_162_1132)">
             <path d="M83.9453 37.6077L71.1984 20.1287L101.902 25.5425L83.9453 37.6077Z"
                 fill="#FFFFFF" />
@@ -18,7 +18,7 @@
                 fill="#FFFFFF" />
         </g>
     </g>
-    <g opacity="0.05">
+    <g>
         <g clip-path="url(#clip2_162_1132)">
             <path d="M90.6807 39.4122L81.1627 19.9853L110.459 30.6484L90.6807 39.4122Z"
                 fill="#FFFFFF" />

@@ -74,6 +74,7 @@ public:
     void set_enabled(bool enabled);
     bool is_enabled() const;
     void set_text(std::string_view text);
+    void add_class(std::string_view class_name);
     std::string get_input_text();
     void set_input_text(std::string_view text);
     void set_src(std::string_view src);

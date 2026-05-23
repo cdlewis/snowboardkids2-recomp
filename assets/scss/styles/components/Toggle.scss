@@ -47,6 +47,7 @@ $toggle-checked-left-offset: $toggle-width - $toggle-floater-margin - $toggle-fl
         transform: translateY(-50%);
         border-radius: space(math.div($toggle-floater-height, 2));
         background: $color-secondary-d;
+        transition: left 0.12s linear-in-out;
     }
     
     &--checked {

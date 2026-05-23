@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${BUILD_DIR:-build-cmake}"
+BUILD_DIR="${BUILD_DIR:-build}"
 APP_NAME="${APP_NAME:-SnowboardKids2Recompiled.app}"
 APP_DIR="$ROOT_DIR/$BUILD_DIR/$APP_NAME"
 ASSETS_SRC="$ROOT_DIR/assets"

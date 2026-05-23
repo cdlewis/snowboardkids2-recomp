@@ -101,6 +101,12 @@
         opacity: 0.5;
     }
 
+    .rmlui-window[mouse-active] &:focus:not(:hover) {
+        @include set-color($color-text-dim);
+        border-color: $color-bg-overlay;
+        background-color: $color-bg-overlay;
+    }
+
     &:not([disabled]) {
         @extend %nav-all;
         cursor: pointer;

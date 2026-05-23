@@ -40,7 +40,7 @@ $prompt-space: 24;
         border-width: $border-width-thickness;
         border-radius: $border-radius-modal;
         border-color: $color-border;
-        background: $color-modal-overlay;
+        background-color: rgb(85, 145, 223);
 
         h3, p {
             margin: space($prompt-space);
@@ -51,6 +51,13 @@ $prompt-space: 24;
         }
     }
 
+    &__header,
+    &__label {
+        color: $color-white;
+        font-family: Fredoka;
+        font-effect: shadow(5px 5px rgba(0, 0, 0, 0.1));
+    }
+
     &__controls {
         display: flex;
         flex-direction: row;
@@ -58,6 +65,9 @@ $prompt-space: 24;
         padding: space($prompt-space) space(math.div($prompt-space, 2));
         border-top-width: $border-width-thickness;
         border-top-color: $color-border-soft;
+        border-bottom-right-radius: $border-radius-modal;
+        border-bottom-left-radius: $border-radius-modal;
+        background-color: rgb(85, 145, 223);
 
         .button {
             min-width: space(math.div(700, 3));

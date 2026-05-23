@@ -33,6 +33,29 @@ static bool is_mod_enabled_or_auto(const std::string &mod_id) {
 constexpr float modEntryHeight = 120.0f;
 constexpr float modEntryPadding = 4.0f;
 
+static void apply_mod_footer_button_style(Button* button) {
+    button->add_class("button");
+    button->add_class("mod-footer__button");
+    button->set_color(Color{ 255, 255, 255, 255 });
+    button->set_border_width(2.0f);
+    button->set_border_color(Color{ 143, 186, 237, 255 });
+    button->set_background_color(Color{ 137, 180, 232, 255 });
+
+    button->get_hover_style()->set_color(Color{ 255, 255, 255, 255 });
+    button->get_hover_style()->set_border_color(Color{ 122, 42, 198, 255 });
+    button->get_hover_style()->set_background_color(Color{ 122, 42, 198, 255 });
+    button->get_focus_style()->set_color(Color{ 255, 255, 255, 255 });
+    button->get_focus_style()->set_border_color(Color{ 122, 42, 198, 255 });
+    button->get_focus_style()->set_background_color(Color{ 122, 42, 198, 255 });
+
+    button->get_disabled_style()->set_color(Color{ 255, 255, 255, 153 });
+    button->get_disabled_style()->set_border_color(Color{ 143, 186, 237, 64 });
+    button->get_disabled_style()->set_background_color(Color{ 137, 180, 232, 64 });
+    button->get_hover_disabled_style()->set_color(Color{ 255, 255, 255, 153 });
+    button->get_hover_disabled_style()->set_border_color(Color{ 143, 186, 237, 64 });
+    button->get_hover_disabled_style()->set_background_color(Color{ 137, 180, 232, 64 });
+}
+
 extern const std::string mod_tab_id;
 const std::string mod_tab_id = "#tab_mods";
 
@@ -676,26 +699,31 @@ ModMenu::ModMenu(Element *parent) : Element(parent) {
         footer_container = context.create_element<Container>(this, FlexDirection::Row, JustifyContent::FlexStart);
         footer_container->set_width(100.0f, recompui::Unit::Percent);
         footer_container->set_align_items(recompui::AlignItems::Center);
-        footer_container->set_background_color(Color{ 0, 0, 0, 89 });
+        footer_container->set_background_color(Color{ 85, 145, 223, 255 });
         footer_container->set_border_top_width(1.1f);
         footer_container->set_border_top_color(Color{ 255, 255, 255, 25 });
         footer_container->set_padding(20.0f);
+        footer_container->set_padding_left(16.0f);
+        footer_container->set_padding_right(20.0f);
         footer_container->set_gap(20.0f);
         footer_container->set_border_bottom_left_radius(16.0f);
         footer_container->set_border_bottom_right_radius(16.0f);
         {
             Button* configure_button = mod_details_panel->get_configure_button();
             install_mods_button = context.create_element<Button>(footer_container, "Install Mods", recompui::ButtonStyle::Primary);
+            apply_mod_footer_button_style(install_mods_button);
             install_mods_button->add_pressed_callback([this](){ open_install_dialog(); });
 
             Element* footer_spacer = context.create_element<Element>(footer_container);
             footer_spacer->set_flex(1.0f, 0.0f);
 
             refresh_button = context.create_element<Button>(footer_container, "Refresh", recompui::ButtonStyle::Primary);
+            apply_mod_footer_button_style(refresh_button);
             refresh_button->add_pressed_callback([this](){ refresh_mods(true); });
             refresh_button->set_nav_manual(NavDirection::Up, mod_tab_id);
 
             mods_folder_button = context.create_element<Button>(footer_container, "Open Mods Folder", recompui::ButtonStyle::Primary);
+            apply_mod_footer_button_style(mods_folder_button);
             mods_folder_button->add_pressed_callback([this](){ open_mods_folder(); });
             mods_folder_button->set_nav(NavDirection::Up, configure_button);
             mods_folder_button->set_nav_manual(NavDirection::Up, mod_tab_id);

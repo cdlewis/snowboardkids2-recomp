@@ -157,6 +157,12 @@ void Element::set_id(const std::string& new_id) {
     base->SetId(new_id);
 }
 
+void Element::add_class(std::string_view class_name) {
+    assert(base != nullptr);
+
+    base->SetClass(std::string(class_name), true);
+}
+
 recompui::MouseButton convert_rml_mouse_button(int button) {
     switch (button) {
         case 0:

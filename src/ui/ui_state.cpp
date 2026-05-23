@@ -878,6 +878,7 @@ void draw_hook(plume::RenderCommandList* command_list, plume::RenderFramebuffer*
             }
 
             if (open_config) {
+                recompui::set_config_menu_uses_launcher_background(false);
                 recompui::show_context(recompui::get_config_context_id(), "");
             }
         }

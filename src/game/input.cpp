@@ -241,6 +241,8 @@ bool sdl_event_filter(void* userdata, SDL_Event* event) {
             if (scanning_device != recomp::InputDevice::COUNT) {
                 if (keyevent->keysym.scancode == SDL_Scancode::SDL_SCANCODE_ESCAPE) {
                     recomp::cancel_scanning_input();
+                } else if (keyevent->keysym.scancode == SDL_Scancode::SDL_SCANCODE_BACKSPACE) {
+                    recomp::clear_scanned_input_binding();
                 } else if (scanning_device == recomp::InputDevice::Keyboard) {
                     set_scanned_input({(uint32_t)InputType::Keyboard, keyevent->keysym.scancode});
                 }

@@ -12,19 +12,19 @@
                         onclick="toggle_input_device"
                         style="nav-down: #input_row_button_0_0; nav-up: #tab_controls"
                     >
-                        <div class="toggle__border" />
                         <div class="toggle__floater" />
                         <div class="toggle__icons">
-                            <div class="toggle__icon toggle__icon--left"><div>␼</div></div>
-                            <div class="toggle__icon toggle__icon--right"><div>␽</div></div>
+                            <div class="toggle__icon left"><div>␼</div></div>
+                            <div class="toggle__icon right"><div>␽</div></div>
                         </div>
                     </button>
                 </div>
                 <div>
                     <button
-                        class="button button--warning"
+                        class="button button--warning input-config__reset-defaults"
                         style="nav-down:#input_row_button_0_0"
                         data-event-click="reset_input_bindings_to_defaults"
+                        data-event-mouseover="clear_input_row_focus"
                     >
                         <div class="button__label">Reset to defaults</div>
                     </button>
@@ -32,27 +32,31 @@
             </div>
             <div class="config__wrapper input-config">
                 <div class="input-config__horizontal-split">
-                    <div class="input-config__mappings" data-event-mouseout="set_input_row_focus(-1)">
+                    <div
+                        class="input-config__mappings"
+                        data-event-mouseout="clear_input_row_focus"
+                    >
                         <div class="input-config__mappings-scroll">
                             <div class="input-config__mappings-wrapper">
                                 <div
                                     class="control-option"
                                     data-attr-id="'input_row_' + i"
                                     data-for="input_bindings, i : inputs.array"
-                                    data-event-mouseover="set_input_row_focus(i)"
-                                    data-class-control-option--active="get_input_enum_name(i)==cur_input_row"
-                                    data-if="!input_device_is_keyboard || (get_input_enum_name(i) != 'TOGGLE_MENU' && get_input_enum_name(i) != 'ACCEPT_MENU' && get_input_enum_name(i) != 'APPLY_MENU')"
+                                    data-event-mouseover="set_input_row_focus(get_display_input_index(i))"
+                                    data-event-mouseout="clear_input_row_focus"
+                                    data-class-control-option--active="get_input_enum_name(get_display_input_index(i))==cur_input_row"
+                                    data-if="!input_device_is_keyboard || (get_input_enum_name(get_display_input_index(i)) != 'TOGGLE_MENU' && get_input_enum_name(get_display_input_index(i)) != 'ACCEPT_MENU' && get_input_enum_name(get_display_input_index(i)) != 'APPLY_MENU')"
                                 >
                                     <label
                                         class="control-option__label"
-                                    >{{get_input_name(i)}}</label>
+                                    >{{get_input_name(get_display_input_index(i))}}</label>
                                     <div class="control-option__bindings">
                                         <button
                                             data-attr-id="'input_row_button_' + i + '_' + j"
-                                            data-event-blur="set_input_row_focus(-1)"
-                                            data-event-focus="set_input_row_focus(i)"
+                                            data-event-blur="clear_input_row_focus"
+                                            data-event-focus="set_input_binding_focus(get_display_input_index(i), j)"
                                             data-for="cur_binding, j : input_bindings"
-                                            data-event-click="set_input_binding(i,j)"
+                                            data-event-click="set_input_binding(get_display_input_index(i),j)"
                                             class="prompt-font control-option__binding"
                                             data-attr-bind-slot="j"
                                             data-attr-style="i == 0 ? 'nav-up:#cont_kb_toggle' : 'nav-up:auto'"
@@ -66,42 +70,32 @@
                                             <div class="control-option__binding-icon">{{cur_binding}}</div>
                                         </button>
                                     </div>
-                                    <button
-                                        data-if="get_input_enum_name(i) != 'TOGGLE_MENU' && get_input_enum_name(i) != 'ACCEPT_MENU'"
-                                        data-event-blur="set_input_row_focus(-1)"
-                                        data-event-focus="set_input_row_focus(i)"
-                                        data-event-click="clear_input_bindings(i)"
-                                        class="icon-button icon-button--error"
-                                        data-attr-style="i == 0 ? 'nav-up:#cont_kb_toggle' : 'nav-up:auto'"
-                                    >
-                                        <svg src="icons/Trash.svg" />
-                                    </button>
-                                    <button
-                                        data-if="get_input_enum_name(i) == 'TOGGLE_MENU' || get_input_enum_name(i) == 'ACCEPT_MENU'"
-                                        data-event-blur="set_input_row_focus(-1)"
-                                        data-event-focus="set_input_row_focus(i)"
-                                        data-event-click="reset_single_input_binding_to_default(i)"
-                                        class="icon-button icon-button--error"
-                                        data-attr-style="i == 0 ? 'nav-up:#cont_kb_toggle' : 'nav-up:auto'"
-                                    >
-                                        <svg src="icons/Reset.svg" />
-                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="input-config__visual-wrapper">
-                        <div class="input-config__visual-aspect">
-                            <div class="input-config__visual">
+                    <div
+                        class="input-config__visual-wrapper"
+                        data-event-mouseover="clear_input_row_focus"
+                    >
+                        <div
+                            class="input-config__visual-aspect"
+                            data-event-mouseover="clear_input_row_focus"
+                        >
+                            <div
+                                class="input-config__visual"
+                                data-event-mouseover="clear_input_row_focus"
+                            >
+                                <svg class="input-config__controller-outline" src="controller.svg" />
                                 <!-- stick only -->
                                 <div class="input-config__visual-stick-wrapper">
                                     <div
                                         class="input-viz input-config__visual-stick"
                                         visual-input="X_AXIS_NEG X_AXIS_POS Y_AXIS_NEG Y_AXIS_POS"
                                     >
+                                        <svg src="icons/VizMap/Joystick.svg" />
                                         <div class="input-viz__stick-split input-viz__stick-split--vertical">
                                             <div class="input-viz input-viz__mappings" visual-input="Y_AXIS_POS">
-                                                <svg class="input-viz__dpad-arrow input-viz__dpad-arrow--up" src="icons/VizMap/DPadArrow.svg" />
                                                 <div
                                                     class="input-config__visual-mapping"
                                                     data-for="cur_binding, i : inputs.Y_AXIS_POS"
@@ -111,7 +105,6 @@
                                             </div>
                                             <div class="input-viz__dpad-divider" />
                                             <div class="input-viz input-viz__mappings" visual-input="Y_AXIS_NEG">
-                                                <svg class="input-viz__dpad-arrow input-viz__dpad-arrow--down" src="icons/VizMap/DPadArrow.svg" />
                                                 <div
                                                     class="input-config__visual-mapping"
                                                     data-for="cur_binding, i : inputs.Y_AXIS_NEG"
@@ -122,7 +115,6 @@
                                         </div>
                                         <div class="input-viz__stick-split input-viz__stick-split--horizontal">
                                             <div class="input-viz input-viz__mappings" visual-input="X_AXIS_NEG">
-                                                <svg class="input-viz__dpad-arrow input-viz__dpad-arrow--left" src="icons/VizMap/DPadArrow.svg" />
                                                 <div
                                                     class="input-config__visual-mapping"
                                                     data-for="cur_binding, i : inputs.X_AXIS_NEG"
@@ -132,7 +124,6 @@
                                             </div>
                                             <div class="input-viz__dpad-divider" />
                                             <div class="input-viz input-viz__mappings" visual-input="X_AXIS_POS">
-                                                <svg class="input-viz__dpad-arrow input-viz__dpad-arrow--right" src="icons/VizMap/DPadArrow.svg" />
                                                 <div
                                                     class="input-config__visual-mapping"
                                                     data-for="cur_binding, i : inputs.X_AXIS_POS"
@@ -150,10 +141,9 @@
                                             class="input-viz input-viz__dpad"
                                             visual-input="DPAD_UP DPAD_DOWN DPAD_LEFT DPAD_RIGHT"
                                         >
-                                            <svg src="icons/VizMap/DPad.svg" />
+                                            <svg src="icons/VizMap/DPadV2.svg" />
                                             <div class="input-viz__dpad-split input-viz__dpad-split--vertical">
                                                 <div class="input-viz input-viz__mappings" visual-input="DPAD_UP">
-                                                    <svg class="input-viz__dpad-arrow input-viz__dpad-arrow--up" src="icons/VizMap/DPadArrow.svg" />
                                                     <div
                                                         class="input-config__visual-mapping"
                                                         data-for="cur_binding, i : inputs.DPAD_UP"
@@ -163,7 +153,6 @@
                                                 </div>
                                                 <div class="input-viz__dpad-divider" />
                                                 <div class="input-viz input-viz__mappings" visual-input="DPAD_DOWN">
-                                                    <svg class="input-viz__dpad-arrow input-viz__dpad-arrow--down" src="icons/VizMap/DPadArrow.svg" />
                                                     <div
                                                         class="input-config__visual-mapping"
                                                         data-for="cur_binding, i : inputs.DPAD_DOWN"
@@ -174,7 +163,6 @@
                                             </div>
                                             <div class="input-viz__dpad-split input-viz__dpad-split--horizontal">
                                                 <div class="input-viz input-viz__mappings" visual-input="DPAD_LEFT">
-                                                    <svg class="input-viz__dpad-arrow input-viz__dpad-arrow--left" src="icons/VizMap/DPadArrow.svg" />
                                                     <div
                                                         class="input-config__visual-mapping"
                                                         data-for="cur_binding, i : inputs.DPAD_LEFT"
@@ -184,7 +172,6 @@
                                                 </div>
                                                 <div class="input-viz__dpad-divider" />
                                                 <div class="input-viz input-viz__mappings" visual-input="DPAD_RIGHT">
-                                                    <svg class="input-viz__dpad-arrow input-viz__dpad-arrow--right" src="icons/VizMap/DPadArrow.svg" />
                                                     <div
                                                         class="input-config__visual-mapping"
                                                         data-for="cur_binding, i : inputs.DPAD_RIGHT"
@@ -212,10 +199,10 @@
                                                 </div>
                                             </div>
                                             <div
-                                                class="input-viz input-viz__button input-viz__button--lg input-viz__button--B"
+                                                class="input-viz input-viz__button input-viz__button--md input-viz__button--B"
                                                 visual-input="B"
                                             >
-                                                <svg src="icons/VizMap/ButtonLarge.svg" />
+                                                <svg src="icons/VizMap/ButtonMedium.svg" />
                                                 <div class="input-viz__mappings">
                                                     <div
                                                         class="input-config__visual-mapping"
@@ -226,10 +213,10 @@
                                                 </div>
                                             </div>
                                             <div
-                                                class="input-viz input-viz__button input-viz__button--lg input-viz__button--A"
+                                                class="input-viz input-viz__button input-viz__button--md input-viz__button--A"
                                                 visual-input="A"
                                             >
-                                                <svg src="icons/VizMap/ButtonLarge.svg" />
+                                                <svg src="icons/VizMap/ButtonMedium.svg" />
                                                 <div class="input-viz__mappings">
                                                     <div
                                                         class="input-config__visual-mapping"
@@ -287,7 +274,7 @@
                                                     </div>
                                                 </div>
                                                 <div
-                                                    class="input-viz input-viz__button input-viz__button--sm input-viz__button--C"
+                                                    class="input-viz input-viz__button input-viz__button--md input-viz__button--C"
                                                     visual-input="C_UP"
                                                 >
                                                     <svg src="icons/VizMap/ButtonMedium.svg" />
@@ -310,7 +297,7 @@
                                         class="input-viz input-viz__Z"
                                         visual-input="Z"
                                     >
-                                        <svg src="icons/VizMap/Target.svg" />
+                                        <svg src="icons/VizMap/ZButton.svg" />
                                         <div class="input-viz__mappings">
                                             <div
                                                 class="input-config__visual-mapping"
@@ -324,7 +311,7 @@
                                         class="input-viz input-viz__R"
                                         visual-input="R"
                                     >
-                                        <svg src="icons/VizMap/Shield.svg" />
+                                        <svg src="icons/VizMap/RButton.svg" />
                                         <div class="input-viz__mappings">
                                             <div
                                                 class="input-config__visual-mapping"
@@ -338,7 +325,7 @@
                                         class="input-viz input-viz__L"
                                         visual-input="L"
                                     >
-                                        <svg src="icons/VizMap/Map.svg" />
+                                        <svg src="icons/VizMap/LButton.svg" />
                                         <div class="input-viz__mappings">
                                             <div
                                                 class="input-config__visual-mapping"

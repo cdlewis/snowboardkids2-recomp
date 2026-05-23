@@ -2,15 +2,20 @@
 .config__icon-buttons {
     display: flex;
     position: absolute;
-    top: space(8);
-    right: space(0);
+    top: space(18);
+    right: space(12);
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
     width: auto;
 
     .icon-button {
+        @include set-color($color-white);
         margin: 0 space(8);
+
+        &:focus, &:hover, &:active {
+            @include set-color($color-white);
+        }
     }
 }
 
@@ -44,11 +49,11 @@
         white-space: pre-line;
 
         b {
-            color: $color-primary;
+            color: $color-white;
         }
 
         i {
-            color: $color-warning;
+            color: $color-white;
             font-style: normal;
         }
     }
@@ -98,4 +103,3 @@
     display: flex;
     flex-direction: row;
 }
-

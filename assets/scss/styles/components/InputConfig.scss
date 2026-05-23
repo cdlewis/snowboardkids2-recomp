@@ -8,6 +8,41 @@ $visual-max-width: $base-modal-max-width - $mapping-min-width - $scrollbar-width
     padding: 0;
 }
 
+.button.input-config__reset-defaults,
+.button.mod-footer__button,
+.button.prompt__button {
+    color: $color-white;
+    font-family: Fredoka;
+    font-weight: 600;
+    letter-spacing: 0;
+    border-width: space(2);
+    border-color: rgb(143, 186, 237);
+    background-color: rgb(137, 180, 232);
+    transition: background-color $transition-quick, color $transition-quick, opacity $transition-quick, border-color $transition-quick;
+    font-effect: shadow(5px 5px rgba(0, 0, 0, 0.1));
+
+    &:focus, &:hover, &:active {
+        color: $color-white;
+        border-color: $color-primary-d;
+        background-color: $color-primary-d;
+        decorator: horizontal-gradient(rgba(51, 90, 199, 0.3), rgba(51, 90, 199, 1));
+    }
+}
+
+.rmlui-window[mouse-active] .button.input-config__reset-defaults:focus:not(:hover),
+.rmlui-window[mouse-active] .button.mod-footer__button:focus:not(:hover),
+.rmlui-window[mouse-active] .button.prompt__button:focus:not(:hover) {
+    border-color: rgb(143, 186, 237);
+    background-color: rgb(137, 180, 232);
+    decorator: none;
+}
+
+.rmlui-window[mouse-active] .input-config .icon-button--error:focus:not(:hover) {
+    @include set-color($color-text-dim);
+    border-color: $color-error-a80;
+    background-color: $color-error-a5;
+}
+
 .input-config__horizontal-split {
     display: flex;
     position: relative;
@@ -200,8 +235,21 @@ $all-inputs: A,
 }
 
 .input-viz__Z {
-    @include set-svgs-color($color-warning);
-    @include set-sizes(136);
+    width: space(60);
+    min-width: space(60);
+    max-width: space(60);
+    height: space(187);
+    min-height: space(187);
+    max-height: space(187);
+
+    > svg {
+        width: space(60);
+        min-width: space(60);
+        max-width: space(60);
+        height: space(187);
+        min-height: space(187);
+        max-height: space(187);
+    }
 }
 
 $dpad-size: 192;
@@ -294,13 +342,33 @@ $stick-size: 200;
 }
 
 .input-viz__R {
-    @include set-svgs-color($color-white);
-    @include set-sizes(96);
+    width: space(154);
+    height: space(26);
+
+    .input-viz__mappings {
+        transform: translateY(space(-36));
+    }
+
+    > svg {
+        width: space(154);
+        height: space(26);
+        transform: rotate(16deg);
+    }
 }
 
 .input-viz__L {
-    @include set-svgs-color($color-secondary);
-    @include set-sizes(136);
+    width: space(154);
+    height: space(26);
+
+    .input-viz__mappings {
+        transform: translateY(space(-36));
+    }
+
+    > svg {
+        width: space(154);
+        height: space(26);
+        transform: rotate(-16deg);
+    }
 }
 
 .input-config__c-buttons {
