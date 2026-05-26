@@ -50,6 +50,10 @@
         transition: none;
         animation: $focus-anim-border;
 
+        > div {
+            animation: $focus-anim-border;
+        }
+
         &:selected .tab__indicator {
             animation: $focus-anim-bg;
         }

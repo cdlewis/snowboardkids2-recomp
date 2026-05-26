@@ -770,6 +770,9 @@ scrollbarhorizontal sliderbar {
   transition: none;
   animation: blue-pulse 0.75s infinite;
 }
+.rmlui-window:not([mouse-active]) .tab:focus > div {
+  animation: blue-pulse 0.75s infinite;
+}
 .rmlui-window:not([mouse-active]) .tab:focus:selected .tab__indicator {
   animation: blue-pulse-background 0.75s infinite;
 }
@@ -2438,6 +2441,15 @@ font-effect: shadow( 5px 5px rgba(0, 0, 0, 0.1) );
   height: 72dp;
   border-radius: 18dp;
   cursor: pointer;
+}
+.rmlui-window:not([mouse-active]) .toggle:focus {
+  transition: none;
+}
+.rmlui-window:not([mouse-active]) .toggle:focus .toggle__icon {
+  animation: blue-pulse 0.75s infinite;
+}
+.rmlui-window:not([mouse-active]) .toggle:focus .toggle__floater {
+  animation: blue-pulse-background 0.75s infinite;
 }
 
 .toggle .toggle__floater {

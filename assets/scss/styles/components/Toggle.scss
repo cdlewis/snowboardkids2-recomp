@@ -33,6 +33,18 @@ $toggle-checked-left-offset: $toggle-width - $toggle-floater-margin - $toggle-fl
         background-color: $color-secondary-a5;
     }
 
+    .rmlui-window:not([mouse-active]) &:focus {
+        transition: none;
+
+        .toggle__icon {
+            animation: $focus-anim-border;
+        }
+
+        .toggle__floater {
+            animation: $focus-anim-bg;
+        }
+    }
+
     .toggle__border {
         @include inner-border-block($color-secondary-l);
         border-radius: space(math.div($toggle-height, 2));
