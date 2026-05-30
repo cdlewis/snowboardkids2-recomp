@@ -1,10 +1,10 @@
-#include "patches.h"
-#include "ui/player_select_sprites.h"
-
 /*
  * Fix player-select portrait clipping seen in recomp and some cycle-accurate
  * emulators, but not on real hardware (?).
  */
+
+#include "patches.h"
+#include "ui/player_select_sprites.h"
 
 typedef struct {
     u8 pad0[0x1E0];

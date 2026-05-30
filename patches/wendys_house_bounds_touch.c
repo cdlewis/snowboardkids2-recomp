@@ -1,8 +1,3 @@
-#include "patches.h"
-
-#include "graphics/displaylist.h"
-#include "race/course.h"
-
 /* 
  * Wendy's House can produce frames where the visible 3D geometry leads
  * RT64 to incorrectly assume draw bounds of 320x224 rather than 320x240.
@@ -15,6 +10,11 @@
  *
  * It's not pretty but it works.
  */
+ 
+ #include "patches.h"
+
+#include "graphics/displaylist.h"
+#include "race/course.h"
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240

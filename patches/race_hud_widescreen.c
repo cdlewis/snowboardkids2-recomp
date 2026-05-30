@@ -1,3 +1,12 @@
+/*
+ * RT64 can stretch the race camera to widescreen, but the original HUD is drawn
+ * with fixed 4:3 screen coordinates. Without explicit rect/scissor alignment,
+ * corner HUD elements stay inset from the original 320x240 viewport instead of
+ * tracking the widened screen edges. These hooks wrap each corner HUD draw with
+ * temporary extended alignment state, then restore the normal text clip/scissor
+ * so unrelated UI continues to use the game's original coordinates.
+ */
+ 
 #include "patches.h"
 
 extern float recomp_get_target_aspect_ratio(float original);

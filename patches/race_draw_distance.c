@@ -1,3 +1,8 @@
+/*
+ * We have more powerful hardware, lets use it to show more of the track at
+ * any given time. Disable object culling and extend the viewports' far plane.
+ */
+
 #include "patches.h"
 #include "PR/gu.h"
 

@@ -21,10 +21,6 @@ RECOMP_PATCH void dmaLoadAndInvalidate(void* romStart, void* romEnd, void* ramSt
     // @recomp Load the overlay in the recomp runtime.
     recomp_load_overlays((u32) romStart, ramStart, romEnd - romStart);
 
-    // Invalidate instruction and data caches for specified ranges
-    // osInvalICache(icacheStart, icacheEnd - icacheStart);
-    // osInvalDCache(dcacheStart, dcacheEnd - dcacheStart);
-
     remainingBytes = romEnd - romStart;
     currentRomOffset = romStart;
     currentRamDest = ramStart;
