@@ -17,6 +17,7 @@ build/
 build-cmake
 build-n64recomp/
 *.o
+.cache
 
 # Windows build output
 *.exe

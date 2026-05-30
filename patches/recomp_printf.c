@@ -2,27 +2,23 @@
 
 extern void recomp_puts(const char* data, u32 size);
 
-#define va_end(__list)
-#define va_start(vp, parmN) (vp = ((va_list)&parmN + sizeof(parmN)))
+typedef __builtin_va_list recomp_va_list;
+typedef void* outfun(void*, const char*, size_t);
 
-typedef unsigned int size_t;
-typedef char * va_list;
-typedef char* outfun(char*, const char*, size_t);
+int _Printf(outfun prout, void* arg, const char* fmt, recomp_va_list args);
 
-int _Printf(outfun prout, char* arg, const char* fmt, va_list args);
-
-char* proutPrintf(char* dst, const char* fmt, size_t size) {
+void* proutPrintf(void* dst, const char* fmt, size_t size) {
     recomp_puts(fmt, size);
     return (void*) 1;
 }
 
 RECOMP_EXPORT int recomp_printf(const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
+    recomp_va_list args;
+    __builtin_va_start(args, fmt);
 
     int ret = _Printf(&proutPrintf, NULL, fmt, args);
 
-    va_end(args);
+    __builtin_va_end(args);
 
     return ret;
 }
