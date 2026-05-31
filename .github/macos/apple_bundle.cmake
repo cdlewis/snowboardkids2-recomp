@@ -50,12 +50,6 @@ add_custom_command(
 add_custom_target(prepare_macos_icon ALL DEPENDS ${MACOS_ICON_ASSETS_CAR} ${MACOS_ICON_ICNS_FILE} ${MACOS_ICON_INFO_PLIST})
 add_dependencies(SnowboardKids2Recompiled prepare_macos_icon)
 
-set_source_files_properties(${MACOS_ICON_ASSETS_CAR} ${MACOS_ICON_ICNS_FILE} PROPERTIES
-        MACOSX_PACKAGE_LOCATION "Resources"
-)
-
-target_sources(SnowboardKids2Recompiled PRIVATE ${MACOS_ICON_ASSETS_CAR} ${MACOS_ICON_ICNS_FILE})
-
 # Configure Info.plist
 configure_file(${CMAKE_SOURCE_DIR}/.github/macos/Info.plist.in ${CMAKE_BINARY_DIR}/Info.plist @ONLY)
 
