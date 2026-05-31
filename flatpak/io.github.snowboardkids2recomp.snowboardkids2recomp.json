@@ -21,7 +21,7 @@
       "buildsystem": "simple",
       "build-commands": [
         "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -S lib/N64Recomp -B lib/N64Recomp/cmake-build",
-        "cmake --build lib/N64Recomp/cmake-build --config Release --target N64Recomp --parallel",
+        "cmake --build lib/N64Recomp/cmake-build --config Release --target N64RecompCLI --parallel",
         "cmake --build lib/N64Recomp/cmake-build --config Release --target RSPRecomp --parallel",
         "cp lib/N64Recomp/cmake-build/N64Recomp N64Recomp",
         "cp lib/N64Recomp/cmake-build/RSPRecomp RSPRecomp",
@@ -42,7 +42,7 @@
         {
           "type": "git",
           "url": "https://github.com/N64Recomp/N64Recomp.git",
-          "commit": "70a894aad8d3491ca0fccee1f94dae8190845686",
+          "commit": "81213c1831fab2521a6a5459c67b63437d67e253",
           "dest": "lib/N64Recomp"
         },
         {

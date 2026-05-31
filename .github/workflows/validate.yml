@@ -10,7 +10,7 @@ on:
       N64RECOMP_COMMIT:
         type: string
         required: false
-        default: '70a894aad8d3491ca0fccee1f94dae8190845686'
+        default: '81213c1831fab2521a6a5459c67b63437d67e253'
       BUILD_TYPES:
         type: string
         required: false
@@ -495,7 +495,7 @@ jobs:
 
           export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -S . -B cmake-build
-          cmake --build cmake-build --config Release --target N64Recomp -j $(sysctl -n hw.ncpu)
+          cmake --build cmake-build --config Release --target N64RecompCLI -j $(sysctl -n hw.ncpu)
           cmake --build cmake-build --config Release --target RSPRecomp -j $(sysctl -n hw.ncpu)
 
           cp cmake-build/N64Recomp ..
