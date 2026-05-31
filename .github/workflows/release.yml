@@ -33,6 +33,9 @@ permissions:
 jobs:
   build:
     uses: ./.github/workflows/validate.yml
+    with:
+      BUILD_TYPES: '["Release"]'
+      WINDOWS_BUILD_TYPES: '["RelWithDebInfo"]'
     secrets: inherit
 
   release:

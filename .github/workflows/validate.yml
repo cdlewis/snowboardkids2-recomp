@@ -11,6 +11,14 @@ on:
         type: string
         required: false
         default: '70a894aad8d3491ca0fccee1f94dae8190845686'
+      BUILD_TYPES:
+        type: string
+        required: false
+        default: '["Debug","Release"]'
+      WINDOWS_BUILD_TYPES:
+        type: string
+        required: false
+        default: '["Debug","RelWithDebInfo"]'
     secrets:
       PRIVATE_REPO_ACCESS:
         required: true
@@ -26,7 +34,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        type: [Debug, Release]
+        type: ${{ fromJSON(inputs.BUILD_TYPES) }}
         os: [ubuntu-22.04]
     name: ubuntu-22.04 (x64, ${{ matrix.type }}, Native, AppImage)
     steps:
@@ -136,7 +144,7 @@ jobs:
       LLVM_VERSION: 20
     strategy:
       matrix:
-        type: [Debug, Release]
+        type: ${{ fromJSON(inputs.BUILD_TYPES) }}
         os: [ubuntu-latest]
     name: ${{ matrix.os }} (x64, ${{ matrix.type }}, Flatpak)
     steps:
@@ -204,7 +212,7 @@ jobs:
     runs-on: ubuntu-22.04-arm
     strategy:
       matrix:
-        type: [Debug, Release]
+        type: ${{ fromJSON(inputs.BUILD_TYPES) }}
         os: [ubuntu-22.04]
     name: ubuntu-22.04 (arm64, ${{ matrix.type }}, Native, AppImage)
     steps:
@@ -310,7 +318,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        type: [Debug, RelWithDebInfo]
+        type: ${{ fromJSON(inputs.WINDOWS_BUILD_TYPES) }}
     name: windows (${{ matrix.type }})
     steps:
       - name: Checkout
@@ -429,7 +437,7 @@ jobs:
     runs-on: macos-14
     strategy:
       matrix:
-        type: [Debug, Release]
+        type: ${{ fromJSON(inputs.BUILD_TYPES) }}
     name: macos (x64, arm64, ${{ matrix.type }})
     steps:
       - name: Checkout
