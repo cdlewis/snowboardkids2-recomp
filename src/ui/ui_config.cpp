@@ -2,7 +2,6 @@
 #include "recomp_input.h"
 #include "zelda_sound.h"
 #include "zelda_config.h"
-#include "zelda_debug.h"
 #include "zelda_render.h"
 #include "zelda_support.h"
 #include "promptfont.h"
@@ -74,8 +73,6 @@ int recompui::config_tab_to_index(recompui::ConfigTab tab) {
         return 3;
     case recompui::ConfigTab::Mods:
         return 4;
-    case recompui::ConfigTab::Debug:
-        return 5;
     default:
         assert(false && "Unknown config tab.");
         return 0;
@@ -508,37 +505,7 @@ bool zelda64::get_low_health_beeps_enabled() {
     return (bool)sound_options_context.low_health_beeps_enabled.load();
 }
 
-struct DebugContext {
-    Rml::DataModelHandle model_handle;
-    std::vector<std::string> area_names;
-    std::vector<std::string> scene_names;
-    std::vector<std::string> entrance_names; 
-    int area_index = 0;
-    int scene_index = 0;
-    int entrance_index = 0;
-    int set_time_day = 1;
-    int set_time_hour = 12;
-    int set_time_minute = 0;
-    bool debug_enabled = false;
-
-    DebugContext() {
-        for (const auto& area : zelda64::game_warps) {
-            area_names.emplace_back(area.name);
-        }
-        update_warp_names();
-    }
-
-    void update_warp_names() {
-        scene_names.clear();
-        for (const auto& scene : zelda64::game_warps[area_index].scenes) {
-            scene_names.emplace_back(scene.name);
-        }
-        
-        entrance_names = zelda64::game_warps[area_index].scenes[scene_index].entrances;
-    }
-};
-
-DebugContext debug_context;
+static bool debug_enabled = false;
 
 recompui::ContextId config_context = recompui::ContextId::null();
 static bool config_menu_uses_launcher_background = false;
@@ -758,36 +725,6 @@ public:
                 controls_model_handle.DirtyVariable("inputs");
             });
             
-        recompui::register_event(listener, "area_index_changed",
-            [](const std::string& param, Rml::Event& event) {
-                debug_context.area_index = event.GetParameter<int>("value", 0);
-                debug_context.scene_index = 0;
-                debug_context.entrance_index = 0;
-                debug_context.update_warp_names();
-                debug_context.model_handle.DirtyVariable("scene_index");
-                debug_context.model_handle.DirtyVariable("entrance_index");
-                debug_context.model_handle.DirtyVariable("scene_names");
-                debug_context.model_handle.DirtyVariable("entrance_names");
-            });
-            
-        recompui::register_event(listener, "scene_index_changed",
-            [](const std::string& param, Rml::Event& event) {
-                debug_context.scene_index = event.GetParameter<int>("value", 0);
-                debug_context.entrance_index = 0;
-                debug_context.update_warp_names();
-                debug_context.model_handle.DirtyVariable("entrance_index");
-                debug_context.model_handle.DirtyVariable("entrance_names");
-            });
-
-        recompui::register_event(listener, "do_warp",
-            [](const std::string& param, Rml::Event& event) {
-                zelda64::do_warp(debug_context.area_index, debug_context.scene_index, debug_context.entrance_index);
-            });
-
-        recompui::register_event(listener, "set_time",
-            [](const std::string& param, Rml::Event& event) {
-                zelda64::set_time(debug_context.set_time_day, debug_context.set_time_hour, debug_context.set_time_minute);
-            });
     }
 
     void bind_config_list_events(Rml::DataModelConstructor &constructor) {
@@ -1170,37 +1107,6 @@ public:
         bind_atomic(constructor, sound_options_model_handle, "low_health_beeps_enabled", &sound_options_context.low_health_beeps_enabled);
     }
 
-    void make_debug_bindings(Rml::Context* context) {
-        Rml::DataModelConstructor constructor = context->CreateDataModel("debug_model");
-        if (!constructor) {
-            throw std::runtime_error("Failed to make RmlUi data model for the debug menu");
-        }
-
-        bind_config_list_events(constructor);
-
-        // Bind the debug mode enabled flag.
-        constructor.Bind("debug_enabled", &debug_context.debug_enabled);
-        
-        // Register the array type for string vectors.
-        constructor.RegisterArray<std::vector<std::string>>();
-        
-        // Bind the warp parameter indices
-        constructor.Bind("area_index", &debug_context.area_index);
-        constructor.Bind("scene_index", &debug_context.scene_index);
-        constructor.Bind("entrance_index", &debug_context.entrance_index);
-
-        // Bind the vectors for warp names
-        constructor.Bind("area_names", &debug_context.area_names);
-        constructor.Bind("scene_names", &debug_context.scene_names);
-        constructor.Bind("entrance_names", &debug_context.entrance_names);
-
-        constructor.Bind("debug_time_day", &debug_context.set_time_day);
-        constructor.Bind("debug_time_hour", &debug_context.set_time_hour);
-        constructor.Bind("debug_time_minute", &debug_context.set_time_minute);
-
-        debug_context.model_handle = constructor.GetModelHandle();
-    }
-
     void make_bindings(Rml::Context* context) override {
         // initially set cont state for ui help
         //recomp::config_menu_set_cont_or_kb(recompui::get_cont_active());
@@ -1209,7 +1115,6 @@ public:
         make_controls_bindings(context);
         make_graphics_bindings(context);
         make_sound_options_bindings(context);
-        make_debug_bindings(context);
     }
 };
 
@@ -1218,14 +1123,11 @@ std::unique_ptr<recompui::MenuController> recompui::create_config_menu() {
 }
 
 bool zelda64::get_debug_mode_enabled() {
-    return debug_context.debug_enabled;
+    return debug_enabled;
 }
 
 void zelda64::set_debug_mode_enabled(bool enabled) {
-    debug_context.debug_enabled = enabled;
-    if (debug_context.model_handle) {
-        debug_context.model_handle.DirtyVariable("debug_enabled");
-    }
+    debug_enabled = enabled;
 }
 
 void recompui::update_supported_options() {

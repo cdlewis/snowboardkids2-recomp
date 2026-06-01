@@ -65,7 +65,6 @@ namespace recompui {
         Graphics,
         Sound,
         Mods,
-        Debug,
     };
 
     void set_config_tab(ConfigTab tab);
