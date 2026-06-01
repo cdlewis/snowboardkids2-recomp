@@ -928,6 +928,12 @@ void draw_hook(plume::RenderCommandList* command_list, plume::RenderFramebuffer*
         ui_state->render_interface.start(command_list, width, height);
 
         ui_state->context->Update();
+        
+        // This is super ugly and should be removed: https://github.com/cdlewis/snowboardkids2-recomp/issues/29
+        if (recompui::update_config_controller_visual_layout(10.0f * density_ratio, float(width) / density_ratio)) {
+            ui_state->context->Update();
+        }
+
         ui_state->context->Render();
         ui_state->render_interface.end(command_list, swap_chain_framebuffer);
     }

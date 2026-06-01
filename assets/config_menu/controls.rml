@@ -30,7 +30,7 @@
                     </button>
                 </div>
             </div>
-            <div class="config__wrapper input-config">
+            <div id="input_config" class="config__wrapper input-config">
                 <div class="input-config__horizontal-split">
                     <div
                         class="input-config__mappings"
@@ -79,10 +79,12 @@
                         data-event-mouseover="clear_input_row_focus"
                     >
                         <div
+                            id="input_config_visual_box"
                             class="input-config__visual-aspect"
                             data-event-mouseover="clear_input_row_focus"
                         >
                             <div
+                                id="input_config_visual"
                                 class="input-config__visual"
                                 data-event-mouseover="clear_input_row_focus"
                             >

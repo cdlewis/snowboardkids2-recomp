@@ -13,6 +13,7 @@
 #include "core/ui_context.h"
 
 #include <array>
+#include <cstdio>
 
 ultramodern::renderer::GraphicsConfig new_options;
 Rml::DataModelHandle nav_help_model_handle;
@@ -565,6 +566,88 @@ static void apply_config_menu_launcher_background_class() {
 void recompui::set_config_menu_uses_launcher_background(bool uses_launcher_background) {
     config_menu_uses_launcher_background = uses_launcher_background;
     apply_config_menu_launcher_background_class();
+}
+
+bool recompui::update_config_controller_visual_layout(float margin_px, float width_dp) {
+    if (config_context == recompui::ContextId::null()) {
+        return false;
+    }
+
+    Rml::ElementDocument* doc = config_context.get_document();
+    if (doc == nullptr) {
+        return false;
+    }
+
+    static constexpr float compact_width_threshold_dp = 1480.0f;
+
+    Rml::Element* input_config = doc->GetElementById("input_config");
+    const bool compact_layout = width_dp < compact_width_threshold_dp;
+    bool changed = false;
+    if (input_config != nullptr && input_config->IsClassSet("input-config--compact") != compact_layout) {
+        input_config->SetClass("input-config--compact", compact_layout);
+        changed = true;
+    }
+
+    if (compact_layout) {
+        return changed;
+    }
+
+    Rml::Element* box = doc->GetElementById("input_config_visual_box");
+    Rml::Element* visual = doc->GetElementById("input_config_visual");
+    if (box == nullptr || visual == nullptr) {
+        return changed;
+    }
+
+    const int box_width_px = box->GetClientWidth();
+    const int box_height_px = box->GetClientHeight();
+    if (box_width_px <= 0 || box_height_px <= 0) {
+        return changed;
+    }
+
+    static Rml::Element* last_visual = nullptr;
+    static int last_box_width_px = 0;
+    static int last_box_height_px = 0;
+    static float last_margin_px = 0.0f;
+    if (visual == last_visual && box_width_px == last_box_width_px && box_height_px == last_box_height_px && margin_px == last_margin_px) {
+        return changed;
+    }
+
+    last_visual = visual;
+    last_box_width_px = box_width_px;
+    last_box_height_px = box_height_px;
+    last_margin_px = margin_px;
+
+    const float box_width = static_cast<float>(box_width_px);
+    const float box_height = static_cast<float>(box_height_px);
+    const float available_width = box_width - margin_px * 2.0f;
+    const float available_height = box_height - margin_px * 2.0f;
+    if (available_width <= 0.0f || available_height <= 0.0f) {
+        return changed;
+    }
+
+    static constexpr float controller_aspect = 800.0f / 744.0f;
+
+    float visual_width = available_width;
+    float visual_height = visual_width / controller_aspect;
+    if (visual_height > available_height) {
+        visual_height = available_height;
+        visual_width = visual_height * controller_aspect;
+    }
+
+    const float visual_left = margin_px + (available_width - visual_width) * 0.5f;
+    const float visual_top = margin_px + (available_height - visual_height) * 0.5f;
+
+    auto set_px = [](Rml::Element* element, const char* property, float value) {
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.2fpx", value);
+        element->SetProperty(property, buffer);
+    };
+
+    set_px(visual, "left", visual_left);
+    set_px(visual, "top", visual_top);
+    set_px(visual, "width", visual_width);
+    set_px(visual, "height", visual_height);
+    return true;
 }
 
 // Helper copied from RmlUi to get a named child.
