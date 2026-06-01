@@ -15,18 +15,14 @@
 
 #include "graphics/displaylist.h"
 #include "race/course.h"
+#include "race/race_hud.h"
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
 
-typedef struct {
-    u8 _pad[0xB4];
-    s16 skyType;
-} ScheduledSkyTask;
-
 extern Gfx* gDisplayListAllocPtr;
 extern s16 gGraphicsMode;
-extern void initSkyRenderTask(void*);
+extern void initSkyRenderTask(SkyRenderTaskState* state);
 extern void renderCameraRelativeDisplayList(DisplayListObject* displayListObj);
 
 static s32 sWendysHouseBoundsTouchEnabled = FALSE;
@@ -46,7 +42,7 @@ static void touch_wendys_house_bottom_bounds(void* unused) {
 }
 
 RECOMP_PATCH void scheduleSkyRenderTask(s32 skyType) {
-    ScheduledSkyTask* task;
+    SkyRenderTaskState* task;
 
     sWendysHouseBoundsTouchEnabled = (skyType == WENDYS_HOUSE);
 

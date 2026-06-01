@@ -13,10 +13,8 @@
 extern float recomp_get_target_aspect_ratio(float original);
 
 
-RECOMP_PATCH void setModelCameraTransform(void* arg0, s16 originX, s16 originY, s16 left, s16 top, s16 right,
+RECOMP_PATCH void setModelCameraTransform(ViewportNode* node, s16 originX, s16 originY, s16 left, s16 top, s16 right,
                                           s16 bottom) {
-    ViewportNode* node = (ViewportNode*) arg0;
-
     if ((left == -0xA0 && top == -0x78 && right == 0x9F && bottom == 0x77) ||
         (left == -0x98 && top == -0x70 && right == 0x97 && bottom == 0x6F)) {
         left = -0xA0;
