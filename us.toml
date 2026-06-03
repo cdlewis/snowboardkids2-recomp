@@ -15,7 +15,7 @@ stubs = [
 ignored = [
     "cutsceneCmdHelper",
     "renderCutsceneSlotMenu",
-    "func_800B3FFC_1E10AC",
+    "renderCutsceneTimelineView",
     "gspS2DEX_fifoTextStart",
     "aspMainTextStart"
 ]
@@ -54,4 +54,3 @@ value = 0x00000000 # nop
 func = "piDmaHandlerThread"
 vram = 0x8003B79C
 value = 0x00000000 # nop
-

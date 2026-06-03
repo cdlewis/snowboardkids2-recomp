@@ -15,6 +15,20 @@ git clone --recurse-submodules
 
 ## 2. Install Dependencies
 
+### Mac
+
+For Mac you will need Xcode installed along with the Metal toolchain:
+
+```bash
+xcodebuild -downloadComponent MetalToolchain
+```
+
+Along with the following dependencies:
+
+```bash
+brew install cmake ninja sdl2 gtk+3 lld
+```
+
 ### Linux
 For Linux the instructions for Ubuntu are provided, but you can find the equivalent packages for your preferred distro.
 

@@ -1,7 +1,7 @@
-# VSCode file settings
+# IDE configs
 .vscode/settings.json
-# .vscode/c_cpp_properties.json
 .vscode/launch.json
+.idea
 
 # Input elf and rom files
 *.elf
@@ -12,10 +12,8 @@
 RecompiledFuncs/
 RecompiledPatches/
 
-# Linux build output
-build/
-build-cmake
-build-n64recomp/
+# Mac / Linux build output
+build*
 *.o
 .cache
 
