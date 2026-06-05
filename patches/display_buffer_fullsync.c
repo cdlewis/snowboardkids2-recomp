@@ -29,7 +29,7 @@ extern long long int rspbootTextStart[];
 extern long long int aspMainTextStart[];
 extern Gfx gDefaultRenderDisplayList[];
 
-RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
+RECOMP_PATCH void initDisplayBuffers(void) {
     DisplayBufferMsg *msg;
     u8 exists;
     s32 i;
@@ -69,6 +69,8 @@ RECOMP_PATCH void initDisplayBuffers(void) __attribute__((optnone)) {
         gDPSetFillColor(gfx++, 0x10001);
         gDPFillRectangle(gfx++, 0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1);
         gDPPipeSync(gfx++);
+        // @recomp patched to remove gDPFullSync. We only want to call this once per frame
+        // rather than once per graphics task.
         gSPEndDisplayList(gfx++);
 
         msg->yield_data_ptr = &gAuxFrameBuffers[i];

@@ -20,6 +20,8 @@
 #define osWritebackDCache osWritebackDCache_recomp
 #define osInvalICache osInvalICache_recomp
 #define osGetTime osGetTime_recomp
+#define osEepromLongRead osEepromLongRead_recomp
+#define osEepromLongWrite osEepromLongWrite_recomp
 
 #define osContStartReadData osContStartReadData_recomp
 #define osContGetReadData osContGetReadData_recomp
