@@ -3,7 +3,7 @@
 	url = https://github.com/N64Recomp/N64ModernRuntime.git
 [submodule "lib/RmlUi"]
 	path = lib/RmlUi
-	url = git@github.com:mikke89/RmlUi.git
+	url = https://github.com/mikke89/RmlUi.git
 [submodule "lib/freetype-windows-binaries"]
 	path = lib/freetype-windows-binaries
 	url = https://github.com/ubawurinna/freetype-windows-binaries.git
@@ -12,7 +12,7 @@
 	url = https://github.com/sammycage/lunasvg.git
 [submodule "lib/rt64"]
 	path = lib/rt64
-	url = git@github.com:cdlewis/rt64.git
+	url = https://github.com/cdlewis/rt64.git
 [submodule "lib/sk2-decomp"]
 	path = lib/sk2-decomp
 	url = https://github.com/cdlewis/snowboardkids2-decomp.git
@@ -21,4 +21,4 @@
 	url = https://github.com/DLTcollab/sse2neon.git
 [submodule "snowboardkids2-recomp-syms"]
 	path = snowboardkids2-recomp-syms
-	url = git@github.com:cdlewis/snowboardkids2-recomp-syms.git
+	url = https://github.com/cdlewis/snowboardkids2-recomp-syms.git
