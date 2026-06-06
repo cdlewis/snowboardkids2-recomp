@@ -1,10 +1,13 @@
 /*
- * Single-task graphics dispatch.
+* Single-task graphics dispatch.
  *
- * RT64 does strange things (leading to visible screen flickering) if gDPFullSync is
- * called more than once per frame. This is entirely possible to accomplish. The
- * Snowboard Kids 2 developers probably did not realise that different microcode
- * can co-exist within one display list.
+ * RT64 can only perform frame interpolation correctly when one gDPFullSync is
+ * used per frame. Snowboard Kids 2 switches the graphics microcode between F3DEX
+ * and S2DEX but instead using gSPLoadUcode to do so, it does a full sync and
+ * sends a separate display list and task each time.
+ *
+ * The patch merges all of the generated display lists into one display list and
+ * only issues a gDPFullSync at the very end of the frame.
  */
 
 #include "PR/ultratypes.h"

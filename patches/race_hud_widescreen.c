@@ -10,6 +10,8 @@
 #include "patches.h"
 
 extern float recomp_get_target_aspect_ratio(float original);
+extern const char sGoldFormatShort[];
+extern const char sGoldFormatLong[];
 
 #define ORIGINAL_ASPECT (4.0f / 3.0f)
 #define HUD_ASPECT_LIMIT (16.0f / 9.0f)
@@ -68,7 +70,7 @@ static void set_lap_counter_widescreen_align(void) {
     set_hud_widescreen_align(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, -HUD_CORNER_ALIGN_OFFSET);
 }
 
-static void set_bottom_left_hud_align(void* unused) {
+static void setBottomLeftHudAlign(void* unused) {
     if (hud_widescreen_margin() <= 0) {
         return;
     }
@@ -76,16 +78,7 @@ static void set_bottom_left_hud_align(void* unused) {
     set_hud_widescreen_align(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, HUD_CORNER_ALIGN_OFFSET);
 }
 
-static void set_top_right_hud_align(void* unused) {
-    if (hud_widescreen_margin() <= 0) {
-        return;
-    }
-
-    set_hud_widescreen_align(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT, -((s16) HUD_SCREEN_WIDTH - HUD_CORNER_ALIGN_OFFSET),
-                             -HUD_CORNER_ALIGN_OFFSET);
-}
-
-static void set_bottom_right_hud_align(void* unused) {
+static void setBottomRightHudAlign(void* unused) {
     if (hud_widescreen_margin() <= 0) {
         return;
     }
@@ -94,7 +87,16 @@ static void set_bottom_right_hud_align(void* unused) {
                              HUD_CORNER_ALIGN_OFFSET);
 }
 
-static void reset_corner_hud_align(void* unused) {
+static void setTopRightHudAlign(void* unused) {
+    if (hud_widescreen_margin() <= 0) {
+        return;
+    }
+
+    set_hud_widescreen_align(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT, -((s16) HUD_SCREEN_WIDTH - HUD_CORNER_ALIGN_OFFSET),
+                             -HUD_CORNER_ALIGN_OFFSET);
+}
+
+static void resetCornerHudAlign(void* unused) {
     if (hud_widescreen_margin() <= 0) {
         return;
     }
@@ -102,70 +104,49 @@ static void reset_corner_hud_align(void* unused) {
     reset_hud_widescreen_align();
 }
 
-static void render_lap_counter_sprite(void* arg) {
+static void renderLapCounterSpriteFrame(void* arg) {
     set_lap_counter_widescreen_align();
     renderSpriteFrame(arg);
     reset_hud_widescreen_align();
 }
 
-static void render_lap_counter_sprite_with_palette(void* arg) {
+static void renderLapCounterSpriteFrameWithPalette(void* arg) {
     set_lap_counter_widescreen_align();
     renderSpriteFrameWithPalette(arg);
     reset_hud_widescreen_align();
 }
 
-static void format_gold_counter(char* buffer, s32 gold) {
-    s32 divisor = 10000;
-    s32 started = 0;
-    s32 digit;
-    s32 i;
-
-    buffer[0] = (gold < 100) ? 1 : 2;
-
-    for (i = 0; i < 5; i++) {
-        digit = gold / divisor;
-        gold -= digit * divisor;
-        divisor /= 10;
-
-        if ((digit != 0) || started || (i == 4)) {
-            buffer[i + 1] = (char) ('0' + digit);
-            started = 1;
-        } else {
-            buffer[i + 1] = ' ';
-        }
-    }
-
-    buffer[6] = '\0';
-}
-
+// @recomp wrap calls to renderSpriteFrame(WithPalette) to adjust for widescreen
 RECOMP_PATCH void updatePlayerLapCounterSinglePlayer(LapCounterSinglePlayerState* state) {
-    u16 callbackIndex = (u16) (state->playerIndex + 8);
-
-    enqueueCallbackBySlotIndex(callbackIndex, 0, render_lap_counter_sprite, state);
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderLapCounterSpriteFrame, state);
     state->currentLap = state->player->currentLap + 1;
-    enqueueCallbackBySlotIndex(callbackIndex, 0, render_lap_counter_sprite_with_palette, &state->digitX1);
-    enqueueCallbackBySlotIndex(callbackIndex, 0, render_lap_counter_sprite, &state->digitX2);
-    enqueueCallbackBySlotIndex(callbackIndex, 0, render_lap_counter_sprite_with_palette, &state->digitX3);
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderLapCounterSpriteFrameWithPalette, &state->digitX1);
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderLapCounterSpriteFrame, &state->digitX2);
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderLapCounterSpriteFrameWithPalette, &state->digitX3);
 }
 
+// @recomp wrap call to renderSpriteFrame to adjust for widescreen
 RECOMP_PATCH void updatePlayerFinishPositionDisplay(FinishPositionDisplayState* state) {
-    u16 callbackIndex = (u16) (state->playerIndex + 8);
-
     state->spriteIndex = state->player->finishPosition;
 
-    enqueueCallbackBySlotIndex(callbackIndex, 0, reset_corner_hud_align, NULL);
-    enqueueCallbackBySlotIndex(callbackIndex, 0, renderSpriteFrame, state);
-    enqueueCallbackBySlotIndex(callbackIndex, 0, set_bottom_left_hud_align, NULL);
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setBottomLeftHudAlign, NULL);
 }
 
 RECOMP_PATCH void updatePlayerGoldDisplaySinglePlayer(PlayerGoldDisplayState* state) {
     s32 gold = state->player->raceCoins;
-    u16 callbackIndex = (u16) (state->playerIndex + 8);
 
-    format_gold_counter(state->goldTextBuffer, gold);
+    if (gold < 100) {
+        _Sprintf(state->goldTextBuffer, sGoldFormatShort, gold);
+    } else {
+        _Sprintf(state->goldTextBuffer, sGoldFormatLong, gold);
+    }
 
-    enqueueCallbackBySlotIndex(callbackIndex, 0, reset_corner_hud_align, NULL);
-    drawNumericString(state->goldTextBuffer, state->x, state->y, 0xFF, state->digitsTexture, callbackIndex, 0);
+    // @recomp wrap texture rendering call to adjust for widescreen
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+
+    drawNumericString(state->goldTextBuffer, state->x, state->y, 0xFF, state->digitsTexture, (u16) (state->playerIndex + 8), 0);
 
     state->animCounter++;
     if ((s16) state->animCounter >= 12) {
@@ -174,8 +155,10 @@ RECOMP_PATCH void updatePlayerGoldDisplaySinglePlayer(PlayerGoldDisplayState* st
 
     state->animFrame = (s16) state->animCounter >> 1;
 
-    enqueueCallbackBySlotIndex(callbackIndex, 0, renderSpriteFrame, &state->iconX);
-    enqueueCallbackBySlotIndex(callbackIndex, 0, set_bottom_right_hud_align, NULL);
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, &state->iconX);
+
+    // @recomp wrap texture rendering call to adjust for widescreen
+    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setBottomRightHudAlign, NULL);
 }
 
 RECOMP_PATCH void updatePlayerRaceProgressIndicator(RaceProgressIndicatorState* state) {
@@ -186,12 +169,15 @@ RECOMP_PATCH void updatePlayerRaceProgressIndicator(RaceProgressIndicatorState* 
     RaceProgressIndicatorElement* elem;
     s32 targetPosition;
     s32 delta;
-    volatile s8 flashState;
+    s8 flashState;
     s16 currentPosition;
     s32 playerCount;
+    u8 pad[0x8];
 
     allocation = getCurrentAllocation();
-    enqueueCallbackBySlotIndex(0xC, 0, reset_corner_hud_align, NULL);
+
+    // @recomp wrap race progress indicator render call to adjust for widescreen
+    enqueueCallbackBySlotIndex(0xC, 0, resetCornerHudAlign, NULL);
 
     playerCount = allocation->numPlayers;
     i = 0;
@@ -220,33 +206,37 @@ RECOMP_PATCH void updatePlayerRaceProgressIndicator(RaceProgressIndicatorState* 
             elem->positionOffset = currentPosition + delta;
             flashState = elem->flashState;
 
-            if (flashState == 0) {
-                if (playerData->behaviorFlags & 0x10) {
-                    elem->flashState = 1;
-                    flashState = 1;
-                }
-            }
-            if (flashState == 1) {
-                elem->flashCounter++;
-                if ((s8) elem->flashCounter == 2) {
-                    elem->flashState = 2;
-                }
-            } else if (flashState == 2) {
-                if (!(playerData->behaviorFlags & 0x10)) {
-                    elem->flashState = 3;
-                    flashState = 3;
-                }
-            }
-            if (flashState == 3) {
-                elem->flashCounter--;
-                if ((elem->flashCounter << 24) == 0) {
-                    elem->flashState = 0;
-                }
+            switch (flashState) {
+                case 0:
+                    if (playerData->behaviorFlags & 0x10) {
+                        elem->flashState = flashState + 1;
+                        case 1:
+                            elem->flashCounter++;
+                            if ((s8) elem->flashCounter == 2) {
+                                elem->flashState = elem->flashState + 1;
+                            }
+                    }
+                    break;
+                case 2:
+                    if (!(playerData->behaviorFlags & 0x10)) {
+                        elem->flashState = flashState + 1;
+                        case 3:
+                            elem->flashCounter--;
+                            if ((elem->flashCounter << 24) == 0) {
+                                elem->flashState = 0;
+                            }
+                    }
+                    break;
             }
 
             elem->y = (u16) elem->positionOffset + state->baseY - 4;
             elem->spriteFrame = (s8) elem->flashCounter;
-            elem->hasActiveEffect = playerData->slowdownLevel != 0;
+
+            if (playerData->slowdownLevel != 0) {
+                elem->hasActiveEffect = 1;
+            } else {
+                elem->hasActiveEffect = 0;
+            }
 
             enqueueCallbackBySlotIndex(0xC, 0, renderSpriteFrameWithPalette, elem);
             i++;
@@ -255,5 +245,7 @@ RECOMP_PATCH void updatePlayerRaceProgressIndicator(RaceProgressIndicatorState* 
     }
 
     enqueueCallbackBySlotIndex(0xC, 0, renderSpriteFrame, state);
-    enqueueCallbackBySlotIndex(0xC, 0, set_top_right_hud_align, NULL);
+
+    // @recomp wrap race progress indicator render call to adjust for widescreen
+    enqueueCallbackBySlotIndex(0xC, 0, setTopRightHudAlign, NULL);
 }

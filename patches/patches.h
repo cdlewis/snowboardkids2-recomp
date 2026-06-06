@@ -114,6 +114,7 @@
                              G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP)
 
 int recomp_printf(const char* fmt, ...);
+int _Sprintf(char* buffer, const char* fmt, ...);
 float recomp_powf(float, float);
 f32 __sinf(f32);
 f32 __cosf(f32);
