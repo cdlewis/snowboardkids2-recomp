@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "transform_ids.h"
 
 extern Gfx* gDisplayListAllocPtr;
 extern ActiveViewportState* gActiveViewport;
@@ -20,17 +21,27 @@ extern void setupMultiPartObjectRenderState(DisplayListObject* arg0, s32 arg1);
 // This extra structure could also store additional information to control interpolation in greater detail.
 
 void pushObjectMatrixGroup(DisplayListObject* displayObjects) {
-    gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32) (displayObjects), G_EX_PUSH, G_MTX_MODELVIEW,
-                         G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
-                         G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
-                         G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
+    if (skip_perspective_interpolation) {
+        gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, (u32)(displayObjects), G_EX_PUSH, G_MTX_MODELVIEW,
+                              G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32)(displayObjects), G_EX_PUSH, G_MTX_MODELVIEW,
+                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
+                             G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+                             G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
+    }
 }
 
 void pushMultiPartObjectMatrixGroup(DisplayListObject* displayObjects, s32 i) {
-    gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32) (displayObjects) + i, G_EX_PUSH, G_MTX_MODELVIEW,
-                         G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
-                         G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
-                         G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
+    if (skip_perspective_interpolation) {
+        gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, (u32)(displayObjects) + i, G_EX_PUSH, G_MTX_MODELVIEW,
+                              G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32)(displayObjects) + i, G_EX_PUSH, G_MTX_MODELVIEW,
+                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
+                             G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+                             G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
+    }
 }
 
 void popObjectMatrixGroup() {
@@ -494,10 +505,15 @@ RECOMP_PATCH void renderRacerProjectedShadow(Player* player) {
     if (player->shadowVertices != NULL && player->shadowMatrix != NULL) {
         // @recomp Push the matrix group for this player. Use the address of the player's shadow matrix pointer as its ID.
         // TODO: This can be replaced with a better ID system by extending Player data as well.
-        gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32) (&player->shadowMatrix), G_EX_PUSH, G_MTX_MODELVIEW,
-                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
-                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
-                             G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
+        if (skip_perspective_interpolation) {
+            gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, (u32)(&player->shadowMatrix), G_EX_PUSH,
+                                  G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+        } else {
+            gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32)(&player->shadowMatrix), G_EX_PUSH, G_MTX_MODELVIEW,
+                                 G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
+                                 G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+                                 G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
+        }
 
         gSPMatrix(gDisplayListAllocPtr++, player->shadowMatrix, (G_MTX_NOPUSH | G_MTX_LOAD) | G_MTX_MODELVIEW);
         gGraphicsMode = -1;

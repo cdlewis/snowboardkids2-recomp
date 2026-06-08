@@ -1,5 +1,5 @@
 /*
-* Single-task graphics dispatch.
+ * Single-task graphics dispatch.
  *
  * RT64 can only perform frame interpolation correctly when one gDPFullSync is
  * used per frame. Snowboard Kids 2 switches the graphics microcode between F3DEX

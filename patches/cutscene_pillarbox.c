@@ -1,14 +1,17 @@
 #include "patches.h"
 
+// Pillarbox projection and RT64 matrix-group setup based on BanjoRecomp's pillarbox patch:
+// https://github.com/BanjoRecomp/BanjoRecomp/blob/main/patches/pillarbox_patches.c
+
 #include "animation/animation_loop.h"
 #include "animation/slot_animation.h"
 #include "cutscene/1DD170.h"
 #include "cutscene/cutscene_manager.h"
+#include "transform_ids.h"
 
 #define ORIGINAL_ASPECT (4.0f / 3.0f)
 #define CUTSCENE_SCREEN_WIDTH 320.0f
 #define CUTSCENE_SCREEN_HEIGHT 240.0f
-#define PROJECTION_PILLARBOX_TRANSFORM_ID 0x00001009
 #define PILLARBOX_RECTANGLE_TRANSFORM_ID_START 0x31000000
 
 extern float recomp_get_target_aspect_ratio(float original);
