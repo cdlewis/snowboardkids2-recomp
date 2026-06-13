@@ -30,24 +30,35 @@
 					</div>
 				</div>
 			</div>
-			<div id="snow-overlay"></div>
 			<div id="menu-container">
 				<button data-if="!mm_rom_valid" onclick="select_rom" class="menu-list-item menu-list-item--right" autofocus>
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Select ROM</div>
 				</button>
 				<button data-if="mm_rom_valid" onclick="start_game" class="menu-list-item menu-list-item--right" autofocus>
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Start game</div>
 				</button>
 				<button onclick="open_controls" class="menu-list-item menu-list-item--right">
-					<div class="menu-list-item__label">Setup controls</div>
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
+					<div class="menu-list-item__label">Setup Controls</div>
 				</button>
 				<button onclick="open_settings" class="menu-list-item menu-list-item--right">
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Settings</div>
 				</button>
 				<button onclick="open_mods" class="menu-list-item menu-list-item--right">
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Mods</div>
 				</button>
 				<button onclick="exit_game" class="menu-list-item menu-list-item--right">
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Exit</div>
 				</button>
 			</div>

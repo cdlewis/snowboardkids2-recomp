@@ -5,7 +5,6 @@
 
 #include <fstream>
 #include <filesystem>
-#include <chrono>
 
 #include <concurrentqueue.h>
 
@@ -18,16 +17,13 @@
 
 #include "InterfaceVS.hlsl.spirv.h"
 #include "InterfacePS.hlsl.spirv.h"
-#include "SnowOverlayPS.hlsl.spirv.h"
 
 #ifdef _WIN32
 #   include "InterfaceVS.hlsl.dxil.h"
 #   include "InterfacePS.hlsl.dxil.h"
-#   include "SnowOverlayPS.hlsl.dxil.h"
 #elif defined(__APPLE__)
 #   include "InterfaceVS.hlsl.metal.h"
 #   include "InterfacePS.hlsl.metal.h"
-#   include "SnowOverlayPS.hlsl.metal.h"
 #endif
 
 #ifdef _WIN32
@@ -62,9 +58,6 @@ void CalculateTextureRowWidthPadding(uint32_t rowPitch, uint32_t &rowWidth, uint
 struct RmlPushConstants {
     Rml::Matrix4f transform;
     Rml::Vector2f translation;
-    Rml::Vector2f snow_size;
-    float snow_time;
-    float snow_opacity;
 };
 
 struct TextureHandle {
@@ -104,8 +97,6 @@ class RmlRenderInterface_RT64_impl : public Rml::RenderInterfaceCompatibility {
 
     static constexpr uint32_t per_frame_descriptor_set = 0;
     static constexpr uint32_t per_draw_descriptor_set = 1;
-    static constexpr Rml::TextureHandle snow_overlay_texture_handle = 2;
-    static constexpr const char* snow_overlay_texture_source = "?/launcher/snow_overlay";
 
     static constexpr uint32_t initial_upload_buffer_size = 1024 * 1024;
     static constexpr uint32_t initial_vertex_buffer_size = 512 * sizeof(Rml::Vertex);
@@ -128,7 +119,7 @@ class RmlRenderInterface_RT64_impl : public Rml::RenderInterfaceCompatibility {
     Rml::Matrix4f transform_ = Rml::Matrix4f::Identity();
     Rml::Matrix4f mvp_ = Rml::Matrix4f::Identity();
     std::unordered_map<Rml::TextureHandle, TextureHandle> textures_{};
-    Rml::TextureHandle texture_count_ = 3; // Reserve 0 as white, 1 as transparent, and 2 as the procedural snow overlay.
+    Rml::TextureHandle texture_count_ = 2; // Reserve 0 as white and 1 as transparent.
     DynamicBuffer upload_buffer_;
     DynamicBuffer vertex_buffer_;
     DynamicBuffer index_buffer_;
@@ -136,14 +127,11 @@ class RmlRenderInterface_RT64_impl : public Rml::RenderInterfaceCompatibility {
     std::unique_ptr<plume::RenderSampler> linearSampler_{};
     std::unique_ptr<plume::RenderShader> vertex_shader_{};
     std::unique_ptr<plume::RenderShader> pixel_shader_{};
-    std::unique_ptr<plume::RenderShader> snow_pixel_shader_{};
     std::unique_ptr<plume::RenderDescriptorSet> sampler_set_{};
     std::unique_ptr<plume::RenderDescriptorSetBuilder> texture_set_builder_{};
     std::unique_ptr<plume::RenderPipelineLayout> layout_{};
     std::unique_ptr<plume::RenderPipeline> pipeline_{};
     std::unique_ptr<plume::RenderPipeline> pipeline_ms_{};
-    std::unique_ptr<plume::RenderPipeline> snow_pipeline_{};
-    std::unique_ptr<plume::RenderPipeline> snow_pipeline_ms_{};
     std::unique_ptr<plume::RenderTexture> screen_texture_ms_{};
     std::unique_ptr<plume::RenderTexture> screen_texture_{};
     std::unique_ptr<plume::RenderFramebuffer> screen_framebuffer_{};
@@ -162,7 +150,6 @@ class RmlRenderInterface_RT64_impl : public Rml::RenderInterfaceCompatibility {
     std::vector<std::unique_ptr<plume::RenderBuffer>> stale_buffers_{};
     moodycamel::ConcurrentQueue<ImageFromBytes> image_from_bytes_queue;
     std::unordered_map<std::string, ImageFromBytes> image_from_bytes_map;
-    std::chrono::steady_clock::time_point start_time_ = std::chrono::steady_clock::now();
 public:
     RmlRenderInterface_RT64_impl(plume::RenderInterface* interface, plume::RenderDevice* device) {
         interface_ = interface;
@@ -206,7 +193,6 @@ public:
 
         vertex_shader_ = device_->createShader(GET_SHADER_BLOB(InterfaceVS, shaderFormat), GET_SHADER_SIZE(InterfaceVS, shaderFormat), "VSMain", shaderFormat);
         pixel_shader_ = device_->createShader(GET_SHADER_BLOB(InterfacePS, shaderFormat), GET_SHADER_SIZE(InterfacePS, shaderFormat), "PSMain", shaderFormat);
-        snow_pixel_shader_ = device_->createShader(GET_SHADER_BLOB(SnowOverlayPS, shaderFormat), GET_SHADER_SIZE(SnowOverlayPS, shaderFormat), "PSMain", shaderFormat);
 
         // Create the descriptor set that contains the sampler
         plume::RenderDescriptorSetBuilder sampler_set_builder{};
@@ -262,15 +248,9 @@ public:
 
         pipeline_ = device_->createGraphicsPipeline(pipeline_desc);
 
-        pipeline_desc.pixelShader = snow_pixel_shader_.get();
-        snow_pipeline_ = device_->createGraphicsPipeline(pipeline_desc);
-
         if (multisampling_.sampleCount > 1) {
-            pipeline_desc.pixelShader = pixel_shader_.get();
             pipeline_desc.multisampling = multisampling_;
             pipeline_ms_ = device_->createGraphicsPipeline(pipeline_desc);
-            pipeline_desc.pixelShader = snow_pixel_shader_.get();
-            snow_pipeline_ms_ = device_->createGraphicsPipeline(pipeline_desc);
 
             // Create the descriptor set for the screen drawer.
             plume::RenderDescriptorRange screen_descriptor_range(plume::RenderDescriptorRangeType::TEXTURE, 2, 1);
@@ -373,10 +353,6 @@ public:
                 Rml::byte transparent_pixel[] = { 0, 0, 0, 0 };
                 create_texture(1, transparent_pixel, Rml::Vector2i{ 1, 1 });
             }
-            else if (texture == snow_overlay_texture_handle) {
-                Rml::byte transparent_pixel[] = { 0, 0, 0, 0 };
-                create_texture(snow_overlay_texture_handle, transparent_pixel, Rml::Vector2i{ 1, 1 });
-            }
             else {
                 assert(false && "Rendered without texture!");
             }
@@ -407,10 +383,7 @@ public:
         plume::RenderVertexBufferView vertex_view{vertex_buffer_.buffer_->at(vertex_buffer_offset), vert_size_bytes};
         list_->setVertexBuffers(0, &vertex_view, 1, &vertex_slot_);
 
-        const bool render_snow_overlay = texture == snow_overlay_texture_handle;
-        list_->setPipeline(render_snow_overlay
-            ? (multisampling_.sampleCount > 1 ? snow_pipeline_ms_.get() : snow_pipeline_.get())
-            : (multisampling_.sampleCount > 1 ? pipeline_ms_.get() : pipeline_.get()));
+        list_->setPipeline(multisampling_.sampleCount > 1 ? pipeline_ms_.get() : pipeline_.get());
 
         TextureHandle &texture_handle = textures_.at(texture);
         if (!texture_handle.transitioned) {
@@ -421,14 +394,9 @@ public:
 
         list_->setGraphicsDescriptorSet(texture_handle.set.get(), 1);
 
-        const auto now = std::chrono::steady_clock::now();
-        const float snow_time = std::chrono::duration<float>(now - start_time_).count();
         RmlPushConstants constants{
             .transform = mvp_,
-            .translation = translation,
-            .snow_size = Rml::Vector2f(float(window_width_), float(window_height_)),
-            .snow_time = snow_time,
-            .snow_opacity = 1.0f
+            .translation = translation
         };
 
         list_->setGraphicsPushConstants(0, &constants);
@@ -452,13 +420,6 @@ public:
 
         auto it = image_from_bytes_map.find(source);
         if (it == image_from_bytes_map.end()) {
-            if (source == snow_overlay_texture_source) {
-                texture_handle = snow_overlay_texture_handle;
-                texture_dimensions.x = 1;
-                texture_dimensions.y = 1;
-                return true;
-            }
-
             // Return a transparent texture if the image can't be found.
             texture_handle = 1;
             texture_dimensions.x = 1;
