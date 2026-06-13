@@ -6,11 +6,12 @@
     {
       "layers" : [
         {
+          "fill" : "automatic",
           "glass" : false,
-          "image-name" : "base.png",
-          "name" : "base",
+          "image-name" : "IMG_3171.jpg",
+          "name" : "IMG_3171",
           "position" : {
-            "scale" : 1.29,
+            "scale" : 0.88,
             "translation-in-points" : [
               0,
               0

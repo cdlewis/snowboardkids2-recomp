@@ -95,6 +95,19 @@
     }
 }
 
+#logo {
+    display: block;
+    position: absolute;
+    top: space(34);
+    left: space(64);
+    z-index: 9;
+    width: space(620);
+    height: space(349);
+    border-width: 0;
+    border-color: rgba(0, 0, 0, 0);
+    decorator: image("?/launcher/logo" none contain);
+}
+
 .launcher__content-quadrant {
     display: flex;
     position: relative;

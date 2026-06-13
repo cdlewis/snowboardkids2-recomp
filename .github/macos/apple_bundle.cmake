@@ -28,6 +28,8 @@ if(NOT EXISTS ${MACOS_ICON_PACKAGE}/icon.json)
     message(FATAL_ERROR "macOS icon bundle not found at ${MACOS_ICON_PACKAGE}")
 endif()
 
+file(GLOB MACOS_ICON_ASSET_FILES CONFIGURE_DEPENDS "${MACOS_ICON_PACKAGE}/Assets/*")
+
 add_custom_command(
         OUTPUT ${MACOS_ICON_ASSETS_CAR} ${MACOS_ICON_ICNS_FILE} ${MACOS_ICON_INFO_PLIST}
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${BUNDLED_MACOS_ICON_PACKAGE}
@@ -42,7 +44,7 @@ add_custom_command(
                 --minimum-deployment-target 11.0
                 --platform macosx
                 --target-device mac
-        DEPENDS ${MACOS_ICON_PACKAGE}/icon.json ${MACOS_ICON_PACKAGE}/Assets/base.png
+        DEPENDS ${MACOS_ICON_PACKAGE}/icon.json ${MACOS_ICON_ASSET_FILES}
         COMMENT "Compiling Icon Composer app icon"
         VERBATIM
 )

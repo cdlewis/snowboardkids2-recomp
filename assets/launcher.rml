@@ -23,31 +23,29 @@
 			<div class="launcher">
 				<div class="launcher__vertical-split">
 					<div class="launcher__title-quadrant">
-						<div id="logo">
-								<h3>Snowboard Kids 2:</h3>
-								<h4>Recompiled</h4>
-						</div>
+						<div id="logo"></div>
 					</div>
 				</div>
 			</div>
-			<div id="snow-overlay"></div>
 			<div id="menu-container">
 				<button data-if="!mm_rom_valid" onclick="select_rom" class="menu-list-item menu-list-item--right" autofocus>
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Select ROM</div>
 				</button>
 				<button data-if="mm_rom_valid" onclick="start_game" class="menu-list-item menu-list-item--right" autofocus>
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Start game</div>
 				</button>
-				<button onclick="open_controls" class="menu-list-item menu-list-item--right">
-					<div class="menu-list-item__label">Setup controls</div>
-				</button>
 				<button onclick="open_settings" class="menu-list-item menu-list-item--right">
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Settings</div>
 				</button>
-				<button onclick="open_mods" class="menu-list-item menu-list-item--right">
-					<div class="menu-list-item__label">Mods</div>
-				</button>
 				<button onclick="exit_game" class="menu-list-item menu-list-item--right">
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Exit</div>
 				</button>
 			</div>

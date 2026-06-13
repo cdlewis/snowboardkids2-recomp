@@ -1,18 +1,20 @@
 #include "recomp_ui.h"
-#include "zelda_config.h"
 #include "zelda_support.h"
 #include "librecomp/game.hpp"
 #include "ultramodern/ultramodern.hpp"
 #include "RmlUi/Core.h"
 #include "nfd.h"
+#include "../../lib/rt64/src/contrib/stb/stb_image.h"
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 
 static std::string version_string;
 
 Rml::DataModelHandle model_handle;
 bool mm_rom_valid = false;
 static constexpr const char* launcher_background_src = "?/launcher/background";
+static constexpr const char* launcher_logo_src = "?/launcher/logo";
 
 extern std::vector<recomp::GameEntry> supported_games;
 
@@ -56,6 +58,62 @@ recompui::ContextId recompui::get_launcher_context_id() {
 	return launcher_context;
 }
 
+static void load_launcher_background_image() {
+    std::filesystem::path background_path = zelda64::get_asset_path("launcher_background.jpeg");
+    std::ifstream background_file{background_path, std::ios::binary};
+    if (!background_file) {
+        return;
+    }
+
+    std::vector<char> background_bytes{
+        std::istreambuf_iterator<char>{background_file},
+        std::istreambuf_iterator<char>{}
+    };
+
+    int width = 0;
+    int height = 0;
+    stbi_uc* background_rgba = stbi_load_from_memory(
+        reinterpret_cast<const stbi_uc*>(background_bytes.data()),
+        static_cast<int>(background_bytes.size()),
+        &width,
+        &height,
+        nullptr,
+        4
+    );
+
+    if (background_rgba == nullptr || width <= 0 || height <= 0) {
+        if (background_rgba != nullptr) {
+            stbi_image_free(background_rgba);
+        }
+        return;
+    }
+
+    std::vector<char> rgba_bytes{
+        reinterpret_cast<char*>(background_rgba),
+        reinterpret_cast<char*>(background_rgba) + (width * height * 4)
+    };
+    stbi_image_free(background_rgba);
+
+    recompui::release_image(launcher_background_src);
+    recompui::queue_image_from_bytes_rgba32(launcher_background_src, rgba_bytes, width, height);
+}
+
+static void load_launcher_logo_image() {
+    std::filesystem::path logo_path = zelda64::get_asset_path("launcher_logo.png");
+    std::ifstream logo_file{logo_path, std::ios::binary};
+    if (!logo_file) {
+        return;
+    }
+
+    std::vector<char> logo_bytes{
+        std::istreambuf_iterator<char>{logo_file},
+        std::istreambuf_iterator<char>{}
+    };
+
+    recompui::release_image(launcher_logo_src);
+    recompui::queue_image_from_bytes_file(launcher_logo_src, logo_bytes);
+}
+
 class LauncherMenu : public recompui::MenuController {
 public:
     LauncherMenu() {
@@ -65,15 +123,8 @@ public:
 
     }
     void load_document() override {
-        const std::filesystem::path background_path = zelda64::get_asset_path("launcher_background.png");
-        std::ifstream background_file{background_path, std::ios::binary};
-        if (background_file) {
-            std::vector<char> background_bytes{
-                std::istreambuf_iterator<char>{background_file},
-                std::istreambuf_iterator<char>{}
-            };
-            recompui::queue_image_from_bytes_file(launcher_background_src, background_bytes);
-        }
+        load_launcher_background_image();
+        load_launcher_logo_image();
 		launcher_context = recompui::create_context(zelda64::get_asset_path("launcher.rml"));
     }
     void register_events(recompui::UiEventListenerInstancer& listener) override {
