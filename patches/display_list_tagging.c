@@ -20,28 +20,15 @@ extern void setupMultiPartObjectRenderState(DisplayListObject* arg0, s32 arg1);
 // and also combines it with the current viewport ID. Pointer alone shouldn't be relied on if possible.
 // This extra structure could also store additional information to control interpolation in greater detail.
 
-void pushObjectMatrixGroup(DisplayListObject* displayObjects) {
-    if (skip_perspective_interpolation) {
-        gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, (u32)(displayObjects), G_EX_PUSH, G_MTX_MODELVIEW,
-                              G_EX_EDIT_NONE);
-    } else {
-        gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32)(displayObjects), G_EX_PUSH, G_MTX_MODELVIEW,
-                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
-                             G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
-                             G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
-    }
+void pushObjectMatrixGroupId(u32 id) {
+    gEXMatrixGroupSimple(gDisplayListAllocPtr++, id, G_EX_PUSH, G_MTX_MODELVIEW,
+                         G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
+                         G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+                         G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
 }
 
-void pushMultiPartObjectMatrixGroup(DisplayListObject* displayObjects, s32 i) {
-    if (skip_perspective_interpolation) {
-        gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, (u32)(displayObjects) + i, G_EX_PUSH, G_MTX_MODELVIEW,
-                              G_EX_EDIT_NONE);
-    } else {
-        gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32)(displayObjects) + i, G_EX_PUSH, G_MTX_MODELVIEW,
-                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
-                             G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
-                             G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
-    }
+void pushObjectMatrixGroup(DisplayListObject* displayObjects) {
+    pushObjectMatrixGroupId((u32)displayObjects);
 }
 
 void popObjectMatrixGroup() {
@@ -61,7 +48,7 @@ RECOMP_PATCH void renderMultiPartOpaqueDisplayLists(DisplayListObject* displayOb
         currentObject = &displayObjects[i];
         if (currentObject->displayLists->opaqueDisplayList != NULL) {
             // @recomp Push the matrix group for this part.
-            pushMultiPartObjectMatrixGroup(displayObjects, i);
+            pushObjectMatrixGroupId((u32)displayObjects + i);
 
             setupMultiPartObjectRenderState(displayObjects, i);
             displayListCmd = gDisplayListAllocPtr;
@@ -92,7 +79,7 @@ RECOMP_PATCH void renderMultiPartTransparentDisplayLists(DisplayListObject* disp
         do {
             if (currentObject[i].displayLists->transparentDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushMultiPartObjectMatrixGroup(displayObjects, i);
+                pushObjectMatrixGroupId((u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -126,7 +113,7 @@ RECOMP_PATCH void renderMultiPartOverlayDisplayLists(DisplayListObject* displayO
         do {
             if (currentObject[i].displayLists->overlayDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushMultiPartObjectMatrixGroup(displayObjects, i);
+                pushObjectMatrixGroupId((u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -166,7 +153,7 @@ RECOMP_PATCH void renderMultiPartOpaqueDisplayListsWithLights(DisplayListObject*
         do {
             if (currentObject[i].displayLists->opaqueDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushMultiPartObjectMatrixGroup(displayObjects, i);
+                pushObjectMatrixGroupId((u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -213,7 +200,7 @@ RECOMP_PATCH void renderMultiPartTransparentDisplayListsWithLights(DisplayListOb
         do {
             if (currentObject[i].displayLists->transparentDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushMultiPartObjectMatrixGroup(displayObjects, i);
+                pushObjectMatrixGroupId((u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -260,7 +247,7 @@ RECOMP_PATCH void renderMultiPartOverlayDisplayListsWithLights(DisplayListObject
         do {
             if (currentObject[i].displayLists->overlayDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushMultiPartObjectMatrixGroup(displayObjects, i);
+                pushObjectMatrixGroupId((u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -505,15 +492,10 @@ RECOMP_PATCH void renderRacerProjectedShadow(Player* player) {
     if (player->shadowVertices != NULL && player->shadowMatrix != NULL) {
         // @recomp Push the matrix group for this player. Use the address of the player's shadow matrix pointer as its ID.
         // TODO: This can be replaced with a better ID system by extending Player data as well.
-        if (skip_perspective_interpolation) {
-            gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, (u32)(&player->shadowMatrix), G_EX_PUSH,
-                                  G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-        } else {
-            gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32)(&player->shadowMatrix), G_EX_PUSH, G_MTX_MODELVIEW,
-                                 G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
-                                 G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
-                                 G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
-        }
+        gEXMatrixGroupSimple(gDisplayListAllocPtr++, (u32)(&player->shadowMatrix), G_EX_PUSH, G_MTX_MODELVIEW,
+                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
+                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+                             G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
 
         gSPMatrix(gDisplayListAllocPtr++, player->shadowMatrix, (G_MTX_NOPUSH | G_MTX_LOAD) | G_MTX_MODELVIEW);
         gGraphicsMode = -1;
