@@ -353,8 +353,8 @@ std::vector<recomp::GameEntry> supported_games = {
     {
         .rom_hash = 0x81f434ff431162ebULL,
         .internal_name = "SNOWBOARD KIDS2",
-        .game_id = u8"sk2.n64.us",
-        .mod_game_id = "sk2",
+        .game_id = u8"snowboardkids2.n64.us",
+        .mod_game_id = "snowboardkids2",
         .save_type = recomp::SaveType::Eep4k,
         .is_enabled = true,
         .has_compressed_code = false,
