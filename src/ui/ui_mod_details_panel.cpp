@@ -11,7 +11,7 @@ ModDetailsPanel::ModDetailsPanel(Element *parent) : Element(parent) {
     set_height(100.0f, Unit::Percent);
     set_display(Display::Flex);
     set_flex_direction(FlexDirection::Column);
-    set_background_color(Color{ 190, 184, 219, 25 });
+    set_background_color(mod_style::config_body_color);
 
     ContextId context = get_current_context();
 
@@ -19,7 +19,7 @@ ModDetailsPanel::ModDetailsPanel(Element *parent) : Element(parent) {
     header_container->set_flex(0.0f, 0.0f);
     header_container->set_padding(16.0f);
     header_container->set_gap(16.0f);
-    header_container->set_background_color(Color{ 0, 0, 0, 89 });
+    header_container->set_background_color(mod_style::config_bar_color);
     header_container->set_border_bottom_width(1.1f);
     header_container->set_border_bottom_color(Color{ 255, 255, 255, 25 });
     {
@@ -29,7 +29,7 @@ ModDetailsPanel::ModDetailsPanel(Element *parent) : Element(parent) {
             thumbnail_image = context.create_element<Image>(thumbnail_container, "");
             thumbnail_image->set_width(100.0f);
             thumbnail_image->set_height(100.0f);
-            thumbnail_image->set_background_color(Color{ 190, 184, 219, 25 });
+            thumbnail_image->set_background_color(mod_style::details_thumbnail_placeholder_color);
         }
 
         header_details_container = context.create_element<Container>(header_container, FlexDirection::Column, JustifyContent::SpaceEvenly);
@@ -40,6 +40,28 @@ ModDetailsPanel::ModDetailsPanel(Element *parent) : Element(parent) {
             title_label = context.create_element<Label>(header_details_container, LabelStyle::Large);
             version_label = context.create_element<Label>(header_details_container, LabelStyle::Normal);
         }
+
+        header_actions_container = context.create_element<Container>(header_container, FlexDirection::Column, JustifyContent::Center);
+        header_actions_container->set_flex(0.0f, 0.0f);
+        header_actions_container->set_align_items(AlignItems::FlexEnd);
+        header_actions_container->set_gap(8.0f);
+        {
+            enable_container = context.create_element<Container>(header_actions_container, FlexDirection::Row, JustifyContent::FlexEnd);
+            enable_container->set_align_items(AlignItems::Center);
+            enable_container->set_gap(16.0f);
+            {
+                enable_toggle = context.create_element<Toggle>(enable_container);
+                enable_toggle->add_checked_callback([this](bool checked){ enable_toggle_checked(checked); });
+                enable_toggle->set_nav_manual(NavDirection::Up, mod_tab_id);
+
+                configure_button = context.create_element<Button>(enable_container, "\u2699", recompui::ButtonStyle::Primary);
+                mod_style::apply_header_gear_button_style(configure_button);
+                configure_button->add_pressed_callback([this](){ configure_button_pressed(); });
+                configure_button->set_nav_manual(NavDirection::Up, mod_tab_id);
+            }
+
+            enable_label = context.create_element<Label>(header_actions_container, "A currently enabled mod requires this mod", LabelStyle::Annotation);
+        }
     }
 
     body_container = context.create_element<ScrollContainer>(this, ScrollDirection::Vertical);
@@ -48,32 +70,9 @@ ModDetailsPanel::ModDetailsPanel(Element *parent) : Element(parent) {
     {
         authors_label = context.create_element<Label>(body_container, LabelStyle::Normal);
         authors_label->set_margin_bottom(16.0f);
-        description_label = context.create_element<Label>(body_container, LabelStyle::Normal);
+        description_label = context.create_element<Label>(body_container, LabelStyle::Small);
     }
     
-    buttons_container = context.create_element<Container>(this, FlexDirection::Row, JustifyContent::SpaceAround);
-    buttons_container->set_flex(0.0f, 0.0f);
-    buttons_container->set_padding(16.0f);
-    buttons_container->set_justify_content(JustifyContent::SpaceBetween);
-    buttons_container->set_border_top_width(1.1f);
-    buttons_container->set_border_top_color(Color{ 255, 255, 255, 25 });
-    buttons_container->set_background_color(Color{ 0, 0, 0, 89 });
-    {
-        enable_container = context.create_element<Container>(buttons_container, FlexDirection::Row, JustifyContent::FlexStart);
-        enable_container->set_align_items(AlignItems::Center);
-        enable_container->set_gap(16.0f);
-        {
-            enable_toggle = context.create_element<Toggle>(enable_container);
-            enable_toggle->add_checked_callback([this](bool checked){ enable_toggle_checked(checked); });
-            enable_toggle->set_nav_manual(NavDirection::Up, mod_tab_id);
-
-            enable_label = context.create_element<Label>(enable_container, "A currently enabled mod requires this mod", LabelStyle::Annotation);
-        }
-
-        configure_button = context.create_element<Button>(buttons_container, "Configure", recompui::ButtonStyle::Secondary);
-        configure_button->add_pressed_callback([this](){ configure_button_pressed(); });
-        configure_button->set_nav_manual(NavDirection::Up, mod_tab_id);
-    }
     clear_mod_navigation();
 }
 
@@ -84,29 +83,30 @@ void ModDetailsPanel::disable_toggle() {
     enable_toggle->set_enabled(false);
 }
 
-void ModDetailsPanel::set_mod_details(const recomp::mods::ModDetails& details, const std::string &thumbnail, bool toggle_checked, bool toggle_enabled, bool toggle_label_visible, bool configure_enabled) {
-    cur_details = details;
+void ModDetailsPanel::set_mod_details(const ModDetailsPanelState& state) {
+    cur_details = state.details;
 
-    thumbnail_image->set_src(thumbnail);
+    thumbnail_image->set_background_color(state.thumbnail.has_image ? mod_style::transparent_color : mod_style::details_thumbnail_placeholder_color);
+    thumbnail_image->set_src(state.thumbnail.src);
 
     title_label->set_text(cur_details.display_name);
     version_label->set_text(cur_details.version.to_string());
 
     std::string authors_str = "Authors:";
     bool first = true;
-    for (const std::string& author : details.authors) {
+    for (const std::string& author : cur_details.authors) {
         authors_str += (first ? " " : ", ") + author;
         first = false;
     }
 
     authors_label->set_text(authors_str);
     description_label->set_text(cur_details.description);
-    enable_toggle->set_checked(toggle_checked);
-    enable_toggle->set_enabled(toggle_enabled);
-    configure_button->set_enabled(configure_enabled);
-    enable_label->set_display(toggle_label_visible ? Display::Block : Display::None);
+    enable_toggle->set_checked(state.toggle_checked);
+    enable_toggle->set_enabled(state.toggle_enabled);
+    configure_button->set_enabled(state.configure_enabled);
+    enable_label->set_display(state.toggle_label_visible ? Display::Block : Display::None);
 
-    if (configure_enabled) {
+    if (state.configure_enabled) {
         enable_toggle->set_nav(NavDirection::Right, configure_button);
     }
     else {

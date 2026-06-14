@@ -163,6 +163,12 @@ void Element::add_class(std::string_view class_name) {
     base->SetClass(std::string(class_name), true);
 }
 
+void Element::set_decorator(std::string_view decorator) {
+    assert(base != nullptr);
+
+    base->SetProperty("decorator", std::string(decorator));
+}
+
 recompui::MouseButton convert_rml_mouse_button(int button) {
     switch (button) {
         case 0:

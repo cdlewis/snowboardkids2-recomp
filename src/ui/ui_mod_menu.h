@@ -1,10 +1,13 @@
 #ifndef RECOMPUI_ELEMENT_MOD_MENU_H
 #define RECOMPUI_ELEMENT_MOD_MENU_H
 
+#include <unordered_set>
+
 #include "librecomp/mods.hpp"
 #include "elements/ui_scroll_container.h"
 #include "ui_config_sub_menu.h"
 #include "ui_mod_details_panel.h"
+#include "ui_mod_style.h"
 
 namespace recompui {
 
@@ -15,7 +18,7 @@ public:
     ModEntryView(Element *parent);
     virtual ~ModEntryView();
     void set_mod_details(const recomp::mods::ModDetails &details);
-    void set_mod_thumbnail(const std::string &thumbnail);
+    void set_mod_thumbnail(const ModThumbnailRef& thumbnail);
     void set_mod_enabled(bool enabled);
     void set_selected(bool selected);
     void set_focused(bool focused);
@@ -40,7 +43,7 @@ public:
     void set_mod_selected_callback(std::function<void(uint32_t)> callback);
     void set_mod_drag_callback(std::function<void(uint32_t, EventDrag)> callback);
     void set_mod_details(const recomp::mods::ModDetails &details);
-    void set_mod_thumbnail(const std::string &thumbnail);
+    void set_mod_thumbnail(const ModThumbnailRef& thumbnail);
     void set_mod_enabled(bool enabled);
     void set_selected(bool selected);
     void set_focused(bool focused);

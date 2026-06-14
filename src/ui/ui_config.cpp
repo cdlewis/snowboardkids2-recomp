@@ -515,19 +515,30 @@ recompui::ContextId recompui::get_config_context_id() {
 }
 
 static void apply_config_menu_launcher_background_class() {
-    if (config_context == recompui::ContextId::null()) {
+    auto apply_to_context = [](recompui::ContextId context) {
+        if (context == recompui::ContextId::null()) {
+            return;
+        }
+
+        Rml::ElementDocument* doc = context.get_document();
+        if (doc == nullptr) {
+            return;
+        }
+
+        Rml::Element* body = doc->GetElementById("config-body");
+        if (body != nullptr) {
+            body->SetClass("config--launcher-background", config_menu_uses_launcher_background);
+        }
+    };
+
+    apply_to_context(config_context);
+
+    recompui::ContextId sub_menu_context = recompui::get_config_sub_menu_context_id();
+    if (sub_menu_context == recompui::ContextId::null()) {
         return;
     }
 
-    Rml::ElementDocument* doc = config_context.get_document();
-    if (doc == nullptr) {
-        return;
-    }
-
-    Rml::Element* body = doc->GetElementById("config-body");
-    if (body != nullptr) {
-        body->SetClass("config--launcher-background", config_menu_uses_launcher_background);
-    }
+    apply_to_context(sub_menu_context);
 }
 
 void recompui::set_config_menu_uses_launcher_background(bool uses_launcher_background) {

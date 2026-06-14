@@ -22,6 +22,14 @@ static std::string generate_thumbnail_src_for_mod(const std::string &mod_id) {
     return "?/mods/" + mod_id + "/thumb";
 }
 
+static ModThumbnailRef get_thumbnail_ref_for_mod(const std::string &mod_id, const std::unordered_set<std::string> &loaded_thumbnails) {
+    std::string thumbnail_src = generate_thumbnail_src_for_mod(mod_id);
+    return ModThumbnailRef{
+        .src = thumbnail_src,
+        .has_image = loaded_thumbnails.count(thumbnail_src) != 0,
+    };
+}
+
 static bool is_mod_enabled_or_auto(const std::string &mod_id) {
     return recomp::mods::is_mod_enabled(mod_id) || recomp::mods::is_mod_auto_enabled(mod_id);
 }
@@ -32,29 +40,6 @@ static bool is_mod_enabled_or_auto(const std::string &mod_id) {
 #define COL_SECONDARY 23, 214, 232
 constexpr float modEntryHeight = 120.0f;
 constexpr float modEntryPadding = 4.0f;
-
-static void apply_mod_footer_button_style(Button* button) {
-    button->add_class("button");
-    button->add_class("mod-footer__button");
-    button->set_color(Color{ 255, 255, 255, 255 });
-    button->set_border_width(2.0f);
-    button->set_border_color(Color{ 143, 186, 237, 255 });
-    button->set_background_color(Color{ 137, 180, 232, 255 });
-
-    button->get_hover_style()->set_color(Color{ 255, 255, 255, 255 });
-    button->get_hover_style()->set_border_color(Color{ 122, 42, 198, 255 });
-    button->get_hover_style()->set_background_color(Color{ 122, 42, 198, 255 });
-    button->get_focus_style()->set_color(Color{ 255, 255, 255, 255 });
-    button->get_focus_style()->set_border_color(Color{ 122, 42, 198, 255 });
-    button->get_focus_style()->set_background_color(Color{ 122, 42, 198, 255 });
-
-    button->get_disabled_style()->set_color(Color{ 255, 255, 255, 153 });
-    button->get_disabled_style()->set_border_color(Color{ 143, 186, 237, 64 });
-    button->get_disabled_style()->set_background_color(Color{ 137, 180, 232, 64 });
-    button->get_hover_disabled_style()->set_color(Color{ 255, 255, 255, 153 });
-    button->get_hover_disabled_style()->set_border_color(Color{ 143, 186, 237, 64 });
-    button->get_hover_disabled_style()->set_background_color(Color{ 137, 180, 232, 64 });
-}
 
 extern const std::string mod_tab_id;
 const std::string mod_tab_id = "#tab_mods";
@@ -73,9 +58,9 @@ ModEntryView::ModEntryView(Element *parent) : Element(parent, Events(EventType::
     set_cursor(Cursor::Pointer);
     set_color(Color{ COL_TEXT_DEFAULT, 255 });
 
-    checked_style.set_border_color(Color{ COL_TEXT_DEFAULT, 160 });
+    checked_style.set_border_color(Color{ 143, 186, 237, 160 });
     checked_style.set_color(Color{ 255, 255, 255, 255 });
-    checked_style.set_background_color(Color{ 26, 24, 32, 255 });
+    checked_style.set_background_color(Color{ 137, 180, 232, 64 });
     hover_style.set_border_color(Color{ COL_TEXT_DEFAULT, 64 });
     checked_hover_style.set_border_color(Color{ COL_TEXT_DEFAULT, 255 });
     pulsing_style.set_border_color(Color{ 23, 214, 232, 244 });
@@ -86,7 +71,7 @@ ModEntryView::ModEntryView(Element *parent) : Element(parent, Events(EventType::
         thumbnail_image->set_height(modEntryHeight);
         thumbnail_image->set_min_width(modEntryHeight);
         thumbnail_image->set_min_height(modEntryHeight);
-        thumbnail_image->set_background_color(Color{ 190, 184, 219, 25 });
+        thumbnail_image->set_background_color(mod_style::list_thumbnail_placeholder_color);
 
 
         body_container = context.create_element<Element>(this);
@@ -120,8 +105,9 @@ void ModEntryView::set_mod_details(const recomp::mods::ModDetails &details) {
     description_label->set_text(details.short_description);
 }
 
-void ModEntryView::set_mod_thumbnail(const std::string &thumbnail) {
-    thumbnail_image->set_src(thumbnail);
+void ModEntryView::set_mod_thumbnail(const ModThumbnailRef& thumbnail) {
+    thumbnail_image->set_background_color(thumbnail.has_image ? mod_style::transparent_color : mod_style::list_thumbnail_placeholder_color);
+    thumbnail_image->set_src(thumbnail.src);
 }
 
 void ModEntryView::set_mod_enabled(bool enabled) {
@@ -179,7 +165,7 @@ void ModEntryButton::set_mod_details(const recomp::mods::ModDetails &details) {
     view->set_mod_details(details);
 }
 
-void ModEntryButton::set_mod_thumbnail(const std::string &thumbnail) {
+void ModEntryButton::set_mod_thumbnail(const ModThumbnailRef& thumbnail) {
     view->set_mod_thumbnail(thumbnail);
 }
 
@@ -198,8 +184,10 @@ void ModEntryButton::set_focused(bool focused) {
 
 void ModEntryButton::process_event(const Event& e) {
     switch (e.type) {
-    case EventType::Focus:
+    case EventType::Click:
         selected_callback(mod_index);
+        break;
+    case EventType::Focus:
         set_focused(std::get<EventFocus>(e.variant).active);
         break;
     case EventType::Hover:
@@ -330,13 +318,20 @@ void ModMenu::mod_selected(uint32_t mod_index) {
     active_mod_index = mod_index;
 
     if (active_mod_index >= 0) {
-        std::string thumbnail_src = generate_thumbnail_src_for_mod(mod_details[mod_index].mod_id);
+        ModThumbnailRef thumbnail = get_thumbnail_ref_for_mod(mod_details[mod_index].mod_id, loaded_thumbnails);
         const recomp::mods::ConfigSchema &config_schema = recomp::mods::get_mod_config_schema(mod_details[active_mod_index].mod_id);
         bool toggle_checked = is_mod_enabled_or_auto(mod_details[mod_index].mod_id);
         bool auto_enabled = recomp::mods::is_mod_auto_enabled(mod_details[mod_index].mod_id);
         bool toggle_enabled = !auto_enabled && (mod_details[mod_index].runtime_toggleable || !ultramodern::is_game_started());
         bool configure_enabled = !config_schema.options.empty();
-        mod_details_panel->set_mod_details(mod_details[mod_index], thumbnail_src, toggle_checked, toggle_enabled, auto_enabled, configure_enabled);
+        mod_details_panel->set_mod_details(ModDetailsPanelState{
+            .details = mod_details[mod_index],
+            .thumbnail = thumbnail,
+            .toggle_checked = toggle_checked,
+            .toggle_enabled = toggle_enabled,
+            .toggle_label_visible = auto_enabled,
+            .configure_enabled = configure_enabled,
+        });
         mod_entry_buttons[active_mod_index]->set_selected(true);
 
         mod_details_panel->setup_mod_navigation(mod_entry_buttons[mod_index]);
@@ -390,7 +385,7 @@ void ModMenu::mod_dragged(uint32_t mod_index, EventDrag drag) {
         mod_entry_buttons[mod_index]->set_focused(false);
         mod_entry_floating_view->set_display(Display::Flex);
         mod_entry_floating_view->set_mod_details(mod_details[mod_index]);
-        mod_entry_floating_view->set_mod_thumbnail(generate_thumbnail_src_for_mod(mod_details[mod_index].mod_id));
+        mod_entry_floating_view->set_mod_thumbnail(get_thumbnail_ref_for_mod(mod_details[mod_index].mod_id, loaded_thumbnails));
         mod_entry_floating_view->set_mod_enabled(is_mod_enabled_or_auto(mod_details[mod_index].mod_id));
         mod_entry_floating_view->set_left(left, Unit::Px);
         mod_entry_floating_view->set_top(top, Unit::Px);
@@ -449,7 +444,7 @@ void ModMenu::mod_dragged(uint32_t mod_index, EventDrag drag) {
         mod_details = recomp::mods::get_all_mod_details(game_mod_id);
         for (size_t i = 0; i < mod_entry_buttons.size(); i++) {
             mod_entry_buttons[i]->set_mod_details(mod_details[i]);
-            mod_entry_buttons[i]->set_mod_thumbnail(generate_thumbnail_src_for_mod(mod_details[i].mod_id));
+            mod_entry_buttons[i]->set_mod_thumbnail(get_thumbnail_ref_for_mod(mod_details[i].mod_id, loaded_thumbnails));
             mod_entry_buttons[i]->set_mod_enabled(is_mod_enabled_or_auto(mod_details[i].mod_id));
         }
 
@@ -598,7 +593,10 @@ void ModMenu::create_mod_list() {
         mod_entry->set_mod_selected_callback([this](uint32_t mod_index){ mod_selected(mod_index); });
         mod_entry->set_mod_drag_callback([this](uint32_t mod_index, recompui::EventDrag drag){ mod_dragged(mod_index, drag); });
         mod_entry->set_mod_details(mod_details[mod_index]);
-        mod_entry->set_mod_thumbnail(thumbnail_name);
+        mod_entry->set_mod_thumbnail(ModThumbnailRef{
+            .src = thumbnail_name,
+            .has_image = !thumbnail.empty(),
+        });
         mod_entry->set_mod_enabled(is_mod_enabled_or_auto(mod_details[mod_index].mod_id));
         mod_entry_buttons.emplace_back(mod_entry);
     }
@@ -676,7 +674,7 @@ ModMenu::ModMenu(Element *parent) : Element(parent) {
             list_container->set_flex_basis(100.0f);
             list_container->set_align_items(AlignItems::Center);
             list_container->set_height(100.0f, Unit::Percent);
-            list_container->set_background_color(Color{ 0, 0, 0, 89 });
+            list_container->set_background_color(mod_style::config_body_color);
             list_container->set_border_bottom_left_radius(16.0f);
             {
                 list_scroll_container = context.create_element<ScrollContainer>(list_container, ScrollDirection::Vertical);
@@ -699,7 +697,7 @@ ModMenu::ModMenu(Element *parent) : Element(parent) {
         footer_container = context.create_element<Container>(this, FlexDirection::Row, JustifyContent::FlexStart);
         footer_container->set_width(100.0f, recompui::Unit::Percent);
         footer_container->set_align_items(recompui::AlignItems::Center);
-        footer_container->set_background_color(Color{ 85, 145, 223, 255 });
+        footer_container->set_background_color(mod_style::config_bar_color);
         footer_container->set_border_top_width(1.1f);
         footer_container->set_border_top_color(Color{ 255, 255, 255, 25 });
         footer_container->set_padding(20.0f);
@@ -711,19 +709,19 @@ ModMenu::ModMenu(Element *parent) : Element(parent) {
         {
             Button* configure_button = mod_details_panel->get_configure_button();
             install_mods_button = context.create_element<Button>(footer_container, "Install Mods", recompui::ButtonStyle::Primary);
-            apply_mod_footer_button_style(install_mods_button);
+            mod_style::apply_action_button_style(install_mods_button);
             install_mods_button->add_pressed_callback([this](){ open_install_dialog(); });
 
             Element* footer_spacer = context.create_element<Element>(footer_container);
             footer_spacer->set_flex(1.0f, 0.0f);
 
             refresh_button = context.create_element<Button>(footer_container, "Refresh", recompui::ButtonStyle::Primary);
-            apply_mod_footer_button_style(refresh_button);
+            mod_style::apply_action_button_style(refresh_button);
             refresh_button->add_pressed_callback([this](){ refresh_mods(true); });
             refresh_button->set_nav_manual(NavDirection::Up, mod_tab_id);
 
             mods_folder_button = context.create_element<Button>(footer_container, "Open Mods Folder", recompui::ButtonStyle::Primary);
-            apply_mod_footer_button_style(mods_folder_button);
+            mod_style::apply_action_button_style(mods_folder_button);
             mods_folder_button->add_pressed_callback([this](){ open_mods_folder(); });
             mods_folder_button->set_nav(NavDirection::Up, configure_button);
             mods_folder_button->set_nav_manual(NavDirection::Up, mod_tab_id);

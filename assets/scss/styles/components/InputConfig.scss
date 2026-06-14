@@ -37,6 +37,12 @@ $visual-max-width: $base-modal-max-width - $mapping-min-width - $scrollbar-width
     decorator: none;
 }
 
+.button.config-sub-menu__back:focus:not(:hover) {
+    border-color: rgb(143, 186, 237);
+    background-color: rgb(137, 180, 232);
+    decorator: none;
+}
+
 .rmlui-window[mouse-active] .input-config .icon-button--error:focus:not(:hover) {
     @include set-color($color-text-dim);
     border-color: $color-error-a80;

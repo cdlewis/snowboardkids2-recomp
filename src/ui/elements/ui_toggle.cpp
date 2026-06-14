@@ -6,28 +6,37 @@
 
 namespace recompui {
 
+namespace {
+    bool move_towards(float& value, float target, float max_delta) {
+        if (target < value) {
+            value += std::max(-max_delta, target - value);
+        }
+        else {
+            value += std::min(max_delta, target - value);
+        }
+
+        if (abs(target - value) < 1e-4f) {
+            value = target;
+            return false;
+        }
+
+        return true;
+    }
+}
+
     Toggle::Toggle(Element *parent) : Element(parent, Events(EventType::Click, EventType::Focus, EventType::Hover, EventType::Enable), "button") {
         enable_focus();
 
-        set_width(162.0f);
-        set_height(72.0f);
-        set_border_radius(36.0f);
-        set_opacity(0.9f);
+        set_width(208.0f);
+        set_height(60.0f);
+        set_border_radius(16.0f);
         set_cursor(Cursor::Pointer);
-        set_border_width(2.0f);
-        set_border_color(Color{ 177, 76, 34, 255 });
-        set_background_color(Color{ 0, 0, 0, 0 });
-        checked_style.set_border_color(Color{ 34, 177, 76, 255 });
-        hover_style.set_border_color(Color{ 177, 76, 34, 255 });
-        hover_style.set_background_color(Color{ 206, 120, 68, 76 });
-        focus_style.set_border_color(Color{ 177, 76, 34, 255 });
-        focus_style.set_background_color(Color{ 206, 120, 68, 76 });
-        checked_hover_style.set_border_color(Color{ 34, 177, 76, 255 });
-        checked_hover_style.set_background_color(Color{ 68, 206, 120, 76 });
-        checked_focus_style.set_border_color(Color{ 34, 177, 76, 255 });
-        checked_focus_style.set_background_color(Color{ 68, 206, 120, 76 });
-        disabled_style.set_border_color(Color{ 177, 76, 34, 128 });
-        checked_disabled_style.set_border_color(Color{ 34, 177, 76, 128 });
+        set_border_width(0.0f);
+        set_background_color(Color{ 137, 180, 232, 255 });
+        hover_style.set_background_color(Color{ 137, 180, 232, 255 });
+        focus_style.set_background_color(Color{ 137, 180, 232, 255 });
+        checked_hover_style.set_background_color(Color{ 137, 180, 232, 255 });
+        checked_focus_style.set_background_color(Color{ 137, 180, 232, 255 });
         add_style(&checked_style, checked_state);
         add_style(&hover_style, hover_state);
         add_style(&focus_style, focus_state);
@@ -40,14 +49,14 @@ namespace recompui {
 
         floater = context.create_element<Element>(this);
         floater->set_position(Position::Relative);
-        floater->set_top(2.0f);
-        floater->set_width(80.0f);
-        floater->set_height(64.0f);
-        floater->set_border_radius(32.0f);
-        floater->set_background_color(Color{ 177, 76, 34, 255 });
-        floater_checked_style.set_background_color(Color{ 34, 177, 76, 255 });
-        floater_disabled_style.set_background_color(Color{ 177, 76, 34, 128 });
-        floater_disabled_checked_style.set_background_color(Color{ 34, 177, 76, 128 });
+        floater->set_top(4.0f);
+        floater->set_width(100.0f);
+        floater->set_height(52.0f);
+        floater->set_border_radius(12.0f);
+        floater->set_background_color(Color{ 122, 42, 198, 255 });
+        floater->set_decorator("horizontal-gradient(rgba(51, 90, 199, 0.3), rgba(51, 90, 199, 1))");
+        floater_disabled_style.set_background_color(Color{ 122, 42, 198, 128 });
+        floater_disabled_checked_style.set_background_color(Color{ 122, 42, 198, 128 });
         floater->add_style(&floater_checked_style, checked_state);
         floater->add_style(&floater_disabled_style, disabled_state);
         floater->add_style(&floater_disabled_checked_style, { checked_state, disabled_state });
@@ -65,9 +74,11 @@ namespace recompui {
             }
             else {
                 floater_left = floater_left_target();
+                floater_opacity = floater_opacity_target();
             }
 
             floater->set_left(floater_left, Unit::Dp);
+            floater->set_opacity(floater_opacity);
 
             if (trigger_callbacks) {
                 for (const auto &function : checked_callbacks) {
@@ -81,7 +92,11 @@ namespace recompui {
     }
 
     float Toggle::floater_left_target() const {
-        return checked ? 78.0f : 4.0f;
+        return checked ? 100.0f : 6.0f;
+    }
+
+    float Toggle::floater_opacity_target() const {
+        return checked ? 1.0f : 0.2f;
     }
 
     void Toggle::process_event(const Event &e) {
@@ -123,22 +138,18 @@ namespace recompui {
             last_time = now;
 
             constexpr float dp_speed = 740.0f;
-            const float target = floater_left_target();
-            if (target < floater_left) {
-                floater_left += std::max(-dp_speed * delta_time, target - floater_left);
-            }
-            else {
-                floater_left += std::min(dp_speed * delta_time, target - floater_left);
-            }
+            constexpr float opacity_speed = 8.0f;
+            const float left_target = floater_left_target();
+            const float opacity_target = floater_opacity_target();
+            bool animating = move_towards(floater_left, left_target, dp_speed * delta_time);
+            animating |= move_towards(floater_opacity, opacity_target, opacity_speed * delta_time);
 
-            if (abs(target - floater_left) < 1e-4f) {
-                floater_left = target;
-            }
-            else {
+            if (animating) {
                 queue_update();
             }
 
             floater->set_left(floater_left, Unit::Dp);
+            floater->set_opacity(floater_opacity);
 
             break;
         }

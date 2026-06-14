@@ -8,6 +8,7 @@ namespace recompui {
     protected:
         Element *floater;
         float floater_left = 0.0f;
+        float floater_opacity = 1.0f;
         std::chrono::high_resolution_clock::duration last_time;
         std::list<std::function<void(bool)>> checked_callbacks;
         Style checked_style;
@@ -24,6 +25,7 @@ namespace recompui {
 
         void set_checked_internal(bool checked, bool animate, bool setup, bool trigger_callbacks);
         float floater_left_target() const;
+        float floater_opacity_target() const;
 
         // Element overrides.
         virtual void process_event(const Event &e) override;

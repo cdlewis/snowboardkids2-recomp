@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "recomp_ui.h"
+#include "ui_mod_style.h"
 
 namespace recompui {
 
@@ -161,6 +162,8 @@ ConfigSubMenu::ConfigSubMenu(Element *parent) : Element(parent) {
     set_flex(1, 1, 100.0f, Unit::Percent);
     set_flex_direction(FlexDirection::Column);
     set_height(100.0f, Unit::Percent);
+    set_border_radius(16.0f);
+    set_overflow(Overflow::Hidden);
 
     recompui::ContextId context = get_current_context();
     header_container = context.create_element<Container>(this, FlexDirection::Row, JustifyContent::FlexStart);
@@ -168,15 +171,28 @@ ConfigSubMenu::ConfigSubMenu(Element *parent) : Element(parent) {
     header_container->set_align_items(AlignItems::Center);
     header_container->set_padding(12.0f);
     header_container->set_gap(24.0f);
+    header_container->set_background_color(mod_style::config_bar_color);
+    header_container->set_border_top_left_radius(16.0f);
+    header_container->set_border_top_right_radius(16.0f);
+    header_container->set_border_bottom_width(1.1f);
+    header_container->set_border_bottom_color(Color{ 255, 255, 255, 25 });
 
     {
-        back_button = context.create_element<Button>(header_container, "Back", ButtonStyle::Secondary);
+        back_button = context.create_element<Button>(header_container, "Back", ButtonStyle::Primary);
+        mod_style::apply_action_button_style(back_button);
+        back_button->add_class("config-sub-menu__back");
+        mod_style::apply_action_button_normal_focus_style(back_button);
         back_button->add_pressed_callback([this](){ back_button_pressed(); });
         title_label = context.create_element<Label>(header_container, "Title", LabelStyle::Large);
     }
 
     body_container = context.create_element<Container>(this, FlexDirection::Row, JustifyContent::SpaceEvenly);
+    body_container->set_flex(1.0f, 1.0f, 100.0f);
+    body_container->set_width(100.0f, Unit::Percent);
     body_container->set_padding(32.0f);
+    body_container->set_background_color(mod_style::config_body_color);
+    body_container->set_border_bottom_left_radius(16.0f);
+    body_container->set_border_bottom_right_radius(16.0f);
     {
         config_container = context.create_element<Container>(body_container, FlexDirection::Column, JustifyContent::Center);
         config_container->set_display(Display::Block);

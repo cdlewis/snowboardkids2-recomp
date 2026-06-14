@@ -8,14 +8,24 @@
 #include "elements/ui_label.h"
 #include "elements/ui_toggle.h"
 #include "elements/ui_scroll_container.h"
+#include "ui_mod_style.h"
 
 namespace recompui {
+
+struct ModDetailsPanelState {
+    const recomp::mods::ModDetails& details;
+    ModThumbnailRef thumbnail;
+    bool toggle_checked = false;
+    bool toggle_enabled = false;
+    bool toggle_label_visible = false;
+    bool configure_enabled = false;
+};
 
 class ModDetailsPanel : public Element {
 public:
     ModDetailsPanel(Element *parent);
     virtual ~ModDetailsPanel();
-    void set_mod_details(const recomp::mods::ModDetails& details, const std::string &thumbnail, bool toggle_checked, bool toggle_enabled, bool toggle_label_visible, bool configure_enabled);
+    void set_mod_details(const ModDetailsPanelState& state);
     void set_mod_toggled_callback(std::function<void(bool)> callback);
     void set_mod_configure_pressed_callback(std::function<void()> callback);
     void setup_mod_navigation(Element* nav_target);
@@ -31,12 +41,12 @@ private:
     Image *thumbnail_image = nullptr;
     Container *header_container = nullptr;
     Container *header_details_container = nullptr;
+    Container *header_actions_container = nullptr;
     Label *title_label = nullptr;
     Label *version_label = nullptr;
     ScrollContainer *body_container = nullptr;
     Label *description_label = nullptr;
     Label *authors_label = nullptr;
-    Container *buttons_container = nullptr;
     Container *enable_container = nullptr;
     Toggle *enable_toggle = nullptr;
     Label *enable_label = nullptr;

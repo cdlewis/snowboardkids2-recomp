@@ -24,7 +24,8 @@
         }
     </style>
 </head>
-<body class="window">
+<body class="window config--launcher-background" id="config-body">
+    <div id="config-launcher-background"></div>
     <!-- <handle move_target="#document"> -->
         <div id="window" class="rmlui-window" style="display:flex; flex-flow: column; background-color:rgba(0,0,0,0)" onkeydown="config_keydown">
             <div class="centered-page" onclick="close_config_menu_backdrop">
