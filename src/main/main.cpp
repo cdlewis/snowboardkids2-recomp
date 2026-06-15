@@ -40,7 +40,7 @@
 #include "librecomp/mods.hpp"
 #include "librecomp/helpers.hpp"
 
-// #include "mods/mm_recomp_dpad_builtin.h"
+#include "mods/snowboardkids2_mod_template.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -640,8 +640,10 @@ int main(int argc, char** argv) {
         recomp::register_game(game);
     }
 
-    // recomp::mods::register_embedded_mod("mm_recomp_dpad_builtin", { (const uint8_t*)(mm_recomp_dpad_builtin),
-    // std::size(mm_recomp_dpad_builtin)});
+    recomp::mods::register_embedded_mod("snowboardkids2_mod_template", {
+        reinterpret_cast<const uint8_t*>(snowboardkids2_mod_template),
+        snowboardkids2_mod_template_size
+    });
 
     // REGISTER_FUNC(recomp_get_window_resolution);
     REGISTER_FUNC(recomp_get_target_aspect_ratio);

@@ -412,6 +412,7 @@ build_pixel_shader(SnowboardKids2Recompiled "shaders/SnowOverlayPS.hlsl" "shader
 file(GLOB NRM_FILES "${CMAKE_SOURCE_DIR}/mods/*.nrm")
 
 set(GENERATED_NRM_SOURCES "")
+set(GENERATED_NRM_HEADERS "")
 
 foreach(NRM_FILE ${NRM_FILES})
     get_filename_component(NRM_NAME ${NRM_FILE} NAME_WE)
@@ -421,13 +422,18 @@ foreach(NRM_FILE ${NRM_FILES})
     add_custom_command(
         OUTPUT ${OUT_C} ${OUT_H}
         COMMAND file_to_c ${NRM_FILE} ${NRM_NAME} ${OUT_C} ${OUT_H}
-        DEPENDS ${NRM_FILE}
+        DEPENDS ${NRM_FILE} file_to_c
     )
 
     list(APPEND GENERATED_NRM_SOURCES ${OUT_C})
+    list(APPEND GENERATED_NRM_HEADERS ${OUT_H})
 endforeach()
 
 target_sources(SnowboardKids2Recompiled PRIVATE ${GENERATED_NRM_SOURCES})
+if(GENERATED_NRM_HEADERS)
+    add_custom_target(EmbeddedMods DEPENDS ${GENERATED_NRM_SOURCES} ${GENERATED_NRM_HEADERS})
+    add_dependencies(SnowboardKids2Recompiled EmbeddedMods)
+endif()
 
 target_sources(SnowboardKids2Recompiled PRIVATE ${SOURCES})
 
