@@ -72,7 +72,7 @@ inline void apply_header_gear_button_style(Button* button) {
     button->get_hover_style()->set_background_color(Color{ 255, 255, 255, 51 });
     button->get_hover_style()->set_color(Color{ 255, 255, 255, 255 });
     button->get_focus_style()->set_border_color(transparent_color);
-    button->get_focus_style()->set_background_color(transparent_color);
+    button->get_focus_style()->set_background_color(Color{ 255, 255, 255, 51 });
     button->get_focus_style()->set_color(Color{ 255, 255, 255, 255 });
     button->get_disabled_style()->set_border_color(transparent_color);
     button->get_disabled_style()->set_background_color(transparent_color);

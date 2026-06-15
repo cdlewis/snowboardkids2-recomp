@@ -181,7 +181,6 @@ ConfigSubMenu::ConfigSubMenu(Element *parent) : Element(parent) {
         back_button = context.create_element<Button>(header_container, "Back", ButtonStyle::Primary);
         mod_style::apply_action_button_style(back_button);
         back_button->add_class("config-sub-menu__back");
-        mod_style::apply_action_button_normal_focus_style(back_button);
         back_button->add_pressed_callback([this](){ back_button_pressed(); });
         title_label = context.create_element<Label>(header_container, "Title", LabelStyle::Large);
     }

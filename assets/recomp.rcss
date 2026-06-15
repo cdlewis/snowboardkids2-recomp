@@ -444,7 +444,7 @@ scrollbarhorizontal sliderbar {
   background-color: rgb(137, 180, 232);
   decorator: none;
 }
-.button.config-sub-menu__back:focus:not(:hover) {
+.rmlui-window[mouse-active] .button.config-sub-menu__back:focus:not(:hover) {
   border-color: rgb(143, 186, 237);
   background-color: rgb(137, 180, 232);
   decorator: none;
