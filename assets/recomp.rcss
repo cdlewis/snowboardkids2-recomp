@@ -2232,7 +2232,7 @@ scrollbarhorizontal sliderbar {
 
 #logo {
   position: absolute;
-  top: 64dp;
+  top: 34dp;
   left: 64dp;
   z-index: 9;
 
