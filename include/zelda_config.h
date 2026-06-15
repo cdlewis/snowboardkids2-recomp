@@ -20,6 +20,10 @@ namespace zelda64 {
     void reset_single_input_binding(recomp::InputDevice device, recomp::GameInput input);
 
     std::filesystem::path get_app_folder_path();
+    std::filesystem::path get_launcher_background_override_path();
+    bool has_launcher_background_override();
+    bool set_launcher_background_override(const std::filesystem::path& source_path);
+    void clear_launcher_background_override();
     
     bool get_debug_mode_enabled();
     void set_debug_mode_enabled(bool enabled);

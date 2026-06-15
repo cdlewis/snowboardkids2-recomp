@@ -672,7 +672,8 @@ public:
         while (image_from_bytes_queue.try_dequeue(image_from_bytes)) {
             // We can move the name into the map since the name in the actual entry is no longer needed.
             // After that, move the entry itself into the map.
-            image_from_bytes_map.emplace(std::move(image_from_bytes.name), std::move(image_from_bytes));
+            std::string name = std::move(image_from_bytes.name);
+            image_from_bytes_map.insert_or_assign(std::move(name), std::move(image_from_bytes));
         }
     }
 };

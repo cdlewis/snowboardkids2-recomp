@@ -69,6 +69,7 @@ namespace recompui {
 
     void set_config_tab(ConfigTab tab);
     void set_config_menu_uses_launcher_background(bool uses_launcher_background);
+    void reload_launcher_background_image();
     bool update_config_controller_visual_layout(float margin_px, float width_dp);
     int config_tab_to_index(ConfigTab tab);
     Rml::ElementTabSet* get_config_tabset();

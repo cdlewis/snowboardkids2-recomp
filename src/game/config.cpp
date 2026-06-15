@@ -22,6 +22,7 @@ constexpr std::u8string_view general_filename = u8"general.json";
 constexpr std::u8string_view graphics_filename = u8"graphics.json";
 constexpr std::u8string_view controls_filename = u8"controls.json";
 constexpr std::u8string_view sound_filename = u8"sound.json";
+constexpr std::u8string_view launcher_background_override_filename = u8"launcher_background_override";
 
 constexpr auto res_default            = ultramodern::renderer::Resolution::Auto;
 constexpr auto hr_default             = ultramodern::renderer::HUDRatioMode::Clamp16x9;
@@ -35,6 +36,7 @@ constexpr int rr_manual_default       = 60;
 constexpr bool developer_mode_default = false;
 
 static bool is_steam_deck = false;
+static bool launcher_background_override_enabled = false;
 
 ultramodern::renderer::WindowMode wm_default() {
     return is_steam_deck ? ultramodern::renderer::WindowMode::Fullscreen : ultramodern::renderer::WindowMode::Windowed;
@@ -242,6 +244,7 @@ bool save_general_config(const std::filesystem::path& path) {
     config_json["invert_y_axis_mode"] = zelda64::get_invert_y_axis_mode();
     config_json["analog_camera_invert_mode"] = zelda64::get_analog_camera_invert_mode();
     config_json["debug_mode"] = zelda64::get_debug_mode_enabled();
+    config_json["launcher_background_override_enabled"] = zelda64::has_launcher_background_override();
 
     return save_json_with_backups(path, config_json);
 }
@@ -258,6 +261,8 @@ void set_general_settings_from_json(const nlohmann::json& config_json) {
     zelda64::set_invert_y_axis_mode(from_or_default(config_json, "invert_y_axis_mode", zelda64::AimInvertMode::On));
     zelda64::set_analog_camera_invert_mode(from_or_default(config_json, "analog_camera_invert_mode", zelda64::AimInvertMode::On));
     zelda64::set_debug_mode_enabled(from_or_default(config_json, "debug_mode", false));
+    launcher_background_override_enabled = from_or_default(config_json, "launcher_background_override_enabled", false) &&
+        std::filesystem::exists(zelda64::get_launcher_background_override_path());
 }
 
 bool load_general_config(const std::filesystem::path& path) {
@@ -533,4 +538,45 @@ void zelda64::save_config() {
     save_graphics_config(recomp_dir / graphics_filename);
     save_controls_config(recomp_dir / controls_filename);
     save_sound_config(recomp_dir / sound_filename);
+}
+
+std::filesystem::path zelda64::get_launcher_background_override_path() {
+    return zelda64::get_app_folder_path() / launcher_background_override_filename;
+}
+
+bool zelda64::has_launcher_background_override() {
+    return launcher_background_override_enabled && std::filesystem::exists(zelda64::get_launcher_background_override_path());
+}
+
+bool zelda64::set_launcher_background_override(const std::filesystem::path& source_path) {
+    const std::filesystem::path recomp_dir = zelda64::get_app_folder_path();
+    if (recomp_dir.empty()) {
+        return false;
+    }
+
+    try {
+        std::filesystem::create_directories(recomp_dir);
+        std::filesystem::copy_file(
+            source_path,
+            zelda64::get_launcher_background_override_path(),
+            std::filesystem::copy_options::overwrite_existing
+        );
+    }
+    catch (const std::filesystem::filesystem_error&) {
+        launcher_background_override_enabled = false;
+        return false;
+    }
+
+    launcher_background_override_enabled = true;
+    return true;
+}
+
+void zelda64::clear_launcher_background_override() {
+    launcher_background_override_enabled = false;
+
+    try {
+        std::filesystem::remove(zelda64::get_launcher_background_override_path());
+    }
+    catch (const std::filesystem::filesystem_error&) {
+    }
 }

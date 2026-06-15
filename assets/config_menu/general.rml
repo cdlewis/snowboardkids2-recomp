@@ -37,7 +37,7 @@
                                 data-checked="background_input_mode"
                                 value="On"
                                 id="bg_input_enabled"
-                                style="nav-up: #joystick_deadzone_input; nav-down: #film_grain_mode_on"
+                                style="nav-up: #joystick_deadzone_input; nav-down: #choose_launcher_background"
                             />
                             <label class="config-option__tab-label" for="bg_input_enabled">On</label>
 
@@ -49,9 +49,37 @@
                                 data-checked="background_input_mode"
                                 value="Off"
                                 id="bg_input_disabled"
-                                style="nav-up: #joystick_deadzone_input; nav-down: #film_grain_mode_off"
+                                style="nav-up: #joystick_deadzone_input; nav-down: #clear_launcher_background"
                             />
                             <label class="config-option__tab-label" for="bg_input_disabled">Off</label>
+                        </div>
+                    </div>
+
+                    <!-- launcher background -->
+                    <div class="config-option" data-event-mouseover="set_cur_config_index(10)" id="conf-general__Launcher-Background">
+                        <label class="config-option__title">Launcher Background</label>
+                        <div class="config-option__list">
+                            <button
+                                class="button button--secondary nav-vert"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-click="choose_launcher_background"
+                                data-event-focus="set_cur_config_index(10)"
+                                id="choose_launcher_background"
+                                style="nav-up: #bg_input_enabled; nav-down: #clear_launcher_background"
+                            >
+                                <div class="button__label">Choose Image</div>
+                            </button>
+                            <button
+                                class="button button--warning nav-vert"
+                                data-attrif-disabled="!launcher_background_override_enabled"
+                                data-event-blur="set_cur_config_index(-1)"
+                                data-event-click="clear_launcher_background"
+                                data-event-focus="set_cur_config_index(10)"
+                                id="clear_launcher_background"
+                                style="nav-up: #choose_launcher_background"
+                            >
+                                <div class="button__label">Reset to Default</div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -97,6 +125,9 @@
                     </p>
                     <p data-if="cur_config_index == 9">
                         Inverts the camera controls for the analog camera if it's enabled. <b>None</b> is the default.
+                    </p>
+                    <p data-if="cur_config_index == 10">
+                        Replaces the launcher background with a custom image. Resetting restores the bundled default background.
                     </p>
                 </div>
             </div>

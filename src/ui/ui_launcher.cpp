@@ -7,6 +7,7 @@
 #include "nfd.h"
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 
 static std::string version_string;
 
@@ -56,6 +57,32 @@ recompui::ContextId recompui::get_launcher_context_id() {
 	return launcher_context;
 }
 
+void recompui::reload_launcher_background_image() {
+    std::filesystem::path background_path = zelda64::has_launcher_background_override()
+        ? zelda64::get_launcher_background_override_path()
+        : zelda64::get_asset_path("launcher_background.png");
+
+    std::ifstream background_file{background_path, std::ios::binary};
+    if (!background_file && zelda64::has_launcher_background_override()) {
+        zelda64::clear_launcher_background_override();
+        background_path = zelda64::get_asset_path("launcher_background.png");
+        background_file.clear();
+        background_file.open(background_path, std::ios::binary);
+    }
+
+    if (!background_file) {
+        return;
+    }
+
+    std::vector<char> background_bytes{
+        std::istreambuf_iterator<char>{background_file},
+        std::istreambuf_iterator<char>{}
+    };
+
+    recompui::release_image(launcher_background_src);
+    recompui::queue_image_from_bytes_file(launcher_background_src, background_bytes);
+}
+
 class LauncherMenu : public recompui::MenuController {
 public:
     LauncherMenu() {
@@ -65,15 +92,7 @@ public:
 
     }
     void load_document() override {
-        const std::filesystem::path background_path = zelda64::get_asset_path("launcher_background.png");
-        std::ifstream background_file{background_path, std::ios::binary};
-        if (background_file) {
-            std::vector<char> background_bytes{
-                std::istreambuf_iterator<char>{background_file},
-                std::istreambuf_iterator<char>{}
-            };
-            recompui::queue_image_from_bytes_file(launcher_background_src, background_bytes);
-        }
+        recompui::reload_launcher_background_image();
 		launcher_context = recompui::create_context(zelda64::get_asset_path("launcher.rml"));
     }
     void register_events(recompui::UiEventListenerInstancer& listener) override {

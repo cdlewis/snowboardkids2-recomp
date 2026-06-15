@@ -1086,6 +1086,32 @@ public:
         }
 
         bind_config_list_events(constructor);
+
+        constructor.BindEventCallback("choose_launcher_background",
+            [](Rml::DataModelHandle model_handle, Rml::Event& event, const Rml::VariantList& inputs) {
+                zelda64::open_file_dialog([model_handle](bool success, const std::filesystem::path& path) mutable {
+                    if (!success) {
+                        return;
+                    }
+
+                    if (!zelda64::set_launcher_background_override(path)) {
+                        recompui::message_box("Failed to save launcher background image.");
+                        return;
+                    }
+
+                    recompui::reload_launcher_background_image();
+                    zelda64::save_config();
+                    model_handle.DirtyVariable("launcher_background_override_enabled");
+                });
+            });
+
+        constructor.BindEventCallback("clear_launcher_background",
+            [](Rml::DataModelHandle model_handle, Rml::Event& event, const Rml::VariantList& inputs) {
+                zelda64::clear_launcher_background_override();
+                recompui::reload_launcher_background_image();
+                zelda64::save_config();
+                model_handle.DirtyVariable("launcher_background_override_enabled");
+            });
         
         constructor.Bind("rumble_strength", &control_options_context.rumble_strength);
         constructor.Bind("gyro_sensitivity", &control_options_context.gyro_sensitivity);
@@ -1097,6 +1123,9 @@ public:
         bind_option(constructor, "radio_comm_box_mode", &control_options_context.radio_comm_box_mode);
         bind_option(constructor, "invert_y_axis_mode", &control_options_context.invert_y_axis_mode);
         bind_option(constructor, "analog_camera_invert_mode", &control_options_context.analog_camera_invert_mode);
+        constructor.BindFunc("launcher_background_override_enabled", [](Rml::Variant& out) {
+            out = zelda64::has_launcher_background_override();
+        });
 
         general_model_handle = constructor.GetModelHandle();
     }
