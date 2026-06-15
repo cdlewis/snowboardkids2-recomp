@@ -19,6 +19,10 @@ on:
         type: string
         required: false
         default: '["Debug","RelWithDebInfo"]'
+      PLATFORMS:
+        type: string
+        required: false
+        default: '["linux","linux-arm64","linux-flatpak","windows","macos"]'
     secrets:
       PRIVATE_REPO_ACCESS:
         required: true
@@ -31,6 +35,7 @@ concurrency:
 
 jobs:
   build-linux:
+    if: ${{ contains(fromJSON(inputs.PLATFORMS), 'linux') }}
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -137,6 +142,7 @@ jobs:
           path: SnowboardKids2Recompiled-*.AppImage
 
   build-linux-flatpak:
+    if: ${{ contains(fromJSON(inputs.PLATFORMS), 'linux-flatpak') }}
     runs-on: ubuntu-latest
     env:
       FLATPAK_ID: io.github.snowboardkids2recomp.snowboardkids2recomp
@@ -209,6 +215,7 @@ jobs:
           path: ./${{ env.FLATPAK_ID }}.flatpak
 
   build-linux-arm64:
+    if: ${{ contains(fromJSON(inputs.PLATFORMS), 'linux-arm64') }}
     runs-on: ubuntu-22.04-arm
     strategy:
       matrix:
@@ -315,6 +322,7 @@ jobs:
           path: SnowboardKids2Recompiled-*.AppImage
 
   build-windows:
+    if: ${{ contains(fromJSON(inputs.PLATFORMS), 'windows') }}
     runs-on: windows-latest
     strategy:
       matrix:
@@ -434,6 +442,7 @@ jobs:
           path: SnowboardKids2Recompiled.pdb
 
   build-macos:
+    if: ${{ contains(fromJSON(inputs.PLATFORMS), 'macos') }}
     runs-on: macos-26
     strategy:
       matrix:

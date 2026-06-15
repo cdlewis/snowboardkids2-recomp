@@ -1,0 +1,47 @@
+name: platform-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build"
+        required: true
+        default: linux
+        type: choice
+        options:
+          - linux
+          - linux-arm64
+          - linux-flatpak
+          - windows
+          - macos
+          - all
+      build_type:
+        description: "CMake build type for Linux/macOS"
+        required: true
+        default: Release
+        type: choice
+        options:
+          - Release
+          - Debug
+      windows_build_type:
+        description: "CMake build type for Windows"
+        required: true
+        default: RelWithDebInfo
+        type: choice
+        options:
+          - RelWithDebInfo
+          - Release
+          - Debug
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/validate.yml
+    with:
+      BUILD_TYPES: ${{ format('["{0}"]', inputs.build_type) }}
+      WINDOWS_BUILD_TYPES: ${{ format('["{0}"]', inputs.windows_build_type) }}
+      PLATFORMS: ${{ inputs.platform == 'all' && '["linux","linux-arm64","linux-flatpak","windows","macos"]' || format('["{0}"]', inputs.platform) }}
+    secrets: inherit
