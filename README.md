@@ -8,6 +8,10 @@ Join the [N64: Recompiled Community Discord](https://discord.gg/AWZThJ4dPf) to d
 
 [![Discord Invitation](https://discordapp.com/api/guilds/1374083583739826328/widget.png?style=banner2 "N64 Recomp")](https://discord.gg/AWZThJ4dPf)
 
+You're also welcome to join the [Snowboard Kids Community Discord](https://discord.gg/bwQ85rUED), an active and welcoming server for fans of the series.
+
+[![Discord Invitation](https://discordapp.com/api/guilds/729856662357278750/widget.png?style=banner2 "Snowboard Kids")](https://discord.gg/bwQ85rUED)
+
 ### **This repository and its releases do not contain game assets. The original game is required to build or run this project.**
 
 ## Table of Contents
@@ -143,6 +147,8 @@ Building is not required to play this project, as prebuilt binaries (which do no
 # Special Thanks:
 
 - [sonicdcer](https://github.com/sonicdcer): for doing a lot of the heavy lifting, bootstrapping this project, answering questions, and providing ongoing invaluable contributions.
+- Moz for designing an amazing launcher background.
+- Jellsoup for designing an amazing Logo and other image assets.
 - [Bl00D4NGEL](https://github.com/Bl00D4NGEL): for significant contributions to the [Snowboard Kids 2 decompilation project](https://github.com/cdlewis/snowboardkids2-decomp).
 - [inspectredc](https://github.com/inspectredc): for contributing to the [Snowboard Kids 2 decompilation project](https://github.com/cdlewis/snowboardkids2-decomp).
 - [SlaveOfIDO](https://github.com/SlaveOfIDO): for contributing to the [Snowboard Kids 2 decompilation project](https://github.com/cdlewis/snowboardkids2-decomp).
