@@ -172,7 +172,7 @@ RECOMP_PATCH s32 processCutsceneFrame(CutsceneManager* cutsceneManager) {
 
     if (cutsceneManager->showDebugInfo) {
         _Sprintf((char*) cutsceneManager->debugText, gDebugFrameFormatString, cutsceneManager->currentFrame);
-        enqueueCallbackBySlotIndex(cutsceneManager->uiResource->slot_index, 6, &renderTextPalette,
+        enqueueCallbackBySlotIndex(cutsceneManager->uiResource->callbackSlotIndex, 6, &renderTextPalette,
                                    &cutsceneManager->textX);
     }
 
@@ -254,7 +254,7 @@ RECOMP_PATCH s32 processCutsceneFrame(CutsceneManager* cutsceneManager) {
     setModelCameraTransform(cutsceneManager->reflectionModel, 0, 0, -0xA0, cameraOffsetX, 0x9F, cameraScaleZ);
 
     // @recomp draw pillarbox on top of existing frame
-    enqueueCallbackBySlotIndex(cutsceneManager->uiResource->slot_index, 7, drawCutscenePillarbox, NULL);
+    enqueueCallbackBySlotIndex(cutsceneManager->uiResource->callbackSlotIndex, 7, drawCutscenePillarbox, NULL);
 
     return (cutsceneManager->currentFrame <= cutsceneManager->endFrame) ? 1 : 0;
 }

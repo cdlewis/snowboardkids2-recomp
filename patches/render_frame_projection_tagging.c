@@ -63,7 +63,7 @@ static s32 update_camera_skip_state(ViewportNode *node) {
         cameraSkipState->valid = TRUE;
         for (row = 0; row < 3; row++) {
             for (col = 0; col < 3; col++) {
-                cameraSkipState->prevRot[row][col] = node->modelingMatrix.m[row][col];
+                cameraSkipState->prevRot[row][col] = node->viewTransform.m[row][col];
             }
         }
         cameraSkipState->skipInterpolation = TRUE;
@@ -71,10 +71,10 @@ static s32 update_camera_skip_state(ViewportNode *node) {
         return TRUE;
     }
 
-    rotationCut = camera_rotation_exceeds_threshold(cameraSkipState->prevRot, node->modelingMatrix.m);
+    rotationCut = camera_rotation_exceeds_threshold(cameraSkipState->prevRot, node->viewTransform.m);
     for (row = 0; row < 3; row++) {
         for (col = 0; col < 3; col++) {
-            cameraSkipState->prevRot[row][col] = node->modelingMatrix.m[row][col];
+            cameraSkipState->prevRot[row][col] = node->viewTransform.m[row][col];
         }
     }
     cameraSkipState->skipInterpolation = rotationCut;
@@ -164,11 +164,11 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
         storedViScanline = viScanline + 3;
 
         do {
-            temp = node->priority;
+            temp = node->viewportFlags;
 
             while (node->list3_next != NULL) {
                 node->frameCallbackMsg = NULL;
-                if (node->list3_next->priority != (u8)temp) {
+                if (node->list3_next->viewportFlags != (u8)temp) {
                     break;
                 }
 
@@ -298,10 +298,10 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                 gTextClipAndOffsetData.offsetX = node->offsetX;
                 gTextClipAndOffsetData.offsetY = node->offsetY;
 
-                gTextureEnabled = node->priority;
+                gTextureEnabled = node->viewportFlags;
                 gGraphicsMode = -1;
 
-                if (node->priority == 0) {
+                if (node->viewportFlags == 0) {
                     gDPSetColorDither(gDisplayListAllocPtr++, G_CD_DISABLE);
 
                     for (callbackEntry = (CallbackEntry *)node->pool; callbackEntry != NULL;
@@ -329,7 +329,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                     }
                 } else {
                     viewportAlloc = arenaAlloc16(sizeof(node->viewportWidth) * 8);
-                    projectionAlloc = arenaAlloc16(sizeof(node->perspectiveMatrix));
+                    projectionAlloc = arenaAlloc16(sizeof(node->projectionMatrix));
                     lookAtAlloc = arenaAlloc16(48 * sizeof(s32));
 
                     if (node->numLights > 0) {
@@ -354,28 +354,28 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
 
                     if (lookAtAlloc != NULL) {
                         memcpy(viewportAlloc, &node->viewportWidth, 16);
-                        memcpy(projectionAlloc, &node->perspectiveMatrix, sizeof(node->perspectiveMatrix));
+                        memcpy(projectionAlloc, &node->projectionMatrix, sizeof(node->projectionMatrix));
 
-                        lookAtAlloc[0] = ((node->modelingMatrix.m[0][0] << 3) & 0xFFFF0000) +
-                                         (u16)(((u16)node->modelingMatrix.m[1][0] << 16) >> 29);
-                        lookAtAlloc[1] = (node->modelingMatrix.m[2][0] << 3) & 0xFFFF0000;
-                        lookAtAlloc[2] = ((node->modelingMatrix.m[0][1] << 3) & 0xFFFF0000) +
-                                         (u16)(((u16)node->modelingMatrix.m[1][1] << 16) >> 29);
-                        lookAtAlloc[3] = (node->modelingMatrix.m[2][1] << 3) & 0xFFFF0000;
-                        lookAtAlloc[4] = ((node->modelingMatrix.m[0][2] << 3) & 0xFFFF0000) +
-                                         (u16)(((u16)node->modelingMatrix.m[1][2] << 16) >> 29);
-                        lookAtAlloc[5] = (node->modelingMatrix.m[2][2] << 3) & 0xFFFF0000;
+                        lookAtAlloc[0] = ((node->viewTransform.m[0][0] << 3) & 0xFFFF0000) +
+                                         (u16)(((u16)node->viewTransform.m[1][0] << 16) >> 29);
+                        lookAtAlloc[1] = (node->viewTransform.m[2][0] << 3) & 0xFFFF0000;
+                        lookAtAlloc[2] = ((node->viewTransform.m[0][1] << 3) & 0xFFFF0000) +
+                                         (u16)(((u16)node->viewTransform.m[1][1] << 16) >> 29);
+                        lookAtAlloc[3] = (node->viewTransform.m[2][1] << 3) & 0xFFFF0000;
+                        lookAtAlloc[4] = ((node->viewTransform.m[0][2] << 3) & 0xFFFF0000) +
+                                         (u16)(((u16)node->viewTransform.m[1][2] << 16) >> 29);
+                        lookAtAlloc[5] = (node->viewTransform.m[2][2] << 3) & 0xFFFF0000;
                         lookAtAlloc[6] = 0;
                         lookAtAlloc[7] = 1;
-                        lookAtAlloc[8] = ((node->modelingMatrix.m[0][0] << 19) & 0xFFFF0000) +
-                                         ((node->modelingMatrix.m[1][0] << 3) & 0xFFFF);
-                        lookAtAlloc[9] = (node->modelingMatrix.m[2][0] << 19) & 0xFFFF0000;
-                        lookAtAlloc[10] = ((node->modelingMatrix.m[0][1] << 19) & 0xFFFF0000) +
-                                          ((node->modelingMatrix.m[1][1] << 3) & 0xFFFF);
-                        lookAtAlloc[11] = (node->modelingMatrix.m[2][1] << 19) & 0xFFFF0000;
-                        lookAtAlloc[12] = ((node->modelingMatrix.m[0][2] << 19) & 0xFFFF0000) +
-                                          ((node->modelingMatrix.m[1][2] << 3) & 0xFFFF);
-                        lookAtAlloc[13] = (node->modelingMatrix.m[2][2] << 19) & 0xFFFF0000;
+                        lookAtAlloc[8] = ((node->viewTransform.m[0][0] << 19) & 0xFFFF0000) +
+                                         ((node->viewTransform.m[1][0] << 3) & 0xFFFF);
+                        lookAtAlloc[9] = (node->viewTransform.m[2][0] << 19) & 0xFFFF0000;
+                        lookAtAlloc[10] = ((node->viewTransform.m[0][1] << 19) & 0xFFFF0000) +
+                                          ((node->viewTransform.m[1][1] << 3) & 0xFFFF);
+                        lookAtAlloc[11] = (node->viewTransform.m[2][1] << 19) & 0xFFFF0000;
+                        lookAtAlloc[12] = ((node->viewTransform.m[0][2] << 19) & 0xFFFF0000) +
+                                          ((node->viewTransform.m[1][2] << 3) & 0xFFFF);
+                        lookAtAlloc[13] = (node->viewTransform.m[2][2] << 19) & 0xFFFF0000;
                         lookAtAlloc[14] = 0;
                         lookAtAlloc[15] = 0;
 
@@ -385,9 +385,9 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         lookAtAlloc[19] = 0;
                         lookAtAlloc[20] = 0;
                         lookAtAlloc[21] = BUFFER_SIZE;
-                        lookAtAlloc[22] = ((-node->modelingMatrix.translation.x) & 0xFFFF0000) +
-                                          (u16)(((u32)(-node->modelingMatrix.translation.y)) >> 16);
-                        lookAtAlloc[23] = ((-node->modelingMatrix.translation.z) & 0xFFFF0000) + 1;
+                        lookAtAlloc[22] = ((-node->viewTransform.translation.x) & 0xFFFF0000) +
+                                          (u16)(((u32)(-node->viewTransform.translation.y)) >> 16);
+                        lookAtAlloc[23] = ((-node->viewTransform.translation.z) & 0xFFFF0000) + 1;
                         lookAtAlloc[24] = 0;
                         lookAtAlloc[25] = 0;
                         lookAtAlloc[26] = 0;
@@ -395,29 +395,29 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         lookAtAlloc[28] = 0;
                         lookAtAlloc[29] = 0;
                         lookAtAlloc[30] =
-                            -(node->modelingMatrix.translation.x << 16) + (u16)(-node->modelingMatrix.translation.y);
-                        lookAtAlloc[31] = (-node->modelingMatrix.translation.z) << 16;
+                            -(node->viewTransform.translation.x << 16) + (u16)(-node->viewTransform.translation.y);
+                        lookAtAlloc[31] = (-node->viewTransform.translation.z) << 16;
 
-                        lookAtAlloc[32] = ((node->modelingMatrix.m[0][0] << 3) & 0xFFFF0000) +
-                                          (u16)(((u16)node->modelingMatrix.m[0][1] << 16) >> 29);
-                        lookAtAlloc[33] = (node->modelingMatrix.m[0][2] << 3) & 0xFFFF0000;
-                        lookAtAlloc[34] = ((node->modelingMatrix.m[1][0] << 3) & 0xFFFF0000) +
-                                          (u16)(((u16)node->modelingMatrix.m[1][1] << 16) >> 29);
-                        lookAtAlloc[35] = (node->modelingMatrix.m[1][2] << 3) & 0xFFFF0000;
-                        lookAtAlloc[36] = ((node->modelingMatrix.m[2][0] << 3) & 0xFFFF0000) +
-                                          (u16)(((u16)node->modelingMatrix.m[2][1] << 16) >> 29);
-                        lookAtAlloc[37] = (node->modelingMatrix.m[2][2] << 3) & 0xFFFF0000;
+                        lookAtAlloc[32] = ((node->viewTransform.m[0][0] << 3) & 0xFFFF0000) +
+                                          (u16)(((u16)node->viewTransform.m[0][1] << 16) >> 29);
+                        lookAtAlloc[33] = (node->viewTransform.m[0][2] << 3) & 0xFFFF0000;
+                        lookAtAlloc[34] = ((node->viewTransform.m[1][0] << 3) & 0xFFFF0000) +
+                                          (u16)(((u16)node->viewTransform.m[1][1] << 16) >> 29);
+                        lookAtAlloc[35] = (node->viewTransform.m[1][2] << 3) & 0xFFFF0000;
+                        lookAtAlloc[36] = ((node->viewTransform.m[2][0] << 3) & 0xFFFF0000) +
+                                          (u16)(((u16)node->viewTransform.m[2][1] << 16) >> 29);
+                        lookAtAlloc[37] = (node->viewTransform.m[2][2] << 3) & 0xFFFF0000;
                         lookAtAlloc[38] = 0;
                         lookAtAlloc[39] = 1;
-                        lookAtAlloc[40] = ((node->modelingMatrix.m[0][0] << 19) & 0xFFFF0000) +
-                                          ((node->modelingMatrix.m[0][1] << 3) & 0xFFFF);
-                        lookAtAlloc[41] = (node->modelingMatrix.m[0][2] << 19) & 0xFFFF0000;
-                        lookAtAlloc[42] = ((node->modelingMatrix.m[1][0] << 19) & 0xFFFF0000) +
-                                          ((node->modelingMatrix.m[1][1] << 3) & 0xFFFF);
-                        lookAtAlloc[43] = (node->modelingMatrix.m[1][2] << 19) & 0xFFFF0000;
-                        lookAtAlloc[44] = ((node->modelingMatrix.m[2][0] << 19) & 0xFFFF0000) +
-                                          ((node->modelingMatrix.m[2][1] << 3) & 0xFFFF);
-                        lookAtAlloc[45] = (node->modelingMatrix.m[2][2] << 19) & 0xFFFF0000;
+                        lookAtAlloc[40] = ((node->viewTransform.m[0][0] << 19) & 0xFFFF0000) +
+                                          ((node->viewTransform.m[0][1] << 3) & 0xFFFF);
+                        lookAtAlloc[41] = (node->viewTransform.m[0][2] << 19) & 0xFFFF0000;
+                        lookAtAlloc[42] = ((node->viewTransform.m[1][0] << 19) & 0xFFFF0000) +
+                                          ((node->viewTransform.m[1][1] << 3) & 0xFFFF);
+                        lookAtAlloc[43] = (node->viewTransform.m[1][2] << 19) & 0xFFFF0000;
+                        lookAtAlloc[44] = ((node->viewTransform.m[2][0] << 19) & 0xFFFF0000) +
+                                          ((node->viewTransform.m[2][1] << 3) & 0xFFFF);
+                        lookAtAlloc[45] = (node->viewTransform.m[2][2] << 19) & 0xFFFF0000;
                         lookAtAlloc[46] = 0;
                         lookAtAlloc[47] = 0;
 

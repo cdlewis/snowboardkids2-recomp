@@ -22,7 +22,7 @@ static ViewportProjectionTag viewportProjectionTags[0x20];
 extern CallbackPoolSlot *gViewportCallbackPools[];
 
 static void registerViewportProjectionSlot(ViewportNode *node) {
-    u16 slot = node->slot_index;
+    u16 slot = node->callbackSlotIndex;
 
     viewportProjectionTags[slot].node = node;
     viewportProjectionTags[slot].projectionTransformId = 0;
@@ -30,7 +30,7 @@ static void registerViewportProjectionSlot(ViewportNode *node) {
 }
 
 static void clearViewportProjectionSlot(ViewportNode *node) {
-    u16 slot = node->slot_index;
+    u16 slot = node->callbackSlotIndex;
 
     if (viewportProjectionTags[slot].node == node) {
         viewportProjectionTags[slot].node = NULL;
@@ -40,7 +40,7 @@ static void clearViewportProjectionSlot(ViewportNode *node) {
 }
 
 void setViewportProjectionTransformId(ViewportNode *node, s32 projectionTransformId) {
-    u16 slot = node->slot_index;
+    u16 slot = node->callbackSlotIndex;
 
     if (viewportProjectionTags[slot].node == node) {
         viewportProjectionTags[slot].projectionTransformId = projectionTransformId;
@@ -48,7 +48,7 @@ void setViewportProjectionTransformId(ViewportNode *node, s32 projectionTransfor
 }
 
 s32 getViewportProjectionTransformId(ViewportNode *node) {
-    u16 slot = node->slot_index;
+    u16 slot = node->callbackSlotIndex;
     s32 projectionTransformId = 0;
 
     if (viewportProjectionTags[slot].node == node) {
@@ -59,7 +59,7 @@ s32 getViewportProjectionTransformId(ViewportNode *node) {
 }
 
 ViewportCameraSkipState *getViewportCameraSkipState(ViewportNode *node) {
-    u16 slot = node->slot_index;
+    u16 slot = node->callbackSlotIndex;
     ViewportCameraSkipState *cameraSkipState = NULL;
 
     if (viewportProjectionTags[slot].node == node) {
@@ -100,7 +100,7 @@ RECOMP_PATCH void initViewportNode(ViewportNode *arg0, ViewportNode *arg1, s32 a
     if (gRootViewport.list3_next != NULL) {
         do {
             ViewportNode *temp_v1 = var_a0->list3_next;
-            if ((u8)arg3 < (u8)temp_v1->unk14) {
+            if ((u8)arg3 < (u8)temp_v1->renderOrder) {
                 break;
             }
             var_a0 = temp_v1;
@@ -115,11 +115,11 @@ RECOMP_PATCH void initViewportNode(ViewportNode *arg0, ViewportNode *arg1, s32 a
         temp_v0->list2_prev = arg0;
     }
 
-    arg0->unk14 = (s8)arg3;
-    arg0->slot_index = (u16)arg2;
-    arg0->priority = (s8)arg4_byte;
+    arg0->renderOrder = (s8)arg3;
+    arg0->callbackSlotIndex = (u16)arg2;
+    arg0->viewportFlags = (s8)arg4_byte;
     arg0->displayFlags = 0;
-    arg0->id = 0;
+    arg0->viewportId = 0;
     arg0->numLights = 0;
     arg0->viewportWidth = 0x280;
     arg0->viewportHeight = 0x1E0;
@@ -129,8 +129,8 @@ RECOMP_PATCH void initViewportNode(ViewportNode *arg0, ViewportNode *arg1, s32 a
     arg0->unkD2 = 0x1E0;
     arg0->unkD4 = 0x1FF;
     arg0->unkD6 = 0;
-    memcpy(&arg0->modelingMatrix, &identityMatrix, sizeof(Transform3D));
-    guPerspective(&arg0->perspectiveMatrix, &arg0->perspNorm, 30.0f, 1.3333334f, 20.0f, 2000.0f, 1.0f);
+    memcpy(&arg0->viewTransform, &identityMatrix, sizeof(Transform3D));
+    guPerspective(&arg0->projectionMatrix, &arg0->perspNorm, 30.0f, 1.3333334f, 20.0f, 2000.0f, 1.0f);
     arg0->fogA = 0xFF;
     arg0->fogStartPermille = 0x3DE;
     arg0->fogB = 0;
@@ -159,7 +159,7 @@ RECOMP_PATCH void unlinkNode(ViewportNode *node) {
     ViewportNode *next;
 
     current = &gRootViewport;
-    gViewportCallbackPools[node->slot_index] = NULL;
+    gViewportCallbackPools[node->callbackSlotIndex] = NULL;
 
     next = gRootViewport.unk8.list2_next;
     while (next != 0) {

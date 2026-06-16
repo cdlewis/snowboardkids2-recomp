@@ -1,9 +1,9 @@
 #include "patches.h"
 #include "transform_ids.h"
 
+#include "ui/level_preview_3d.h"
+
 extern Gfx* gDisplayListAllocPtr;
-extern ActiveViewportState* gActiveViewport;
-extern s16 gGraphicsMode;
 extern Gfx gPlayerShadowRenderSetupDl[];
 
 extern void prepareDisplayListRenderState(DisplayListObject*);
@@ -11,6 +11,136 @@ extern void setupDisplayListMatrix(DisplayListObject*);
 extern void setupBillboardDisplayListMatrix(DisplayListObject*);
 extern void initializeMultiPartDisplayListObjects(DisplayListObject* arg0);
 extern void setupMultiPartObjectRenderState(DisplayListObject* arg0, s32 arg1);
+
+#define BOARD_SELECT_SKIP_OBJECT_SLOTS 64
+
+typedef struct {
+    DisplayListObject* object;
+    s32 remainingPasses;
+} BoardSelectSkipObject;
+
+static BoardSelectSkipObject sBoardSelectSkipObjects[BOARD_SELECT_SKIP_OBJECT_SLOTS];
+
+static s32 findBoardSelectSkipObjectIndex(DisplayListObject* object) {
+    s32 i;
+
+    for (i = 0; i < BOARD_SELECT_SKIP_OBJECT_SLOTS; i++) {
+        if (sBoardSelectSkipObjects[i].object == NULL) {
+            break;
+        }
+        if (sBoardSelectSkipObjects[i].object == object) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+static void removeBoardSelectSkipObjectIndex(s32 index) {
+    s32 lastIndex = index;
+
+    while (((lastIndex + 1) < BOARD_SELECT_SKIP_OBJECT_SLOTS) && (sBoardSelectSkipObjects[lastIndex + 1].object != NULL)) {
+        lastIndex++;
+    }
+
+    sBoardSelectSkipObjects[index] = sBoardSelectSkipObjects[lastIndex];
+    sBoardSelectSkipObjects[lastIndex].object = NULL;
+    sBoardSelectSkipObjects[lastIndex].remainingPasses = 0;
+}
+
+static s32 countBoardSelectObjectRenderPasses(DisplayListObject* object) {
+    s32 count = 0;
+
+    if ((object != NULL) && (object->displayLists != NULL)) {
+        if (object->displayLists->opaqueDisplayList != NULL) {
+            count++;
+        }
+        if (object->displayLists->transparentDisplayList != NULL) {
+            count++;
+        }
+        if (object->displayLists->overlayDisplayList != NULL) {
+            count++;
+        }
+    }
+
+    if (count == 0) {
+        count = 1;
+    }
+
+    return count;
+}
+
+static s32 consumeBoardSelectObjectInterpolationSkip(DisplayListObject* object) {
+    s32 index;
+
+    index = findBoardSelectSkipObjectIndex(object);
+    if (index >= 0) {
+        if (sBoardSelectSkipObjects[index].remainingPasses <= 0) {
+            sBoardSelectSkipObjects[index].remainingPasses = countBoardSelectObjectRenderPasses(object);
+        }
+
+        sBoardSelectSkipObjects[index].remainingPasses--;
+        if (sBoardSelectSkipObjects[index].remainingPasses <= 0) {
+            removeBoardSelectSkipObjectIndex(index);
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+void setBoardSelectObjectInterpolationSkip(void* object, s32 skip) {
+    s32 index;
+
+    if (object == NULL) {
+        return;
+    }
+
+    index = findBoardSelectSkipObjectIndex((DisplayListObject*) object);
+    if (skip) {
+        if (index >= 0) {
+            sBoardSelectSkipObjects[index].remainingPasses = 0;
+            return;
+        }
+
+        for (index = 0; index < BOARD_SELECT_SKIP_OBJECT_SLOTS; index++) {
+            if (sBoardSelectSkipObjects[index].object == NULL) {
+                sBoardSelectSkipObjects[index].object = (DisplayListObject*) object;
+                sBoardSelectSkipObjects[index].remainingPasses = 0;
+                return;
+            }
+        }
+    } else if (index >= 0) {
+        removeBoardSelectSkipObjectIndex(index);
+    }
+}
+
+void setBoardSelectSceneModelInterpolationSkip(void* model, s32 skip) {
+    SceneModel* sceneModel;
+    DisplayListObject* displayObjects;
+    DisplayListObject* animationDisplayObject;
+    s32 i;
+
+    if (model == NULL) {
+        return;
+    }
+
+    sceneModel = (SceneModel*)model;
+    displayObjects = (DisplayListObject*)sceneModel->boneDisplayObjects;
+    animationDisplayObject = (DisplayListObject*)sceneModel->specialAnimationDisplayObject;
+
+    if (displayObjects != NULL) {
+        for (i = 0; i < SCENE_MODEL_BONE_SLOT_COUNT; i++) {
+            if ((displayObjects[i].displayLists != NULL) && (sceneModel->partDisplayFlags & (1 << i))) {
+                setBoardSelectObjectInterpolationSkip(&displayObjects[i], skip);
+            }
+        }
+    }
+
+    if (animationDisplayObject != NULL) {
+        setBoardSelectObjectInterpolationSkip(animationDisplayObject, skip);
+    }
+}
 
 // @recomp Functions for tagging matrix the display list objects with their corresponding matrix group.
 // This can be expanded with additional parameters to control whether interpolation is skipped,
@@ -20,15 +150,24 @@ extern void setupMultiPartObjectRenderState(DisplayListObject* arg0, s32 arg1);
 // and also combines it with the current viewport ID. Pointer alone shouldn't be relied on if possible.
 // This extra structure could also store additional information to control interpolation in greater detail.
 
+void pushObjectMatrixGroupForObject(DisplayListObject* object, u32 id) {
+    if (consumeBoardSelectObjectInterpolationSkip(object)) {
+        // @recomp Board-select marked this object as a teleport, so skip modelview interpolation for this group.
+        gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, id, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+    } else {
+        gEXMatrixGroupSimple(gDisplayListAllocPtr++, id, G_EX_PUSH, G_MTX_MODELVIEW,
+                             G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
+                             G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+                             G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
+    }
+}
+
 void pushObjectMatrixGroupId(u32 id) {
-    gEXMatrixGroupSimple(gDisplayListAllocPtr++, id, G_EX_PUSH, G_MTX_MODELVIEW,
-                         G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP,
-                         G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
-                         G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO);
+    pushObjectMatrixGroupForObject((DisplayListObject*)id, id);
 }
 
 void pushObjectMatrixGroup(DisplayListObject* displayObjects) {
-    pushObjectMatrixGroupId((u32)displayObjects);
+    pushObjectMatrixGroupForObject(displayObjects, (u32)displayObjects);
 }
 
 void popObjectMatrixGroup() {
@@ -48,7 +187,7 @@ RECOMP_PATCH void renderMultiPartOpaqueDisplayLists(DisplayListObject* displayOb
         currentObject = &displayObjects[i];
         if (currentObject->displayLists->opaqueDisplayList != NULL) {
             // @recomp Push the matrix group for this part.
-            pushObjectMatrixGroupId((u32)displayObjects + i);
+            pushObjectMatrixGroupForObject(&displayObjects[i], (u32)displayObjects + i);
 
             setupMultiPartObjectRenderState(displayObjects, i);
             displayListCmd = gDisplayListAllocPtr;
@@ -79,7 +218,7 @@ RECOMP_PATCH void renderMultiPartTransparentDisplayLists(DisplayListObject* disp
         do {
             if (currentObject[i].displayLists->transparentDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushObjectMatrixGroupId((u32)displayObjects + i);
+                pushObjectMatrixGroupForObject(&displayObjects[i], (u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -113,7 +252,7 @@ RECOMP_PATCH void renderMultiPartOverlayDisplayLists(DisplayListObject* displayO
         do {
             if (currentObject[i].displayLists->overlayDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushObjectMatrixGroupId((u32)displayObjects + i);
+                pushObjectMatrixGroupForObject(&displayObjects[i], (u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -153,7 +292,7 @@ RECOMP_PATCH void renderMultiPartOpaqueDisplayListsWithLights(DisplayListObject*
         do {
             if (currentObject[i].displayLists->opaqueDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushObjectMatrixGroupId((u32)displayObjects + i);
+                pushObjectMatrixGroupForObject(&displayObjects[i], (u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -200,7 +339,7 @@ RECOMP_PATCH void renderMultiPartTransparentDisplayListsWithLights(DisplayListOb
         do {
             if (currentObject[i].displayLists->transparentDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushObjectMatrixGroupId((u32)displayObjects + i);
+                pushObjectMatrixGroupForObject(&displayObjects[i], (u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -247,7 +386,7 @@ RECOMP_PATCH void renderMultiPartOverlayDisplayListsWithLights(DisplayListObject
         do {
             if (currentObject[i].displayLists->overlayDisplayList != NULL) {
                 // @recomp Push the matrix group for this part.
-                pushObjectMatrixGroupId((u32)displayObjects + i);
+                pushObjectMatrixGroupForObject(&displayObjects[i], (u32)displayObjects + i);
 
                 setupMultiPartObjectRenderState(displayObjects, i);
                 displayListCmd = gDisplayListAllocPtr;
@@ -427,6 +566,57 @@ RECOMP_PATCH void renderBillboardedOverlayDisplayList(DisplayListObject* arg0) {
         // @recomp Pop the matrix group.
         popObjectMatrixGroup();
     }
+}
+
+// @recomp Modified to insert matrix groups around lit display lists.
+RECOMP_PATCH void renderOpaqueDisplayListWithLights(DisplayListObject *arg0) {
+    pushObjectMatrixGroup(arg0);
+
+    prepareDisplayListRenderStateWithLights(arg0);
+    gSPDisplayList(gDisplayListAllocPtr++, arg0->displayLists->opaqueDisplayList);
+
+    gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
+                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
+                      gActiveViewport->defaultLight1B << 8);
+    gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
+                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
+                      gActiveViewport->defaultLight2B << 8);
+
+    popObjectMatrixGroup();
+}
+
+// @recomp Modified to insert matrix groups around lit display lists.
+RECOMP_PATCH void renderTransparentDisplayListWithLights(DisplayListObject *arg0) {
+    pushObjectMatrixGroup(arg0);
+
+    prepareDisplayListRenderStateWithLights(arg0);
+    gSPDisplayList(gDisplayListAllocPtr++, arg0->displayLists->transparentDisplayList);
+
+    gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
+                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
+                      gActiveViewport->defaultLight1B << 8);
+    gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
+                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
+                      gActiveViewport->defaultLight2B << 8);
+
+    popObjectMatrixGroup();
+}
+
+// @recomp Modified to insert matrix groups around lit display lists.
+RECOMP_PATCH void renderOverlayDisplayListWithLights(DisplayListObject *arg0) {
+    pushObjectMatrixGroup(arg0);
+
+    prepareDisplayListRenderStateWithLights(arg0);
+    gSPDisplayList(gDisplayListAllocPtr++, arg0->displayLists->overlayDisplayList);
+
+    gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
+                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
+                      gActiveViewport->defaultLight1B << 8);
+    gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
+                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
+                      gActiveViewport->defaultLight2B << 8);
+
+    popObjectMatrixGroup();
 }
 
 // @recomp Modified to insert a matrix group around the shadow.
