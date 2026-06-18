@@ -68,8 +68,8 @@ RECOMP_PATCH void updateCharSelectPreviewModel(CharSelectPreviewModel *arg0) {
     createYRotationMatrix(&arg0->positionMatrix, (0x2000 - rotation) & 0xFFFF);
 
 after_rotation:
-    func_8006B084_6BC84(&arg0->rotationMatrix, &arg0->positionMatrix, &sp10);
-    func_8006B084_6BC84(&sp10, &state->charSelectRotations[arg0->playerIndex], (Transform3D *)arg0);
+    composeTransform3D(&arg0->rotationMatrix, &arg0->positionMatrix, &sp10);
+    composeTransform3D(&sp10, &state->charSelectRotations[arg0->playerIndex], (Transform3D *)arg0);
 
     val = state->charSelectMenuStates[arg0->playerIndex];
     
@@ -118,7 +118,7 @@ RECOMP_PATCH void updateCharSelectBoardPreview(CharSelectBoardPreview *arg0) {
     rotation = state->charSelectCarouselAngles[arg0->playerIndex];
     createYRotationMatrix(transformPtr, 0x2000 - rotation);
 
-    func_8006B084_6BC84(transformPtr, &state->charSelectRotations[arg0->playerIndex], localPtr);
+    composeTransform3D(transformPtr, &state->charSelectRotations[arg0->playerIndex], localPtr);
 
     applyTransformToModel(arg0->model, localPtr);
 
