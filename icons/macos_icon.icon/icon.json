@@ -6,17 +6,54 @@
     {
       "layers" : [
         {
-          "fill" : "automatic",
           "glass" : false,
-          "image-name" : "IMG_3171.jpg",
-          "name" : "IMG_3171",
+          "image-name" : "slash_head.png",
+          "name" : "slash_head",
           "position" : {
-            "scale" : 0.88,
+            "scale" : 1.29,
             "translation-in-points" : [
               0,
-              0
+              -1.2900000000000773
             ]
           }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "plus-darker"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "display-p3:0.21075,0.44586,0.76819,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "snow_background.png",
+          "name" : "snow_background"
+        },
+        {
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "snow_background.png",
+          "name" : "snow_background"
         }
       ],
       "shadow" : {
