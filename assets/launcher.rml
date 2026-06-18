@@ -38,10 +38,20 @@
 					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Start game</div>
 				</button>
+				<button onclick="open_controls" class="menu-list-item menu-list-item--right">
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
+					<div class="menu-list-item__label">Controls</div>
+				</button>
 				<button onclick="open_settings" class="menu-list-item menu-list-item--right">
 					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
 					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
 					<div class="menu-list-item__label">Settings</div>
+				</button>
+				<button onclick="open_mods" class="menu-list-item menu-list-item--right">
+					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
+					<svg class="menu-list-item__background menu-list-item__background--active" src="board-selected.svg" />
+					<div class="menu-list-item__label">Mods</div>
 				</button>
 				<button onclick="exit_game" class="menu-list-item menu-list-item--right">
 					<svg class="menu-list-item__background menu-list-item__background--inactive" src="board.svg" />
@@ -50,7 +60,8 @@
 				</button>
 			</div>
 			<div class="bottom-left">
-				v{{version_number}}
+				<div class="bottom-left__rock"></div>
+				<div class="bottom-left__label">v{{version_number}}</div>
 			</div>
 		</div>
 	</body>

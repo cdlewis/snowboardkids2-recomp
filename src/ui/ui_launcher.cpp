@@ -15,6 +15,7 @@ Rml::DataModelHandle model_handle;
 bool mm_rom_valid = false;
 static constexpr const char* launcher_background_src = "?/launcher/background";
 static constexpr const char* launcher_logo_src = "?/launcher/logo";
+static constexpr const char* launcher_version_rock_src = "?/launcher/version_rock";
 
 extern std::vector<recomp::GameEntry> supported_games;
 
@@ -59,7 +60,7 @@ recompui::ContextId recompui::get_launcher_context_id() {
 }
 
 static void load_launcher_background_image() {
-    std::filesystem::path background_path = zelda64::get_asset_path("launcher_background.jpeg");
+    std::filesystem::path background_path = zelda64::get_asset_path("launcher_background.png");
     std::ifstream background_file{background_path, std::ios::binary};
     if (!background_file) {
         return;
@@ -99,7 +100,7 @@ static void load_launcher_background_image() {
 }
 
 static void load_launcher_logo_image() {
-    std::filesystem::path logo_path = zelda64::get_asset_path("launcher_logo.png");
+    std::filesystem::path logo_path = zelda64::get_asset_path("logo.png");
     std::ifstream logo_file{logo_path, std::ios::binary};
     if (!logo_file) {
         return;
@@ -114,6 +115,22 @@ static void load_launcher_logo_image() {
     recompui::queue_image_from_bytes_file(launcher_logo_src, logo_bytes);
 }
 
+static void load_launcher_version_rock_image() {
+    std::filesystem::path rock_path = zelda64::get_asset_path("rock.png");
+    std::ifstream rock_file{rock_path, std::ios::binary};
+    if (!rock_file) {
+        return;
+    }
+
+    std::vector<char> rock_bytes{
+        std::istreambuf_iterator<char>{rock_file},
+        std::istreambuf_iterator<char>{}
+    };
+
+    recompui::release_image(launcher_version_rock_src);
+    recompui::queue_image_from_bytes_file(launcher_version_rock_src, rock_bytes);
+}
+
 class LauncherMenu : public recompui::MenuController {
 public:
     LauncherMenu() {
@@ -125,6 +142,7 @@ public:
     void load_document() override {
         load_launcher_background_image();
         load_launcher_logo_image();
+        load_launcher_version_rock_image();
 		launcher_context = recompui::create_context(zelda64::get_asset_path("launcher.rml"));
     }
     void register_events(recompui::UiEventListenerInstancer& listener) override {

@@ -2218,14 +2218,34 @@ scrollbarhorizontal sliderbar {
 }
 
 .bottom-left {
+  display: flex;
   position: absolute;
-  bottom: 44dp;
-  left: 64dp;
-  background-color: rgba(12, 42, 96, 0.3);
-  padding: 15dp 25dp 20dp 25dp;
-  border-radius: 16dp;
-  
-  font-size: 23dp;
+  bottom: 20dp;
+  left: 27dp;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 220dp;
+  height: 112dp;
+}
+
+.bottom-left__rock {
+  position: absolute;
+  top: 3dp;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  decorator: image("?/launcher/version_rock" none contain);
+}
+
+.bottom-left__label {
+  position: relative;
+  top: -2dp;
+  left: -2dp;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 27dp;
   font-family: Fredoka;
   font-weight: 400;
 }
@@ -2233,11 +2253,11 @@ scrollbarhorizontal sliderbar {
 #logo {
   display: block;
   position: absolute;
-  top: 0dp;
+  top: 20dp;
   left: 30dp;
   z-index: 9;
   width: 620dp;
-  height: 349dp;
+  height: 249dp;
   border-width: 0;
   border-color: rgba(0, 0, 0, 0);
   decorator: image("?/launcher/logo" none contain);
@@ -2322,7 +2342,7 @@ scrollbarhorizontal sliderbar {
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  width: 80%;
+  width: 70%;
   height: auto;
   padding: 20dp 19dp;
   border-radius: 8dp;

@@ -3,12 +3,31 @@
 .bottom-left {
     display: flex;
     position: absolute;
-    bottom: space(4);
+    bottom: space(44);
+    left: space(64);
     flex-direction: row;
-    align-items: flex-start;
-    justify-content: flex-start;
+    align-items: center;
+    justify-content: center;
+    width: space(220);
+    height: space(112);
+}
+
+.bottom-left__rock {
+    position: absolute;
+    top: space(3);
+    left: 0;
+    z-index: 0;
     width: 100%;
-    max-width: space($base-modal-max-width);
-    height: auto;
-    margin: 0 space(4);
+    height: 100%;
+    decorator: image("?/launcher/version_rock" none contain);
+}
+
+.bottom-left__label {
+    position: relative;
+    top: space(2);
+    z-index: 1;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: space(27);
+    font-family: Fredoka;
+    font-weight: 400;
 }
