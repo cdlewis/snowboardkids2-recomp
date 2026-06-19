@@ -19,6 +19,7 @@ endif()
 # Opt out of constexpr mutex constructor on windows to prevent vcredist issues
 if (WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR")
+    add_compile_definitions(__PRFCHWINTRIN_H)
 endif()
 
 if (APPLE)
