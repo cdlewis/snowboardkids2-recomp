@@ -2364,7 +2364,7 @@ scrollbarhorizontal sliderbar {
   decorator: none;
 }
 .menu-list-item:focus:not(:disabled, [disabled]), .menu-list-item:hover:not(:disabled, [disabled]) {
-  color: #111111;
+  color: #ffffff;
   transform: scale(1.05);
 }
 .menu-list-item:focus:not(:disabled, [disabled]) .menu-list-item__background--inactive, .menu-list-item:hover:not(:disabled, [disabled]) .menu-list-item__background--inactive {

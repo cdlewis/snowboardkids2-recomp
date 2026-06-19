@@ -85,6 +85,8 @@ ModEntryView::ModEntryView(Element *parent) : Element(parent, Events(EventType::
         {
             name_label = context.create_element<Label>(body_container, LabelStyle::Normal);
             description_label = context.create_element<Label>(body_container, LabelStyle::Small);
+            description_label->set_font_size(22.0f);
+            description_label->set_line_height(22.0f);
             description_label->set_margin_top(4.0f);
             description_label->set_color(Color{ COL_TEXT_DIM, 255 });
         } // body_container

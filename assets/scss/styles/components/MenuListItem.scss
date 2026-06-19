@@ -45,7 +45,7 @@
 
     &:focus:not(:disabled, [disabled]),
     &:hover:not(:disabled, [disabled]) {
-        color: #111111;
+        color: #ffffff;
         decorator: none;
 
         .menu-list-item__background--inactive {

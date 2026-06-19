@@ -71,6 +71,8 @@ ModDetailsPanel::ModDetailsPanel(Element *parent) : Element(parent) {
         authors_label = context.create_element<Label>(body_container, LabelStyle::Normal);
         authors_label->set_margin_bottom(16.0f);
         description_label = context.create_element<Label>(body_container, LabelStyle::Small);
+        description_label->set_font_size(24.0f);
+        description_label->set_line_height(24.0f);
     }
     
     clear_mod_navigation();
