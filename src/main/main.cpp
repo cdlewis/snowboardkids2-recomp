@@ -41,6 +41,7 @@
 #include "librecomp/helpers.hpp"
 
 #include "mods/snowboardkids2_mod_template.h"
+#include "mods/snowboardkids2_time_trial.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -51,7 +52,7 @@
 
 #include "../../lib/rt64/src/contrib/stb/stb_image.h"
 
-const std::string version_string = "0.0.2";
+const std::string version_string = "1.0.0";
 
 template <typename... Ts> void exit_error(const char* str, Ts... args) {
     // TODO pop up an error
@@ -643,6 +644,10 @@ int main(int argc, char** argv) {
     recomp::mods::register_embedded_mod("snowboardkids2_mod_template", {
         reinterpret_cast<const uint8_t*>(snowboardkids2_mod_template),
         snowboardkids2_mod_template_size
+    });
+    recomp::mods::register_embedded_mod("snowboardkids2_time_trial", {
+        reinterpret_cast<const uint8_t*>(snowboardkids2_time_trial),
+        snowboardkids2_time_trial_size
     });
 
     // REGISTER_FUNC(recomp_get_window_resolution);
