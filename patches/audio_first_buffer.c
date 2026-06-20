@@ -61,13 +61,17 @@ RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStr
     outputBuffer = (s16 *)osVirtualToPhysical(audioTaskDesc->outputBuffer);
 
     if (prevBuffer != 0) {
-	// @recomp there's a bug on Linux where the first ROM launch can pass what appears to be
-	// an uninitialized previous buffer; skip it until its frame size is valid.
-	// TODO(#42): root-cause what is actually going on here.
-        if ((prevBuffer->frameSizeInSamples > 0) &&
-            ((s32)prevBuffer->frameSizeInSamples <= (s32)(gAudioBufferSize + gAudioBufferPadding + 0x10))) {
-            osAiSetNextBuffer(prevBuffer->outputBuffer, prevBuffer->frameSizeInSamples * 4);
+        s16 frameSizeInSamples = prevBuffer->frameSizeInSamples;
+
+        // @recomp The first ROM launch on Linux can report an invalid previous-buffer size; clamp it so
+        // osAiSetNextBuffer still starts AI without asking the runtime to queue a huge sample count.
+        // TODO(#42): root-cause what is actually going on here.
+        if ((frameSizeInSamples <= 0) ||
+            ((s32)frameSizeInSamples > (s32)(gAudioBufferSize + gAudioBufferPadding + 0x10))) {
+            frameSizeInSamples = gAudioBufferSize;
         }
+
+        osAiSetNextBuffer(prevBuffer->outputBuffer, frameSizeInSamples * 4);
     }
 
     currentSamplesInBuffer = osAiGetLength() / 4;
