@@ -336,23 +336,23 @@ RECOMP_PATCH void updateShotCrossItemCountDisplay(CrossHudCounterDisplayState* s
         enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
 
         // @recomp tune the hit-count digits under the widened letterbox icon.
-        countX = state->x + 0x18;
-        drawNumericString(buffer, countX, state->y + 0x10, 0xFF, state->digitAsset, 8, 0);
+        countX = state->sprite.x + 0x18;
+        drawNumericString(buffer, countX, state->sprite.y + 0x10, 0xFF, state->digitAsset, 8, 0);
 
         // @recomp tune only the icon relative to the hit count.
-        iconArg = copy_sprite_arg_with_x_offset((SpriteRenderArg*) &state->x, 8);
+        iconArg = copy_sprite_arg_with_x_offset(&state->sprite, 8);
         enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, iconArg);
         enqueueCallbackBySlotIndex(8, 0, setShotCrossTopRightHudAlign, NULL);
     } else {
         // @recomp wrap the result-layout icon with top-left widescreen alignment.
         enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
-        enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, &state->x);
+        enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, &state->sprite);
         enqueueCallbackBySlotIndex(8, 0, setTopLeftHudAlign, NULL);
 
         // @recomp wrap the result-layout count with matching top-left widescreen alignment.
         enqueueCallbackBySlotIndex(8, 1, resetCornerHudAlign, NULL);
-        countX = state->x + 0x10;
-        drawNumericString(buffer, countX, state->y + 0x10, 0xFF, state->digitAsset, 8, 1);
+        countX = state->sprite.x + 0x10;
+        drawNumericString(buffer, countX, state->sprite.y + 0x10, 0xFF, state->digitAsset, 8, 1);
         enqueueCallbackBySlotIndex(8, 1, setTopLeftHudAlign, NULL);
     }
 }
