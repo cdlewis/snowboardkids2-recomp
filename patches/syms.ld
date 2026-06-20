@@ -68,3 +68,5 @@ recomp_get_radio_comm_box_mode = 0x8F0000EC;
 osPiStartDma_recomp = 0x8F0000F0;
 osEepromLongRead_recomp = 0x8F0000F4;
 osEepromLongWrite_recomp = 0x8F0000F8;
+osAiGetLength_recomp = 0x8F0000FC;
+osAiSetNextBuffer_recomp = 0x8F000100;

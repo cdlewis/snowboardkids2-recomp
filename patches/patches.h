@@ -31,6 +31,8 @@
 #define __cosf __cosf_recomp
 #define sqrtf sqrtf_recomp
 #define osPiStartDma osPiStartDma_recomp
+#define osAiGetLength osAiGetLength_recomp
+#define osAiSetNextBuffer osAiSetNextBuffer_recomp
 #define gRandFloat sRandFloat
 
 #include "PR/ultratypes.h"
