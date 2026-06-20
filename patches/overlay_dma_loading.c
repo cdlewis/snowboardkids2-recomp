@@ -4,6 +4,9 @@ extern void recomp_load_overlays(u32 rom, void* ram, u32 size);
 
 extern OSMesgQueue gPiDmaMsgQueue;
 
+// @recomp Work around a recompiler bug where it'll crash if no .data section is present.
+int gDummyValue = 1;
+
 static void clearMemory(void* start, u32 size) {
     u8* bytes = start;
 
