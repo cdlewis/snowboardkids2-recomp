@@ -346,7 +346,7 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ runner.os }}-sk2re-ccache-${{ matrix.type }}
+          key: ${{ runner.os }}-sk2re-ccache-v2-${{ matrix.type }}-${{ inputs.N64RECOMP_COMMIT }}
 
       - name: Install Windows Dependencies
         run: |
