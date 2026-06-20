@@ -90,6 +90,30 @@ jobs:
             printf 'Release %s\n' "${{ inputs.tag }}" > release-notes.md
           fi
 
+      - name: Create Release Tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TITLE: ${{ inputs.title }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+          git fetch --tags origin
+
+          if git rev-parse --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            existing_target="$(git rev-list -n 1 "$RELEASE_TAG")"
+            if [ "$existing_target" != "$TARGET_SHA" ]; then
+              printf 'Tag %s already points at %s, not %s\n' "$RELEASE_TAG" "$existing_target" "$TARGET_SHA" >&2
+              exit 1
+            fi
+
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$RELEASE_TAG" "$TARGET_SHA" -m "$RELEASE_TITLE"
+          git push origin "refs/tags/$RELEASE_TAG"
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
