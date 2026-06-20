@@ -32,7 +32,6 @@
 #define __cosf __cosf_recomp
 #define sqrtf sqrtf_recomp
 #define osPiStartDma osPiStartDma_recomp
-#define bzero bzero_recomp
 #define gRandFloat sRandFloat
 
 #include "PR/ultratypes.h"

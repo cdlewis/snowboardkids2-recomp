@@ -4,6 +4,14 @@ extern void recomp_load_overlays(u32 rom, void* ram, u32 size);
 
 extern OSMesgQueue gPiDmaMsgQueue;
 
+static void clearMemory(void* start, u32 size) {
+    u8* bytes = start;
+
+    for (u32 i = 0; i < size; i++) {
+        bytes[i] = 0;
+    }
+}
+
 RECOMP_PATCH void dmaLoadAndInvalidate(void* romStart, void* romEnd, void* ramStart, void* icacheStart, void* icacheEnd,
                                        void* dcacheStart, void* dcacheEnd, void* bssStart, void* bssEnd) {
     OSIoMesg dmaMessage;
@@ -15,7 +23,7 @@ RECOMP_PATCH void dmaLoadAndInvalidate(void* romStart, void* romEnd, void* ramSt
 
     // Zero out BSS or other region if requested
     if (bssEnd != bssStart) {
-        bzero(bssStart, bssEnd - bssStart);
+        clearMemory(bssStart, bssEnd - bssStart);
     }
 
     // @recomp Load the overlay in the recomp runtime.

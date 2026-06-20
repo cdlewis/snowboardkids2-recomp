@@ -1,10 +1,5 @@
 #include "ovl_patches.hpp"
 #include "../../RecompiledPatches/patches_bin.h"
-#include "../../RecompiledFuncs/funcs.h"
-
-extern "C" void bzero_recomp(uint8_t* rdram, recomp_context* ctx) {
-    static_5_8007B930(rdram, ctx);
-}
 
 #include "../../RecompiledPatches/recomp_overlays.inl"
 

@@ -16,6 +16,8 @@ ignored = [
     "cutsceneCmdHelper",
     "renderCutsceneSlotMenu",
     "renderCutsceneTimelineView",
+    # Duplicate alias of viMgrMain at the same VRAM; viMgrMain is reimplemented by the runtime.
+    "viMgrMain_0007EC10",
     "gspS2DEX_fifoTextStart",
     "aspMainTextStart"
 ]
