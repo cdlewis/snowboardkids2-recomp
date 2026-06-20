@@ -16,25 +16,12 @@ ignored = [
     "cutsceneCmdHelper",
     "renderCutsceneSlotMenu",
     "renderCutsceneTimelineView",
-    # Duplicate alias of viMgrMain at the same VRAM; viMgrMain is reimplemented by the runtime.
     "viMgrMain_0007EC10",
     "gspS2DEX_fifoTextStart",
     "aspMainTextStart"
 ]
 
 renamed = [
-#    "__lround",
-#    "__lroundf",
-#    "__ceil",
-#    "__ceilf",
-#    "__floor",
-#    "__floorf",
-#    "__trunc",
-#    "__truncf",
-#    "__round",
-#    "__roundf",
-#    "__nearbyint",
-#    "__nearbyintf"
 ]
 
 # nuking osInvalDCache & osInvalICache calls so they don't get recompiled since they're absent from the symbols file

@@ -1,5 +1,4 @@
-#ifndef __PATCHES_H__
-#define __PATCHES_H__
+#pragma once
 
 #define RECOMP_EXPORT __attribute__((section(".recomp_export")))
 #define RECOMP_PATCH __attribute__((section(".recomp_patch")))
@@ -155,12 +154,6 @@ void* memcpy2(void* dest, const void* src, size_t n);
         "\t.popsection\n");                  \
     extern u8 identifier[]
 
-// void View_ApplyInterpolate(View* view, s32 mask, bool reset_interpolation_state);
-
-// void set_camera_skipped(bool skipped);
 void clear_camera_skipped();
-// bool camera_was_skipped();
 
 void recomp_crash(const char* err);
-
-#endif
