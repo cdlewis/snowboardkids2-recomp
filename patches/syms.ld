@@ -70,3 +70,4 @@ osEepromLongRead_recomp = 0x8F0000F4;
 osEepromLongWrite_recomp = 0x8F0000F8;
 osAiGetLength_recomp = 0x8F0000FC;
 osAiSetNextBuffer_recomp = 0x8F000100;
+osVirtualToPhysical_recomp = 0x8F000104;

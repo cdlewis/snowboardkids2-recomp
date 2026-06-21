@@ -33,6 +33,7 @@
 #define osPiStartDma osPiStartDma_recomp
 #define osAiGetLength osAiGetLength_recomp
 #define osAiSetNextBuffer osAiSetNextBuffer_recomp
+#define osVirtualToPhysical osVirtualToPhysical_recomp
 #define gRandFloat sRandFloat
 
 #include "PR/ultratypes.h"
