@@ -63,6 +63,17 @@ RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStr
     if (prevBuffer != 0) {
         s16 frameSizeInSamples = prevBuffer->frameSizeInSamples;
 
+#ifdef RECOMP_LINUX_AUDIO_FIRST_BUFFER_GUARD
+        // @recomp The first ROM launch on Linux can pass stale previous-buffer state. Real audio
+        // buffers are initialized with unk54 pointing back to themselves, so use that before queueing.
+        // TODO(#42): root-cause why stale state can reach this path.
+        if ((prevBuffer->unk54 == prevBuffer) &&
+            (prevBuffer->outputBuffer != NULL) &&
+            (frameSizeInSamples > 0) &&
+            ((s32)frameSizeInSamples <= (s32)(gAudioBufferSize + gAudioBufferPadding + 0x10))) {
+            osAiSetNextBuffer(prevBuffer->outputBuffer, frameSizeInSamples * 4);
+        }
+#else
         // @recomp The first ROM launch on Linux can report an invalid previous-buffer size; clamp it so
         // osAiSetNextBuffer still starts AI without asking the runtime to queue a huge sample count.
         // TODO(#42): root-cause what is actually going on here.
@@ -72,6 +83,7 @@ RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStr
         }
 
         osAiSetNextBuffer(prevBuffer->outputBuffer, frameSizeInSamples * 4);
+#endif
     }
 
     currentSamplesInBuffer = osAiGetLength() / 4;
