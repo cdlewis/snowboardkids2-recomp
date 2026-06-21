@@ -47,8 +47,6 @@ extern long long int aspMainDataStart[];
 
 void processAudioNodeList(void);
 
-#ifdef RECOMP_LINUX_AUDIO_FIRST_BUFFER_GUARD
-
 RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStruct *prevBuffer) {
     s32 commandLength;
     s16 *outputBuffer;
@@ -65,7 +63,7 @@ RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStr
     if (prevBuffer != 0) {
         s16 frameSizeInSamples = prevBuffer->frameSizeInSamples;
 
-        // @recomp The first ROM launch on Linux can pass stale previous-buffer state. Real audio
+        // @recomp Starting the game before the launcher has settled can pass stale previous-buffer state. Real audio
         // buffers are initialized with unk54 pointing back to themselves, so use that before queueing.
         // TODO(#42): root-cause why stale state can reach this path.
         if ((prevBuffer->unk54 == prevBuffer) &&
@@ -119,5 +117,3 @@ RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStr
 
     return 1;
 }
-
-#endif
