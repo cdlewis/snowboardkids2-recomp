@@ -133,6 +133,12 @@ if(NOT DEFINED PATCHES_LD)
     endif()
 endif()
 
+if(WIN32)
+    set(PATCH_RECOMP_ATTEMPTS 3)
+else()
+    set(PATCH_RECOMP_ATTEMPTS 1)
+endif()
+
 add_custom_target(PatchesBin
     COMMAND ${CMAKE_COMMAND} -E env CC=${PATCHES_C_COMPILER} LD=${PATCHES_LD} make
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/patches
@@ -152,7 +158,13 @@ add_custom_command(OUTPUT
                        ${CMAKE_SOURCE_DIR}/RecompiledPatches/recomp_overlays.inl
                        ${CMAKE_SOURCE_DIR}/RecompiledPatches/funcs.h
                    # TODO: Look into why modifying patches requires two builds to take
-                   COMMAND ./N64Recomp patches.toml
+                   COMMAND ${CMAKE_COMMAND}
+                           -DRUN_EXECUTABLE=./N64Recomp
+                           -DRUN_ARGUMENTS=patches.toml
+                           -DRUN_ATTEMPTS=${PATCH_RECOMP_ATTEMPTS}
+                           -DRUN_DELAY_SECONDS=2
+                           -DRUN_WORKING_DIRECTORY=${CMAKE_SOURCE_DIR}
+                           -P ${CMAKE_SOURCE_DIR}/cmake/RunWithRetries.cmake
                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                    DEPENDS ${CMAKE_SOURCE_DIR}/patches/patches.elf
 )
