@@ -44,6 +44,8 @@ A GPU supporting Direct3D 12.0 (Shader Model 6), Vulkan 1.2, or Metal Argument B
 
 On x86-64 PCs, a CPU supporting the SSE4.1 instruction set is also required (Intel Core 2 Penryn series or AMD Bulldozer and newer). ARM64 builds will work on any ARM64 CPU.
 
+Windows users should have the [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170) installed.
+
 If you have issues with crashes on startup, make sure your graphics drivers are fully up to date.
 
 ## Features
