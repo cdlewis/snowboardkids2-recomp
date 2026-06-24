@@ -4,6 +4,8 @@
 
 ### [Download the latest release here](https://github.com/cdlewis/snowboardkids2-recomp/releases/latest).
 
+You can read more about the Snowboard Kids 2 recompilation process [here](https://blog.chrislewis.au/snowboard-kids-2-is-recompiled/).
+
 Join the [N64: Recompiled Community Discord](https://discord.gg/AWZThJ4dPf) to discuss this and other N64: Recompiled projects!
 
 [![Discord Invitation](https://discordapp.com/api/guilds/1374083583739826328/widget.png?style=banner2 "N64 Recomp")](https://discord.gg/AWZThJ4dPf)
@@ -18,20 +20,13 @@ You're also welcome to join the [Snowboard Kids Community Discord](https://disco
 
 - [System Requirements](#system-requirements)
 - [Features](#features)
-  - [Plug and Play](#plug-and-play)
-  - [Fully Intact N64 Effects](#fully-intact-n64-effects)
-  - [Easy-to-Use Menus](#easy-to-use-menus)
-  - [High Framerate Support](#high-framerate-support)
-  - [Widescreen and Ultrawide Support](#widescreen-and-ultrawide-support)
-  - [Additional Control Options](#additional-control-options)
-  - [Low Input Lag](#low-input-lag)
-  - [Instant Load Times](#instant-load-times)
-  - [Linux and Steam Deck Support](#linux-and-steam-deck-support)
 - [Planned Features](#planned-features)
 - [FAQ](#faq)
 - [Known Issues](#known-issues)
 - [Building](#building)
+- [Articles](#articles)
 - [Libraries Used and Projects Referenced](#libraries-used-and-projects-referenced)
+- [Credits](#credits)
 
 ## System Requirements
 
@@ -146,7 +141,17 @@ Building is not required to play this project, as prebuilt binaries (which do no
 - [Gamepad Motion Helpers](https://github.com/JibbSmart/GamepadMotionHelpers) for sensor fusion and calibration algorithms to implement gyro aiming
 - [Ares emulator](https://github.com/ares-emulator/ares) for RSP vector instruction reference implementations, used in RSP recompilation
 
-# Special Thanks:
+## Articles
+
+If you're interested in learning more about decompilation and Snowboard Kids 2, the following articles might be of interest:
+* [Snowboard Kids 2 is Recompiled](https://blog.chrislewis.au/snowboard-kids-2-is-recompiled/)
+* [Snowboard Kids 2 is 100% Decompiled](http://blog.chrislewis.au/snowboard-kids-2-is-100-decompiled/)
+* [The Long Tail of LLM-Assisted Decompilation](https://blog.chrislewis.au/the-long-tail-of-llm-assisted-decompilation/)
+* [Finding Jingle Town: Debugging an N64 Game without Symbols](https://blog.chrislewis.au/finding-jingle-town-debugging-an-n64-game-without-symbols/)
+* [The Unexpected Effectiveness of One-Shot Decompilation with Claude](https://blog.chrislewis.au/the-unexpected-effectiveness-of-one-shot-decompilation-with-claude/)
+* [Using Coding Agents to Decompile Nintendo 64 Games](https://blog.chrislewis.au/using-coding-agents-to-decompile-nintendo-64-games/)
+
+## Credits
 
 - [sonicdcer](https://github.com/sonicdcer): for doing a lot of the heavy lifting, bootstrapping this project, answering questions, and providing ongoing invaluable contributions.
 - Moz for designing an amazing launcher background.
