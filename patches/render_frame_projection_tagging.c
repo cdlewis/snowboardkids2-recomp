@@ -16,6 +16,7 @@
 
 s32 cur_perspective_projection_transform_id = 0;
 s32 skip_perspective_interpolation = FALSE;
+s32 cur_modelview_race_viewport_index = -1;
 
 extern void *gDramStack;
 extern void *gOutputBuffer;
@@ -29,6 +30,19 @@ extern void *gLookAtPtr;
 void resetProjectionIds(void) {
     cur_perspective_projection_transform_id = 0;
     skip_perspective_interpolation = FALSE;
+    cur_modelview_race_viewport_index = -1;
+}
+
+static s32 getRacePlayerViewportIndex(ViewportNode *node) {
+    s32 transformId;
+
+    transformId = getViewportProjectionTransformId(node);
+    if ((transformId >= PROJECTION_RACE_PLAYER_TRANSFORM_ID_START) &&
+        (transformId < PROJECTION_RACE_PLAYER_TRANSFORM_ID_START + 4)) {
+        return transformId - PROJECTION_RACE_PLAYER_TRANSFORM_ID_START;
+    }
+
+    return -1;
 }
 
 static s32 cameraRotationExceedsThreshold(s16 prevRot[3][3], s16 curRot[3][3]) {
@@ -117,6 +131,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
     u32 storedViScanline;
     s32 temp;
     s32 pipeSyncW;
+    s32 prevRaceViewportIndex;
     u8 padding[0x20];
 
     for (node = &gRootViewport; node != NULL; node = node->list3_next) {
@@ -304,6 +319,8 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                 if (node->viewportFlags == 0) {
                     gDPSetColorDither(gDisplayListAllocPtr++, G_CD_DISABLE);
 
+                    prevRaceViewportIndex = cur_modelview_race_viewport_index;
+                    cur_modelview_race_viewport_index = getRacePlayerViewportIndex(node);
                     for (callbackEntry = (CallbackEntry *)node->pool; callbackEntry != NULL;
                          callbackEntry = callbackEntry->next) {
                         if (callbackEntry->callback == NULL) {
@@ -318,6 +335,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         ((void (*)(void *))callbackEntry->callback)(callbackEntry->callbackData);
                         gCallbackCounter++;
                     }
+                    cur_modelview_race_viewport_index = prevRaceViewportIndex;
 
                     if (node->prevFadeValue != 0) {
                         gSPDisplayList(gDisplayListAllocPtr++, gFadeOverlayDisplayList);
@@ -443,6 +461,8 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         goto bail;
                     }
 
+                    prevRaceViewportIndex = cur_modelview_race_viewport_index;
+                    cur_modelview_race_viewport_index = getRacePlayerViewportIndex(node);
                     for (callbackEntry = (CallbackEntry *)node->pool; callbackEntry != NULL;
                          callbackEntry = callbackEntry->next) {
                         if (callbackEntry->callback == NULL) {
@@ -457,6 +477,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         ((void (*)(void *))callbackEntry->callback)(callbackEntry->callbackData);
                         gCallbackCounter++;
                     }
+                    cur_modelview_race_viewport_index = prevRaceViewportIndex;
 
                 bail:
                     if (node->prevFadeValue != 0) {

@@ -4,7 +4,8 @@ typedef struct DisplayListObjectExtension {
     u32 matrixGroupId;
     s32 skipInterpolation;
     s32 remainingInterpolationSkipPasses;
-    u32 reserved;
+    s32 hasRacePlayerBoneOwner;
+    u8 racePlayerIndex;
 } DisplayListObjectExtension;
 
 DisplayListObjectExtension* getDisplayListObjectExtension(DisplayListObject* object);
