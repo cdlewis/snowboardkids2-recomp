@@ -27,7 +27,7 @@ static float pillarboxIdentityMatrix[4][4] = {
     { 0.0f, 0.0f, 0.0f, 1.0f },
 };
 
-static float cutscene_pillarbox_width(void) {
+static float cutscenePillarboxWidth(void) {
     float curAspect = recomp_get_target_aspect_ratio(ORIGINAL_ASPECT);
     float targetWidth;
     float wideWidth;
@@ -81,7 +81,7 @@ static void setTranslateMatrix(Mtx* mtx, float x, float y, float z) {
 }
 
 static void drawCutscenePillarbox(void* unused) {
-    float pillarWidth = cutscene_pillarbox_width();
+    float pillarWidth = cutscenePillarboxWidth();
     float curAspect = recomp_get_target_aspect_ratio(ORIGINAL_ASPECT);
     float wideWidth = CUTSCENE_SCREEN_HEIGHT * curAspect;
     float(*projection)[4];

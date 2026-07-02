@@ -27,7 +27,7 @@ extern void renderCameraRelativeDisplayList(DisplayListObject* displayListObj);
 
 static s32 sWendysHouseBoundsTouchEnabled = FALSE;
 
-static void touch_wendys_house_bottom_bounds(void* unused) {
+static void touchWendysHouseBottomBounds(void* unused) {
     Gfx* gfx = gDisplayListAllocPtr;
 
     gDPPipeSync(gfx++);
@@ -57,6 +57,6 @@ RECOMP_PATCH void enqueueCameraRelativeDisplayList(s32 viewportSlot, DisplayList
     enqueueCallbackBySlotIndex(viewportSlot, 0, &renderCameraRelativeDisplayList, arg1);
 
     if (sWendysHouseBoundsTouchEnabled && (viewportSlot >= 4) && (viewportSlot < 8)) {
-        enqueueCallbackBySlotIndex(viewportSlot, 0, &touch_wendys_house_bottom_bounds, NULL);
+        enqueueCallbackBySlotIndex(viewportSlot, 0, &touchWendysHouseBottomBounds, NULL);
     }
 }

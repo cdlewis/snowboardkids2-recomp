@@ -16,7 +16,6 @@ ignored = [
     "cutsceneCmdHelper",
     "renderCutsceneSlotMenu",
     "renderCutsceneTimelineView",
-    "viMgrMain_0007EC10",
     "gspS2DEX_fifoTextStart",
     "aspMainTextStart"
 ]

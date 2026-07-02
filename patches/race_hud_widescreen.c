@@ -27,7 +27,7 @@ extern TextClipAndOffsetData gTextClipAndOffsetData;
 
 #define SECONDS_TO_TICKS(s) ((s) * 30)
 
-static s16 hud_widescreen_margin(void) {
+static s16 hudWidescreenMargin(void) {
     float aspect = recomp_get_target_aspect_ratio(ORIGINAL_ASPECT);
     float extraWidth;
 
@@ -43,7 +43,7 @@ static s16 hud_widescreen_margin(void) {
     return (s16) (extraWidth * 0.5f);
 }
 
-static void set_hud_widescreen_align(u16 leftOrigin, u16 rightOrigin, s16 xOffset, s16 yOffset) {
+static void setHudWidescreenAlign(u16 leftOrigin, u16 rightOrigin, s16 xOffset, s16 yOffset) {
     Gfx* gfx = gDisplayListAllocPtr;
     
     gEXSetScissorAlign(gfx++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, -((s32) HUD_SCREEN_WIDTH), 0, 0, 0,
@@ -53,7 +53,7 @@ static void set_hud_widescreen_align(u16 leftOrigin, u16 rightOrigin, s16 xOffse
     gDisplayListAllocPtr = gfx;
 }
 
-static void reset_hud_widescreen_align(void) {
+static void resetHudWidescreenAlign(void) {
     Gfx* gfx = gDisplayListAllocPtr;
 
     gEXSetRectAlign(gfx++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0);
@@ -63,7 +63,7 @@ static void reset_hud_widescreen_align(void) {
     gDisplayListAllocPtr = gfx;
 }
 
-static SpriteRenderArg* copy_sprite_arg_with_x_offset(SpriteRenderArg* src, s16 xOffset) {
+static SpriteRenderArg* copySpriteArgWithXOffset(SpriteRenderArg* src, s16 xOffset) {
     SpriteRenderArg* dst = (SpriteRenderArg*) advanceLinearAlloc(sizeof(SpriteRenderArg));
 
     if (dst != NULL) {
@@ -75,76 +75,76 @@ static SpriteRenderArg* copy_sprite_arg_with_x_offset(SpriteRenderArg* src, s16 
 }
 
 static void set_lap_counter_widescreen_align(void) {
-    s16 margin = hud_widescreen_margin();
+    s16 margin = hudWidescreenMargin();
 
     if (margin <= 0) {
         return;
     }
 
-    set_hud_widescreen_align(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, -HUD_CORNER_ALIGN_OFFSET);
+    setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, -HUD_CORNER_ALIGN_OFFSET);
 }
 
 static void setBottomLeftHudAlign(void* unused) {
-    if (hud_widescreen_margin() <= 0) {
+    if (hudWidescreenMargin() <= 0) {
         return;
     }
 
-    set_hud_widescreen_align(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, HUD_CORNER_ALIGN_OFFSET);
+    setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, HUD_CORNER_ALIGN_OFFSET);
 }
 
 static void setTopLeftHudAlign(void* unused) {
-    if (hud_widescreen_margin() <= 0) {
+    if (hudWidescreenMargin() <= 0) {
         return;
     }
 
-    set_hud_widescreen_align(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, -HUD_CORNER_ALIGN_OFFSET);
+    setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, -HUD_CORNER_ALIGN_OFFSET);
 }
 
 static void setBottomRightHudAlign(void* unused) {
-    if (hud_widescreen_margin() <= 0) {
+    if (hudWidescreenMargin() <= 0) {
         return;
     }
 
-    set_hud_widescreen_align(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT, -((s16) HUD_SCREEN_WIDTH - HUD_CORNER_ALIGN_OFFSET),
+    setHudWidescreenAlign(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT, -((s16) HUD_SCREEN_WIDTH - HUD_CORNER_ALIGN_OFFSET),
                              HUD_CORNER_ALIGN_OFFSET);
 }
 
 static void setTopRightHudAlign(void* unused) {
-    if (hud_widescreen_margin() <= 0) {
+    if (hudWidescreenMargin() <= 0) {
         return;
     }
 
-    set_hud_widescreen_align(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT, -((s16) HUD_SCREEN_WIDTH - HUD_CORNER_ALIGN_OFFSET),
+    setHudWidescreenAlign(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT, -((s16) HUD_SCREEN_WIDTH - HUD_CORNER_ALIGN_OFFSET),
                              -HUD_CORNER_ALIGN_OFFSET);
 }
 
 static void setShotCrossTopRightHudAlign(void* unused) {
-    if (hud_widescreen_margin() <= 0) {
+    if (hudWidescreenMargin() <= 0) {
         return;
     }
 
-    set_hud_widescreen_align(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT,
+    setHudWidescreenAlign(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT,
                              -((s16) HUD_SCREEN_WIDTH - HUD_CORNER_ALIGN_OFFSET) - 24, -HUD_CORNER_ALIGN_OFFSET);
 }
 
 static void resetCornerHudAlign(void* unused) {
-    if (hud_widescreen_margin() <= 0) {
+    if (hudWidescreenMargin() <= 0) {
         return;
     }
 
-    reset_hud_widescreen_align();
+    resetHudWidescreenAlign();
 }
 
 static void renderLapCounterSpriteFrame(void* arg) {
     set_lap_counter_widescreen_align();
     renderSpriteFrame(arg);
-    reset_hud_widescreen_align();
+    resetHudWidescreenAlign();
 }
 
 static void renderLapCounterSpriteFrameWithPalette(void* arg) {
     set_lap_counter_widescreen_align();
     renderSpriteFrameWithPalette(arg);
-    reset_hud_widescreen_align();
+    resetHudWidescreenAlign();
 }
 
 // @recomp wrap calls to renderSpriteFrame(WithPalette) to adjust for widescreen
@@ -340,7 +340,7 @@ RECOMP_PATCH void updateShotCrossItemCountDisplay(CrossHudCounterDisplayState* s
         drawNumericString(buffer, countX, state->sprite.y + 0x10, 0xFF, state->digitAsset, 8, 0);
 
         // @recomp tune only the icon relative to the hit count.
-        iconArg = copy_sprite_arg_with_x_offset(&state->sprite, 8);
+        iconArg = copySpriteArgWithXOffset(&state->sprite, 8);
         enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, iconArg);
         enqueueCallbackBySlotIndex(8, 0, setShotCrossTopRightHudAlign, NULL);
     } else {

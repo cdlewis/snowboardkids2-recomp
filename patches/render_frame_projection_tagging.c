@@ -26,12 +26,12 @@ extern Gfx *gDisplayListAllocPtr;
 extern s16 gTextureEnabled;
 extern void *gLookAtPtr;
 
-void reset_projection_ids(void) {
+void resetProjectionIds(void) {
     cur_perspective_projection_transform_id = 0;
     skip_perspective_interpolation = FALSE;
 }
 
-static s32 camera_rotation_exceeds_threshold(s16 prevRot[3][3], s16 curRot[3][3]) {
+static s32 cameraRotationExceedsThreshold(s16 prevRot[3][3], s16 curRot[3][3]) {
     s64 dotSum = 0;
     s64 traceThreshold;
     s32 cosThreshold = approximateCos(CAMERA_ROT_CUT_ANGLE);
@@ -48,7 +48,7 @@ static s32 camera_rotation_exceeds_threshold(s16 prevRot[3][3], s16 curRot[3][3]
     return dotSum < traceThreshold;
 }
 
-static s32 update_camera_skip_state(ViewportNode *node) {
+static s32 updateCameraSkipState(ViewportNode *node) {
     ViewportCameraSkipState *cameraSkipState = getViewportCameraSkipState(node);
     s32 row;
     s32 col;
@@ -71,7 +71,7 @@ static s32 update_camera_skip_state(ViewportNode *node) {
         return TRUE;
     }
 
-    rotationCut = camera_rotation_exceeds_threshold(cameraSkipState->prevRot, node->viewTransform.m);
+    rotationCut = cameraRotationExceedsThreshold(cameraSkipState->prevRot, node->viewTransform.m);
     for (row = 0; row < 3; row++) {
         for (col = 0; col < 3; col++) {
             cameraSkipState->prevRot[row][col] = node->viewTransform.m[row][col];
@@ -82,11 +82,11 @@ static s32 update_camera_skip_state(ViewportNode *node) {
     return cameraSkipState->skipInterpolation;
 }
 
-static void tag_perspective_projection(ViewportNode *node) {
+static void tagPerspectiveProjection(ViewportNode *node) {
     s32 skipInterpolation;
 
     if (cur_perspective_projection_transform_id != 0) {
-        skipInterpolation = update_camera_skip_state(node);
+        skipInterpolation = updateCameraSkipState(node);
         if (skipInterpolation) {
             gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, cur_perspective_projection_transform_id, G_EX_NOPUSH,
                                   G_MTX_PROJECTION, G_EX_EDIT_NONE);
@@ -140,7 +140,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
         resetLinearAllocator();
 
         // @recomp reset projection metadata
-        reset_projection_ids();
+        resetProjectionIds();
 
         return;
     }
@@ -434,7 +434,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         // @recomp tag the active projection
                         s32 prevProjectionTransformId = cur_perspective_projection_transform_id;
                         cur_perspective_projection_transform_id = getViewportProjectionTransformId(node);
-                        tag_perspective_projection(node);
+                        tagPerspectiveProjection(node);
                         cur_perspective_projection_transform_id = prevProjectionTransformId;
 
                         gSPFogPosition(gDisplayListAllocPtr++, node->fogStartPermille, node->fogEndPermille);
@@ -506,5 +506,5 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
     resetLinearAllocator();
 
     // @recomp reset projection metadata
-    reset_projection_ids();
+    resetProjectionIds();
 }

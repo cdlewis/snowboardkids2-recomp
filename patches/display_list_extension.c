@@ -1,144 +1,351 @@
 #include "patches.h"
 #include "transform_ids.h"
-
+#include "system/memory_allocator.h"
 #include "ui/level_preview_3d.h"
 
 extern Gfx* gDisplayListAllocPtr;
 extern Gfx gPlayerShadowRenderSetupDl[];
+void setDisplayListObjectRacePlayerBones(DisplayListObject* object, u8 playerIndex);
 
-extern void prepareDisplayListRenderState(DisplayListObject*);
-extern void setupDisplayListMatrix(DisplayListObject*);
-extern void setupBillboardDisplayListMatrix(DisplayListObject*);
-extern void initializeMultiPartDisplayListObjects(DisplayListObject* arg0);
-extern void setupMultiPartObjectRenderState(DisplayListObject* arg0, s32 arg1);
+// Display list extension table maps DisplayListObject* to additional
+// information about the object, such as its matrix group ID and
+// interpolation settings.
+//
+// Table size of 2048 showed max probe of 2 in testing
+#define DISPLAY_LIST_EXTENSION_TABLE_SIZE 2048
+#define DISPLAY_LIST_EXTENSION_TABLE_MASK (DISPLAY_LIST_EXTENSION_TABLE_SIZE - 1)
 
-#define BOARD_SELECT_SKIP_OBJECT_SLOTS 64
+extern Node* gDMAOverlay;
 
 typedef struct {
-    DisplayListObject* object;
-    s32 remainingPasses;
-} BoardSelectSkipObject;
+    DisplayListObject* key;
+    DisplayListObjectExtension extension;
+} DisplayListObjectExtensionSlot;
 
-static BoardSelectSkipObject sBoardSelectSkipObjects[BOARD_SELECT_SKIP_OBJECT_SLOTS];
+static DisplayListObjectExtensionSlot sDisplayListObjectExtensionSlots[DISPLAY_LIST_EXTENSION_TABLE_SIZE];
 
-static s32 findBoardSelectSkipObjectIndex(DisplayListObject* object) {
-    s32 i;
+static u32 hashDisplayListObjectExtensionKey(DisplayListObject* object) {
+    // 'Golden ratio' hash function
+    return ((u32)object >> 2) * 0x9E3779B1;
+}
 
-    for (i = 0; i < BOARD_SELECT_SKIP_OBJECT_SLOTS; i++) {
-        if (sBoardSelectSkipObjects[i].object == NULL) {
-            break;
+static s32 findDisplayListObjectExtensionSlot(DisplayListObject* object, s32* firstEmpty) {
+    u32 index;
+    u32 probes;
+
+    index = hashDisplayListObjectExtensionKey(object) & DISPLAY_LIST_EXTENSION_TABLE_MASK;
+    for (probes = 0; probes < DISPLAY_LIST_EXTENSION_TABLE_SIZE; probes++) {
+        if (sDisplayListObjectExtensionSlots[index].key == object) {
+            return index;
         }
-        if (sBoardSelectSkipObjects[i].object == object) {
-            return i;
+        if (sDisplayListObjectExtensionSlots[index].key == NULL) {
+            if (firstEmpty != NULL) {
+                *firstEmpty = index;
+            }
+            return -1;
         }
+        index = (index + 1) & DISPLAY_LIST_EXTENSION_TABLE_MASK;
     }
 
+    if (firstEmpty != NULL) {
+        *firstEmpty = -1;
+    }
     return -1;
 }
 
-static void removeBoardSelectSkipObjectIndex(s32 index) {
-    s32 lastIndex = index;
-
-    while (((lastIndex + 1) < BOARD_SELECT_SKIP_OBJECT_SLOTS) && (sBoardSelectSkipObjects[lastIndex + 1].object != NULL)) {
-        lastIndex++;
-    }
-
-    sBoardSelectSkipObjects[index] = sBoardSelectSkipObjects[lastIndex];
-    sBoardSelectSkipObjects[lastIndex].object = NULL;
-    sBoardSelectSkipObjects[lastIndex].remainingPasses = 0;
+static void clearDisplayListObjectExtensionSlot(s32 index) {
+    sDisplayListObjectExtensionSlots[index].key = NULL;
+    sDisplayListObjectExtensionSlots[index].extension.matrixGroupId = 0;
+    sDisplayListObjectExtensionSlots[index].extension.skipInterpolation = FALSE;
+    sDisplayListObjectExtensionSlots[index].extension.remainingInterpolationSkipPasses = 0;
+    sDisplayListObjectExtensionSlots[index].extension.reserved = 0;
 }
 
-static s32 countBoardSelectObjectRenderPasses(DisplayListObject* object) {
-    s32 count = 0;
-
-    if ((object != NULL) && (object->displayLists != NULL)) {
-        if (object->displayLists->opaqueDisplayList != NULL) {
-            count++;
-        }
-        if (object->displayLists->transparentDisplayList != NULL) {
-            count++;
-        }
-        if (object->displayLists->overlayDisplayList != NULL) {
-            count++;
-        }
-    }
-
-    if (count == 0) {
-        count = 1;
-    }
-
-    return count;
+s32 isDisplayListObjectExtensionEmpty(DisplayListObjectExtension* extension) {
+    return (extension->matrixGroupId == 0) && !extension->skipInterpolation &&
+           (extension->remainingInterpolationSkipPasses == 0) && (extension->reserved == 0);
 }
 
-static s32 consumeBoardSelectObjectInterpolationSkip(DisplayListObject* object) {
+static void deleteDisplayListObjectExtensionSlot(s32 index) {
+    s32 hole;
+    s32 current;
+    s32 ideal;
+
+    hole = index;
+    clearDisplayListObjectExtensionSlot(hole);
+
+    current = (hole + 1) & DISPLAY_LIST_EXTENSION_TABLE_MASK;
+    while (sDisplayListObjectExtensionSlots[current].key != NULL) {
+        ideal = hashDisplayListObjectExtensionKey(sDisplayListObjectExtensionSlots[current].key) &
+                DISPLAY_LIST_EXTENSION_TABLE_MASK;
+
+        if (((current - ideal) & DISPLAY_LIST_EXTENSION_TABLE_MASK) >
+            ((hole - ideal) & DISPLAY_LIST_EXTENSION_TABLE_MASK)) {
+            sDisplayListObjectExtensionSlots[hole] = sDisplayListObjectExtensionSlots[current];
+            hole = current;
+            clearDisplayListObjectExtensionSlot(hole);
+        }
+        current = (current + 1) & DISPLAY_LIST_EXTENSION_TABLE_MASK;
+    }
+}
+
+DisplayListObjectExtension* getDisplayListObjectExtension(DisplayListObject* object) {
     s32 index;
 
-    index = findBoardSelectSkipObjectIndex(object);
-    if (index >= 0) {
-        if (sBoardSelectSkipObjects[index].remainingPasses <= 0) {
-            sBoardSelectSkipObjects[index].remainingPasses = countBoardSelectObjectRenderPasses(object);
-        }
-
-        sBoardSelectSkipObjects[index].remainingPasses--;
-        if (sBoardSelectSkipObjects[index].remainingPasses <= 0) {
-            removeBoardSelectSkipObjectIndex(index);
-        }
-        return TRUE;
+    if (object == NULL) {
+        return NULL;
     }
 
-    return FALSE;
+    index = findDisplayListObjectExtensionSlot(object, NULL);
+    if (index < 0) {
+        return NULL;
+    }
+
+    return &sDisplayListObjectExtensionSlots[index].extension;
 }
 
-void setBoardSelectObjectInterpolationSkip(void* object, s32 skip) {
+DisplayListObjectExtension* getOrCreateDisplayListObjectExtension(DisplayListObject* object) {
+    s32 index;
+    s32 firstEmpty;
+
+    if (object == NULL) {
+        return NULL;
+    }
+
+    firstEmpty = -1;
+    index = findDisplayListObjectExtensionSlot(object, &firstEmpty);
+    if (index >= 0) {
+        return &sDisplayListObjectExtensionSlots[index].extension;
+    }
+    if (firstEmpty < 0) {
+        return NULL;
+    }
+
+    sDisplayListObjectExtensionSlots[firstEmpty].key = object;
+    return &sDisplayListObjectExtensionSlots[firstEmpty].extension;
+}
+
+void deleteDisplayListObjectExtension(DisplayListObject* object) {
     s32 index;
 
     if (object == NULL) {
         return;
     }
 
-    index = findBoardSelectSkipObjectIndex((DisplayListObject*) object);
-    if (skip) {
-        if (index >= 0) {
-            sBoardSelectSkipObjects[index].remainingPasses = 0;
-            return;
-        }
-
-        for (index = 0; index < BOARD_SELECT_SKIP_OBJECT_SLOTS; index++) {
-            if (sBoardSelectSkipObjects[index].object == NULL) {
-                sBoardSelectSkipObjects[index].object = (DisplayListObject*) object;
-                sBoardSelectSkipObjects[index].remainingPasses = 0;
-                return;
-            }
-        }
-    } else if (index >= 0) {
-        removeBoardSelectSkipObjectIndex(index);
+    index = findDisplayListObjectExtensionSlot(object, NULL);
+    if (index >= 0) {
+        deleteDisplayListObjectExtensionSlot(index);
     }
 }
 
-void setBoardSelectSceneModelInterpolationSkip(void* model, s32 skip) {
-    SceneModel* sceneModel;
-    DisplayListObject* displayObjects;
-    DisplayListObject* animationDisplayObject;
+void deleteDisplayListObjectExtensionsInRange(void* start, u32 size) {
+    u32 startAddr;
+    u32 endAddr;
     s32 i;
 
-    if (model == NULL) {
+    if ((start == NULL) || (size == 0)) {
         return;
     }
 
-    sceneModel = (SceneModel*)model;
-    displayObjects = (DisplayListObject*)sceneModel->boneDisplayObjects;
-    animationDisplayObject = (DisplayListObject*)sceneModel->specialAnimationDisplayObject;
+    startAddr = (u32)start;
+    endAddr = startAddr + size;
+    i = 0;
+    while (i < DISPLAY_LIST_EXTENSION_TABLE_SIZE) {
+        if ((sDisplayListObjectExtensionSlots[i].key != NULL) &&
+            ((u32)sDisplayListObjectExtensionSlots[i].key >= startAddr) &&
+            ((u32)sDisplayListObjectExtensionSlots[i].key < endAddr)) {
+            deleteDisplayListObjectExtensionSlot(i);
+        } else {
+            i++;
+        }
+    }
+}
 
-    if (displayObjects != NULL) {
-        for (i = 0; i < SCENE_MODEL_BONE_SLOT_COUNT; i++) {
-            if ((displayObjects[i].displayLists != NULL) && (sceneModel->partDisplayFlags & (1 << i))) {
-                setBoardSelectObjectInterpolationSkip(&displayObjects[i], skip);
+static void deleteTaskNodeDisplayListObjectExtensions(Node* node) {
+    if (node != NULL) {
+        deleteDisplayListObjectExtensionsInRange(&node->payload, TASK_NODE_INLINE_PAYLOAD_SIZE);
+    }
+}
+
+RECOMP_PATCH void* decrementNodeRefCount(void* allocatedMemory) {
+    MemoryAllocatorNode* node;
+
+    if (allocatedMemory == NULL) {
+        return NULL;
+    }
+
+    node = ((MemoryAllocatorNode*)allocatedMemory) - 1;
+    if (node->refCount <= 1) {
+        deleteDisplayListObjectExtensionsInRange(allocatedMemory, node->size - sizeof(MemoryAllocatorNode));
+    }
+    node->refCount--;
+    node->cleanupTimestamp = gFrameCounter;
+
+    return NULL;
+}
+
+RECOMP_PATCH void terminateCurrentTask(void) {
+    u8 temp;
+
+    deleteTaskNodeDisplayListObjectExtensions(gDMAOverlay);
+
+    temp = gDMAOverlay->unkE - 3;
+    if (temp < 2) {
+        gDMAOverlay->unkE = 4;
+    } else {
+        gDMAOverlay->unkE = 2;
+    }
+}
+
+RECOMP_PATCH void terminateAllTasks(void) {
+    Node* i;
+
+    for (i = gActiveScheduler->activeList; i != NULL; i = i->next) {
+        deleteTaskNodeDisplayListObjectExtensions(i);
+        if ((u32)(i->unkE - 3) < 2) {
+            i->unkE = 4;
+        } else {
+            i->unkE = 2;
+        }
+    }
+}
+
+RECOMP_PATCH void terminateTasksByType(s32 taskType) {
+    Node* i;
+
+    for (i = gActiveScheduler->activeList; i != NULL; i = i->next) {
+        if (i->unkC == (u8)taskType) {
+            deleteTaskNodeDisplayListObjectExtensions(i);
+            if ((u32)(i->unkE - 3) < 2) {
+                i->unkE = 4;
+            } else {
+                i->unkE = 2;
             }
         }
     }
+}
 
-    if (animationDisplayObject != NULL) {
-        setBoardSelectObjectInterpolationSkip(animationDisplayObject, skip);
+RECOMP_PATCH void terminateTasksByTypeAndID(s32 taskType, s32 taskID) {
+    Node* i;
+
+    for (i = gActiveScheduler->activeList; i != NULL; i = i->next) {
+        if (i->unkC == (u8)taskType && i->field_D == (u8)taskID) {
+            deleteTaskNodeDisplayListObjectExtensions(i);
+            if ((u32)(i->unkE - 3) < 2) {
+                i->unkE = 4;
+            } else {
+                i->unkE = 2;
+            }
+        }
+    }
+}
+
+static void tagRacePlayerMultipartBones(DisplayListObject* displayObjects) {
+    GameState* gameState;
+    Player* player;
+    s32 i;
+
+    gameState = (GameState*)getCurrentAllocation();
+    if ((displayObjects == NULL) || (gameState == NULL) || (gameState->players == NULL) ||
+        (gameState->numPlayers > 16)) {
+        return;
+    }
+
+    for (i = 0; i < gameState->numPlayers; i++) {
+        player = &gameState->players[i];
+        if ((displayObjects == player->boneDisplayObjects) && (player->flyingAttackState == 0)) {
+            setDisplayListObjectRacePlayerBones(displayObjects, player->playerIndex);
+            return;
+        }
+    }
+}
+
+RECOMP_PATCH void enqueuePreLitMultiPartDisplayList(s32 arg0, DisplayListObject* arg1, s32 arg2) {
+    DisplayListObject* new_var;
+    s32 i;
+    s32 renderFlags;
+    DisplayLists* dlPtrs;
+    DisplayListObject* currentPart;
+    volatile u8 padding[0x1];
+
+    tagRacePlayerMultipartBones(arg1);
+
+    i = 0;
+    renderFlags = 0;
+    arg1->numParts = arg2;
+
+    if (arg2 > 0) {
+        currentPart = arg1;
+        do {
+            dlPtrs = currentPart->displayLists;
+            (new_var = currentPart)->transformMatrix = 0;
+            if (dlPtrs->opaqueDisplayList != 0) {
+                renderFlags |= 1;
+            }
+            if (dlPtrs->transparentDisplayList != 0) {
+                renderFlags |= 2;
+            }
+            if (dlPtrs->overlayDisplayList != 0) {
+                renderFlags |= 4;
+            }
+            i += 1;
+            currentPart++;
+        } while (i < arg2);
+    }
+
+    if (renderFlags & 1) {
+        enqueueCallbackBySlotIndex(arg0 & 0xFFFF, 1, &renderMultiPartOpaqueDisplayLists, arg1);
+    }
+    new_var = arg1;
+    if (renderFlags & 2) {
+        enqueueCallbackBySlotIndex((arg0 & 0xFFFF) ^ 0, 3, &renderMultiPartTransparentDisplayLists, new_var);
+    }
+    if (renderFlags & 4) {
+        enqueueCallbackBySlotIndex(arg0 & 0xFFFF, 5, &renderMultiPartOverlayDisplayLists, arg1);
+    }
+}
+
+RECOMP_PATCH void enqueueMultiPartDisplayList(s32 arg0, DisplayListObject* arg1, s32 arg2) {
+    DisplayListObject* new_var;
+    s32 i;
+    s32 renderFlags;
+    DisplayLists* dlPtrs;
+    DisplayListObject* currentPart;
+    volatile u8 padding[0x1];
+
+    tagRacePlayerMultipartBones(arg1);
+
+    i = 0;
+    renderFlags = 0;
+    arg1->numParts = arg2;
+    if (arg2 > 0) {
+        currentPart = arg1;
+        do {
+            dlPtrs = currentPart->displayLists;
+            (new_var = currentPart)->transformMatrix = 0;
+            if (dlPtrs->opaqueDisplayList != 0) {
+                renderFlags |= 1;
+            }
+            if (dlPtrs->transparentDisplayList != 0) {
+                renderFlags |= 2;
+            }
+            if (dlPtrs->overlayDisplayList != 0) {
+                renderFlags |= 4;
+            }
+            i += 1;
+            currentPart++;
+        } while (i < arg2);
+    }
+    if (renderFlags & 1) {
+        enqueueCallbackBySlotIndex(arg0 & 0xFFFF, 1, &renderMultiPartOpaqueDisplayListsWithLights, arg1);
+    }
+    new_var = arg1;
+    if (renderFlags & 2) {
+        enqueueCallbackBySlotIndex((arg0 & 0xFFFF) ^ 0, 3, &renderMultiPartTransparentDisplayListsWithLights,
+                                   new_var);
+    }
+    if (renderFlags & 4) {
+        enqueueCallbackBySlotIndex(arg0 & 0xFFFF, 5, &renderMultiPartOverlayDisplayListsWithLights, arg1);
     }
 }
 

@@ -16,7 +16,7 @@ typedef struct {
     s16 prevRot[3][3];
 } ViewportCameraSkipState;
 
-void reset_projection_ids(void);
+void resetProjectionIds(void);
 void setViewportProjectionTransformId(ViewportNode *node, s32 projectionTransformId);
 s32 getViewportProjectionTransformId(ViewportNode *node);
 ViewportCameraSkipState *getViewportCameraSkipState(ViewportNode *node);

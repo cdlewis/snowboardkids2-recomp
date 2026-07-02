@@ -27,6 +27,102 @@ static s32 isBoardSelectSkipTransition(u16 oldState, u16 val) {
     return FALSE;
 }
 
+s32 countBoardSelectObjectRenderPasses(DisplayListObject* object) {
+    s32 count = 0;
+
+    if ((object != NULL) && (object->displayLists != NULL)) {
+        if (object->displayLists->opaqueDisplayList != NULL) {
+            count++;
+        }
+        if (object->displayLists->transparentDisplayList != NULL) {
+            count++;
+        }
+        if (object->displayLists->overlayDisplayList != NULL) {
+            count++;
+        }
+    }
+
+    if (count == 0) {
+        count = 1;
+    }
+
+    return count;
+}
+
+s32 consumeBoardSelectObjectInterpolationSkip(DisplayListObject* object) {
+    DisplayListObjectExtension* extension;
+
+    extension = getDisplayListObjectExtension(object);
+    if ((extension != NULL) && extension->skipInterpolation) {
+        if (extension->remainingInterpolationSkipPasses <= 0) {
+            extension->remainingInterpolationSkipPasses = countBoardSelectObjectRenderPasses(object);
+        }
+
+        extension->remainingInterpolationSkipPasses--;
+        if (extension->remainingInterpolationSkipPasses <= 0) {
+            extension->skipInterpolation = FALSE;
+            if (isDisplayListObjectExtensionEmpty(extension)) {
+                deleteDisplayListObjectExtension(object);
+            }
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+void setBoardSelectObjectInterpolationSkip(void* object, s32 skip) {
+    DisplayListObjectExtension* extension;
+
+    if (object == NULL) {
+        return;
+    }
+
+    if (skip) {
+        extension = getOrCreateDisplayListObjectExtension((DisplayListObject*)object);
+        if (extension != NULL) {
+            extension->skipInterpolation = TRUE;
+            extension->remainingInterpolationSkipPasses = 0;
+        }
+    } else {
+        extension = getDisplayListObjectExtension((DisplayListObject*)object);
+        if (extension != NULL) {
+            extension->skipInterpolation = FALSE;
+            extension->remainingInterpolationSkipPasses = 0;
+            if (isDisplayListObjectExtensionEmpty(extension)) {
+                deleteDisplayListObjectExtension((DisplayListObject*)object);
+            }
+        }
+    }
+}
+
+void setBoardSelectSceneModelInterpolationSkip(void* model, s32 skip) {
+    SceneModel* sceneModel;
+    DisplayListObject* displayObjects;
+    DisplayListObject* animationDisplayObject;
+    s32 i;
+
+    if (model == NULL) {
+        return;
+    }
+
+    sceneModel = (SceneModel*)model;
+    displayObjects = (DisplayListObject*)sceneModel->boneDisplayObjects;
+    animationDisplayObject = (DisplayListObject*)sceneModel->specialAnimationDisplayObject;
+
+    if (displayObjects != NULL) {
+        for (i = 0; i < SCENE_MODEL_BONE_SLOT_COUNT; i++) {
+            if ((displayObjects[i].displayLists != NULL) && (sceneModel->partDisplayFlags & (1 << i))) {
+                setBoardSelectObjectInterpolationSkip(&displayObjects[i], skip);
+            }
+        }
+    }
+
+    if (animationDisplayObject != NULL) {
+        setBoardSelectObjectInterpolationSkip(animationDisplayObject, skip);
+    }
+}
+
 RECOMP_PATCH void updateCharSelectPreviewModel(CharSelectPreviewModel *arg0) {
     Transform3D sp10;
     GameState *state;
