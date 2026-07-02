@@ -39,6 +39,11 @@ static void clearViewportProjectionSlot(ViewportNode *node) {
     }
 }
 
+static s32 isRacePlayerParentProjectionTransformId(s32 projectionTransformId) {
+    return (projectionTransformId >= PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START) &&
+           (projectionTransformId < PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START + 4);
+}
+
 void setViewportProjectionTransformId(ViewportNode *node, s32 projectionTransformId) {
     u16 slot = node->callbackSlotIndex;
 
@@ -149,7 +154,8 @@ RECOMP_PATCH void initViewportNode(ViewportNode *arg0, ViewportNode *arg1, s32 a
     registerViewportProjectionSlot(arg0);
     if (arg1 == NULL && (u32)(arg2 - 4) < 4 && arg3 == 5 && arg4_byte == 1) {
         setViewportProjectionTransformId(arg0, PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START + arg2 - 4);
-    } else if (arg1 != NULL && (u32)arg2 < 4 && arg3 == 0xA && arg4_byte == 1) {
+    } else if (arg1 != NULL && (u32)arg2 < 4 && arg3 == 0xA && arg4_byte == 1 &&
+               isRacePlayerParentProjectionTransformId(getViewportProjectionTransformId(arg1))) {
         setViewportProjectionTransformId(arg0, PROJECTION_RACE_PLAYER_TRANSFORM_ID_START + arg2);
     }
 }

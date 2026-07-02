@@ -13,6 +13,13 @@
 #define CAMERA_ROT_CUT_DEGREES 20
 #define CAMERA_ROT_CUT_ANGLE DEGREES_TO_GAME_ANGLE(CAMERA_ROT_CUT_DEGREES)
 #define CAMERA_ROT_MATRIX_SCALE 0x2000
+#define VIEWPORT_ALIGN_OFFSET_UNITS 4
+#define RACE_SPLIT_VIEWPORT_GAP_LEFT_EDGE ((SCREEN_WIDTH / 2) - 1)
+#define RACE_SPLIT_VIEWPORT_GAP_RIGHT_EDGE ((SCREEN_WIDTH / 2) + 1)
+#define RACE_SPLIT_VIEWPORT_GAP_TOP_EDGE ((SCREEN_HEIGHT / 2) - 1)
+#define RACE_SPLIT_VIEWPORT_GAP_BOTTOM_EDGE ((SCREEN_HEIGHT / 2) + 1)
+#define G_EX_ORIGIN_LEFT_SPLIT_CENTER (G_EX_ORIGIN_CENTER / 2)
+#define G_EX_ORIGIN_RIGHT_SPLIT_CENTER (G_EX_ORIGIN_CENTER + (G_EX_ORIGIN_CENTER / 2))
 
 s32 cur_perspective_projection_transform_id = 0;
 s32 skip_perspective_interpolation = FALSE;
@@ -43,6 +50,80 @@ static s32 getRacePlayerViewportIndex(ViewportNode *node) {
     }
 
     return -1;
+}
+
+static s32 isRacePlayerProjectionTransformId(s32 transformId) {
+    return ((transformId >= PROJECTION_RACE_PLAYER_TRANSFORM_ID_START) &&
+            (transformId < PROJECTION_RACE_PLAYER_TRANSFORM_ID_START + 4)) ||
+           ((transformId >= PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START) &&
+            (transformId < PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START + 4));
+}
+
+static s32 isRacePlayerViewportNode(ViewportNode *node) {
+    return isRacePlayerProjectionTransformId(getViewportProjectionTransformId(node));
+}
+
+static void setDefaultViewportAlignment(void) {
+    gEXSetScissorAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0, 0, 0, SCREEN_WIDTH,
+                       SCREEN_HEIGHT);
+    gEXSetViewportAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_NONE, 0, 0);
+}
+
+static void setRacePlayerViewportAlignment(ViewportNode *node) {
+    if (!isRacePlayerViewportNode(node)) {
+        setDefaultViewportAlignment();
+        return;
+    }
+
+    if (node->clipLeft <= 0 && node->clipRight >= SCREEN_WIDTH) {
+        gEXSetScissorAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, -SCREEN_WIDTH, 0, 0, 0,
+                           SCREEN_WIDTH, SCREEN_HEIGHT);
+        gEXSetViewportAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_NONE, 0, 0);
+    } else if (node->clipRight <= (SCREEN_WIDTH / 2)) {
+        gEXSetScissorAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_CENTER, 0, 0,
+                           -(SCREEN_WIDTH / 2), 0, 0, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT);
+        gEXSetViewportAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_LEFT_SPLIT_CENTER, -SCREEN_WIDTH, 0);
+    } else if (node->clipLeft >= (SCREEN_WIDTH / 2)) {
+        gEXSetScissorAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_CENTER, G_EX_ORIGIN_RIGHT, -(SCREEN_WIDTH / 2), 0,
+                           -SCREEN_WIDTH, 0, SCREEN_WIDTH / 2, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        gEXSetViewportAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_RIGHT_SPLIT_CENTER,
+                            -SCREEN_WIDTH * (VIEWPORT_ALIGN_OFFSET_UNITS - 1), 0);
+    } else {
+        setDefaultViewportAlignment();
+    }
+}
+
+static void applyRaceSplitViewportGap(ViewportNode *node) {
+    if (!isRacePlayerViewportNode(node)) {
+        return;
+    }
+
+    if (node->clipLeft <= 0 && node->clipRight >= SCREEN_WIDTH && node->clipTop <= 0 &&
+        node->clipBottom >= SCREEN_HEIGHT) {
+        return;
+    }
+
+    if (node->clipRight <= (SCREEN_WIDTH / 2)) {
+        if (node->clipRight > RACE_SPLIT_VIEWPORT_GAP_LEFT_EDGE) {
+            node->clipRight = RACE_SPLIT_VIEWPORT_GAP_LEFT_EDGE;
+        }
+    }
+    if (node->clipLeft >= (SCREEN_WIDTH / 2)) {
+        if (node->clipLeft < RACE_SPLIT_VIEWPORT_GAP_RIGHT_EDGE) {
+            node->clipLeft = RACE_SPLIT_VIEWPORT_GAP_RIGHT_EDGE;
+        }
+    }
+
+    if (node->clipBottom <= (SCREEN_HEIGHT / 2)) {
+        if (node->clipBottom > RACE_SPLIT_VIEWPORT_GAP_TOP_EDGE) {
+            node->clipBottom = RACE_SPLIT_VIEWPORT_GAP_TOP_EDGE;
+        }
+    }
+    if (node->clipTop >= (SCREEN_HEIGHT / 2)) {
+        if (node->clipTop < RACE_SPLIT_VIEWPORT_GAP_BOTTOM_EDGE) {
+            node->clipTop = RACE_SPLIT_VIEWPORT_GAP_BOTTOM_EDGE;
+        }
+    }
 }
 
 static s32 cameraRotationExceedsThreshold(s16 prevRot[3][3], s16 curRot[3][3]) {
@@ -102,11 +183,14 @@ static void tagPerspectiveProjection(ViewportNode *node) {
     if (cur_perspective_projection_transform_id != 0) {
         skipInterpolation = updateCameraSkipState(node);
         if (skipInterpolation) {
-            gEXMatrixGroupSkipAll(gDisplayListAllocPtr++, cur_perspective_projection_transform_id, G_EX_NOPUSH,
-                                  G_MTX_PROJECTION, G_EX_EDIT_NONE);
+            gEXMatrixGroupSkipAllAspect(gDisplayListAllocPtr++, cur_perspective_projection_transform_id, G_EX_NOPUSH,
+                                         G_MTX_PROJECTION, G_EX_EDIT_NONE, G_EX_ASPECT_AUTO);
         } else {
-            gEXMatrixGroupSimpleNormal(gDisplayListAllocPtr++, cur_perspective_projection_transform_id, G_EX_NOPUSH,
-                                       G_MTX_PROJECTION, G_EX_EDIT_NONE);
+            gEXMatrixGroup(gDisplayListAllocPtr++, cur_perspective_projection_transform_id, G_EX_INTERPOLATE_SIMPLE,
+                           G_EX_NOPUSH, G_MTX_PROJECTION, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE,
+                           G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE,
+                           G_EX_COMPONENT_SKIP, G_EX_COMPONENT_INTERPOLATE, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
+                           G_EX_ASPECT_AUTO, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO);
         }
     } else {
         skip_perspective_interpolation = FALSE;
@@ -248,6 +332,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
     if (node != NULL) {
         for (node = rootNode; node != NULL; node = node->list3_next) {
             gActiveViewport = (ActiveViewportState *)node;
+            applyRaceSplitViewportGap(node);
 
             if (!isRegionAllocSpaceLow() && node->clipLeft < node->clipRight && node->clipTop < node->clipBottom) {
 
@@ -263,6 +348,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                     gDPPipeSync(gDisplayListAllocPtr++);
                 }
 
+                setRacePlayerViewportAlignment(node);
                 gDPSetScissor(gDisplayListAllocPtr++, G_SC_NON_INTERLACE, node->clipLeft, node->clipTop,
                               node->clipRight, node->clipBottom);
 
