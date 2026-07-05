@@ -246,12 +246,12 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
 
     selectGraphicsArena(gCurrentDoubleBufferIndex);
     linearAllocSelectRegion(gCurrentDoubleBufferIndex);
-    /*
-     * Multiplayer race setup calls osViExtendVStart(1). The original game also
-     * feeds that value into gFrameSkipCounter, which deliberately drops every
-     * other rendered frame in split-screen. Keep the scanline offset below for
-     * task scheduling, but do not turn it into a render-rate cap.
-     */
+    // @recomp force gFrameSkipCounter to be 0.
+    //
+    // Multiplayer race setup calls osViExtendVStart(1). The original game also
+    // feeds that value into gFrameSkipCounter, which deliberately drops every
+    // other rendered frame in split-screen. Keep the scanline offset below for
+    // task scheduling, but do not turn it into a render-rate cap.
     gFrameSkipCounter = 0;
     gFrameBufferCounters[gCurrentDoubleBufferIndex] = gFrameCounter;
     updateViewportBounds();
