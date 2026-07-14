@@ -2,23 +2,22 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${BUILD_DIR:-build}"
+BUILD_DIR="${BUILD_DIR:-build-cmake}"
 APP_NAME="${APP_NAME:-SnowboardKids2Recompiled.app}"
 APP_DIR="$ROOT_DIR/$BUILD_DIR/$APP_NAME"
 ASSETS_SRC="$ROOT_DIR/assets"
 ASSETS_DST="$APP_DIR/Contents/Resources/assets"
-SCSS_DIR="$ASSETS_SRC/scss"
-RCSS_FILE="$ASSETS_SRC/recomp.rcss"
-BUILD_SCSS=0
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") [--scss]
+Usage: $(basename "$0") [--build-dir DIR]
 
-Sync non-C++ launcher assets into the existing macOS app bundle.
+Sync non-C++ UI assets into the existing macOS app bundle.
 
 Options:
-  --scss    Rebuild assets/recomp.rcss from assets/scss before syncing.
+  --build-dir DIR
+            Build directory containing $APP_NAME.
+            Defaults to BUILD_DIR, or build-cmake when BUILD_DIR is unset.
   -h, --help
             Show this help.
 EOF
@@ -26,9 +25,16 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --scss)
-            BUILD_SCSS=1
-            shift
+        --build-dir)
+            if [[ $# -lt 2 ]]; then
+                echo "error: --build-dir requires a directory" >&2
+                usage >&2
+                exit 1
+            fi
+            BUILD_DIR="$2"
+            APP_DIR="$ROOT_DIR/$BUILD_DIR/$APP_NAME"
+            ASSETS_DST="$APP_DIR/Contents/Resources/assets"
+            shift 2
             ;;
         -h|--help)
             usage
@@ -56,49 +62,13 @@ require_dir() {
     fi
 }
 
-scss_is_newer_than_rcss() {
-    [[ ! -f "$RCSS_FILE" ]] && return 0
-    find "$SCSS_DIR" -type f -name '*.scss' -newer "$RCSS_FILE" -print -quit | grep -q .
-}
-
-has_dart_sass() {
-    command -v sass >/dev/null 2>&1 && ! sass --version 2>/dev/null | grep -qi 'ruby sass'
-}
-
-build_rcss() {
-    if [[ "$BUILD_SCSS" -eq 0 ]]; then
-        return
-    fi
-
-    if [[ ! -d "$SCSS_DIR" ]]; then
-        return
-    fi
-
-    if [[ -x "$SCSS_DIR/node_modules/.bin/sass" ]]; then
-        echo "==> Building assets/recomp.rcss"
-        (
-            cd "$SCSS_DIR"
-            ./node_modules/.bin/sass --no-source-map --no-charset --style=compressed main.scss ../recomp.rcss
-        )
-    elif has_dart_sass; then
-        echo "==> Building assets/recomp.rcss"
-        sass --no-source-map --no-charset --style=compressed "$SCSS_DIR/main.scss" "$RCSS_FILE"
-    elif scss_is_newer_than_rcss; then
-        echo "error: SCSS changed, but Dart Sass is not available." >&2
-        echo "       Run 'cd assets/scss && npm install', or install sass globally." >&2
-        exit 1
-    else
-        echo "==> Dart Sass not available; assets/recomp.rcss is already current enough"
-    fi
-}
-
 sync_assets() {
     require_dir "$APP_DIR"
     mkdir -p "$ASSETS_DST"
 
     if command -v rsync >/dev/null 2>&1; then
         echo "==> Syncing assets into $APP_NAME"
-        rsync -a --delete --exclude '/scss/' "$ASSETS_SRC/" "$ASSETS_DST/"
+        rsync -a --delete --exclude='.DS_Store' "$ASSETS_SRC/" "$ASSETS_DST/"
     else
         require_tool cmake
         temp_assets="$(mktemp -d)"
@@ -106,12 +76,12 @@ sync_assets() {
 
         echo "==> Copying assets into $APP_NAME"
         cmake -E copy_directory "$ASSETS_SRC" "$temp_assets"
-        cmake -E remove_directory "$temp_assets/scss"
+        cmake -E rm -f "$temp_assets/.DS_Store" "$temp_assets/icons/.DS_Store"
+        cmake -E remove_directory "$ASSETS_DST"
         cmake -E copy_directory "$temp_assets" "$ASSETS_DST"
     fi
 }
 
-build_rcss
 sync_assets
 
-echo "==> Launcher assets refreshed"
+echo "==> UI assets refreshed"

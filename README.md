@@ -134,8 +134,8 @@ Building is not required to play this project, as prebuilt binaries (which do no
 
 - [Snowboard Kids 2 Decompilation](https://github.com/cdlewis/snowboardkids2-decomp) for headers and some function definitions, used for making patches or some enhancements
 - [RT64](https://github.com/rt64/rt64) for the project's rendering engine
-- [RmlUi](https://github.com/mikke89/RmlUi) for building the menus and launcher
-- [lunasvg](https://github.com/sammycage/lunasvg) for SVG rendering, used by RmlUi
+- [RecompFrontend](https://github.com/cdlewis/RecompFrontend) for the menus, launcher, and input configuration
+- [RmlUi](https://github.com/mikke89/RmlUi) for the UI framework used by RecompFrontend
 - [FreeType](https://freetype.org/) for font rendering, used by RmlUi
 - [moodycamel::ConcurrentQueue](https://github.com/cameron314/concurrentqueue) for semaphores and fast, lock-free MPMC queues
 - [Gamepad Motion Helpers](https://github.com/JibbSmart/GamepadMotionHelpers) for sensor fusion and calibration algorithms to implement gyro aiming

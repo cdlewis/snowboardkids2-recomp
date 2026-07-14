@@ -123,7 +123,6 @@ jobs:
       - name: Prepare Archive
         run: |
           mv cmake-build/SnowboardKids2Recompiled SnowboardKids2Recompiled
-          rm -rf assets/scss
           tar -czf SnowboardKids2Recompiled.tar.gz SnowboardKids2Recompiled assets/ recompcontrollerdb.txt
 
       - name: Archive SnowboardKids2Recomp
@@ -303,7 +302,6 @@ jobs:
       - name: Prepare Archive
         run: |
           mv cmake-build/SnowboardKids2Recompiled SnowboardKids2Recompiled
-          rm -rf assets/scss
           tar -czf SnowboardKids2Recompiled.tar.gz SnowboardKids2Recompiled assets/ recompcontrollerdb.txt
 
       - name: Archive SnowboardKids2Recomp
@@ -439,7 +437,6 @@ jobs:
           Move-Item -Path "cmake-build/dxil.dll" -Destination "dxil.dll"
           Move-Item -Path "cmake-build/SDL2.dll" -Destination "SDL2.dll"
           Move-Item -Path "cmake-build/SnowboardKids2Recompiled.pdb" -Destination "SnowboardKids2Recompiled.pdb"
-          Remove-Item -Path "assets/scss" -Recurse -Force
 
       - name: Archive SnowboardKids2Recomp
         uses: actions/upload-artifact@v4

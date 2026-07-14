@@ -1,10 +1,9 @@
 #include <cstdio>
 #include <cassert>
-#include <unordered_map>
+#include <cstring>
 #include <vector>
 #include <array>
 #include <filesystem>
-#include <numeric>
 #include <stdexcept>
 #include <cinttypes>
 
@@ -27,21 +26,27 @@
 #undef Always
 #endif
 
-#include "recomp_ui.h"
-#include "recomp_input.h"
 #include "zelda_config.h"
 #include "zelda_sound.h"
-#include "zelda_render.h"
 #include "zelda_support.h"
 #include "recomp_api.h"
 #include "recomp_data.h"
 #include "ovl_patches.hpp"
+#include "recompinput/input_events.h"
+#include "recompinput/players.h"
+#include "recompinput/profiles.h"
+#include "recompui/program_config.h"
+#include "recompui/renderer.h"
+#include "recompui/recompui.h"
+#include "util/file.h"
 #include "librecomp/game.hpp"
 #include "librecomp/mods.hpp"
 #include "librecomp/helpers.hpp"
 
 #include "mods/snowboardkids2_mod_template.h"
 #include "mods/snowboardkids2_time_trial.h"
+#include "sk2_launcher.h"
+#include "sk2_theme.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -53,6 +58,7 @@
 #include "../../lib/rt64/src/contrib/stb/stb_image.h"
 
 const std::string version_string = "1.0.5";
+constexpr int sk2_max_players = 4;
 
 template <typename... Ts> void exit_error(const char* str, Ts... args) {
     // TODO pop up an error
@@ -70,7 +76,7 @@ ultramodern::gfx_callbacks_t::gfx_data_t create_gfx() {
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) > 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0) {
         exit_error("Failed to initialize SDL2: %s\n", SDL_GetError());
     }
 
@@ -155,6 +161,11 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
         exit_error("Failed to create window: %s\n", SDL_GetError());
     }
 
+    // macOS can leave the launcher behind the terminal/harness that spawned it,
+    // so explicitly ask SDL to surface the window after creation.
+    SDL_RaiseWindow(window);
+    SDL_SetWindowInputFocus(window);
+
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(window, &wmInfo);
@@ -172,7 +183,7 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
 }
 
 void update_gfx(void*) {
-    recomp::handle_events();
+    recompinput::handle_events();
 }
 
 static SDL_AudioCVT audio_convert;
@@ -219,9 +230,9 @@ void queue_samples(int16_t* audio_data, size_t sample_count) {
     float cur_main_volume = zelda64::get_main_volume() / 100.0f; // Get the current main volume, normalized to 0.0-1.0.
     for (size_t i = 0; i < sample_count; i += input_channels) {
         swap_buffer[i + 0 + duplicated_input_frames * input_channels] =
-            audio_data[i + 1] * (1.0f / 32768.0f) * cur_main_volume;
+            audio_data[i + 1] * (0.5f / 32768.0f) * cur_main_volume;
         swap_buffer[i + 1 + duplicated_input_frames * input_channels] =
-            audio_data[i + 0] * (1.0f / 32768.0f) * cur_main_volume;
+            audio_data[i + 0] * (0.5f / 32768.0f) * cur_main_volume;
     }
 
     // TODO handle cases where a chunk is smaller than the duplicated frame count.
@@ -307,7 +318,7 @@ void set_frequency(uint32_t freq) {
     update_audio_converter();
 }
 
-void reset_audio(uint32_t output_freq) {
+bool reset_audio(uint32_t output_freq) {
     SDL_AudioSpec spec_desired{ .freq = (int) output_freq,
                                 .format = AUDIO_F32,
                                 .channels = (Uint8) output_channels,
@@ -321,24 +332,27 @@ void reset_audio(uint32_t output_freq) {
 
     audio_device = SDL_OpenAudioDevice(nullptr, false, &spec_desired, nullptr, 0);
     if (audio_device == 0) {
-        exit_error("SDL error opening audio device: %s\n", SDL_GetError());
+        std::string audio_error =
+            std::string("No audio device could be found. Please make sure an audio device is available.\n"
+                        "Error opening audio device: ") +
+            SDL_GetError();
+        recompui::message_box(audio_error.c_str());
+        return false;
     }
     SDL_PauseAudioDevice(audio_device, 0);
 
     output_sample_rate = output_freq;
     update_audio_converter();
+
+    return true;
 }
 
-// extern RspUcodeFunc njpgdspMain;
 extern RspUcodeFunc aspMain;
 
 RspUcodeFunc* get_rsp_microcode(const OSTask* task) {
     switch (task->t.type) {
         case M_AUDTASK:
             return aspMain;
-
-            // case M_NJPEGTASK:
-            //     return njpgdspMain;
 
         default:
             fprintf(stderr, "Unknown task: %" PRIu32 "\n", task->t.type);
@@ -347,6 +361,7 @@ RspUcodeFunc* get_rsp_microcode(const OSTask* task) {
 }
 
 extern "C" void recomp_entrypoint(uint8_t* rdram, recomp_context* ctx);
+extern "C" void recomp_run_ui_callbacks(uint8_t* rdram, recomp_context* ctx);
 gpr get_entrypoint_address();
 
 // array of supported GameEntry objects
@@ -354,6 +369,7 @@ std::vector<recomp::GameEntry> supported_games = {
     {
         .rom_hash = 0x81f434ff431162ebULL,
         .internal_name = "SNOWBOARD KIDS2",
+        .display_name = "Snowboard Kids 2",
         .game_id = u8"snowboardkids2.n64.us",
         .mod_game_id = "snowboardkids2",
         .save_type = recomp::SaveType::Eep4k,
@@ -540,30 +556,56 @@ void release_preload(PreloadContext& context) {
     context = {};
 }
 
+#elif defined(__linux__) || defined(__APPLE__)
+
+struct PreloadContext {};
+
+bool preload_executable(PreloadContext&) {
+    // Explicit executable locking is only needed on Windows.
+    return true;
+}
+
+void release_preload(PreloadContext&) {
+}
+
 #else
 
 struct PreloadContext {};
 
 // TODO implement on other platforms
-bool preload_executable(PreloadContext& context) {
+bool preload_executable(PreloadContext&) {
     return false;
 }
 
-void release_preload(PreloadContext& context) {
+void release_preload(PreloadContext&) {
 }
 
 #endif
 
 void enable_texture_pack(recomp::mods::ModContext& context, const recomp::mods::ModHandle& mod) {
-    zelda64::renderer::enable_texture_pack(context, mod);
+    recompui::renderer::enable_texture_pack(context, mod);
 }
 
 void disable_texture_pack(recomp::mods::ModContext&, const recomp::mods::ModHandle& mod) {
-    zelda64::renderer::disable_texture_pack(mod);
+    recompui::renderer::disable_texture_pack(mod);
 }
 
 void reorder_texture_pack(recomp::mods::ModContext&) {
-    zelda64::renderer::trigger_texture_pack_update();
+    recompui::renderer::trigger_texture_pack_update();
+}
+
+ultramodern::input::connected_device_info_t get_sk2_connected_device_info(int controller_num) {
+    if (controller_num >= 0 && controller_num < sk2_max_players) {
+        return {
+            .connected_device = ultramodern::input::Device::Controller,
+            .connected_pak = ultramodern::input::Pak::RumblePak,
+        };
+    }
+
+    return {
+        .connected_device = ultramodern::input::Device::None,
+        .connected_pak = ultramodern::input::Pak::None,
+    };
 }
 
 #define REGISTER_FUNC(name) recomp::overlays::register_base_export(#name, name)
@@ -592,12 +634,20 @@ int main(int argc, char** argv) {
     timeBeginPeriod(1);
 
     // Process arguments.
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--show-console") == 0) {
+            if (GetConsoleWindow() == nullptr) {
+                AllocConsole();
+                freopen("CONIN$", "r", stdin);
+                freopen("CONOUT$", "w", stderr);
+                freopen("CONOUT$", "w", stdout);
+            }
+            break;
+        }
+    }
 
     // Set up console output to accept UTF-8 on windows
     SetConsoleOutputCP(CP_UTF8);
-
-    // Initialize native file dialogs.
-    NFD_Init();
 
     // Change to a font that supports Japanese characters
     CONSOLE_FONT_INFOEX cfi;
@@ -624,33 +674,43 @@ int main(int argc, char** argv) {
     std::filesystem::current_path("/var/data", ec);
 #endif
 
+    recompui::programconfig::set_program_name(std::string{ zelda64::program_name });
+    recompui::programconfig::set_program_id(std::u8string{ zelda64::program_id });
+
     // Initialize SDL audio and set the output frequency.
-    SDL_InitSubSystem(SDL_INIT_AUDIO);
-    reset_audio(48000);
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+        std::string audio_error = std::string("Failed to initialize audio.\nSDL error: ") + SDL_GetError();
+        recompui::message_box(audio_error.c_str());
+        return EXIT_FAILURE;
+    }
+    if (!reset_audio(48000)) {
+        return EXIT_FAILURE;
+    }
+
+    // Initialize native file dialogs after all fallible startup services have succeeded.
+    NFD_Init();
 
     // Source controller mappings file
-    std::u8string controller_db_path = (zelda64::get_program_path() / "recompcontrollerdb.txt").u8string();
+    std::u8string controller_db_path = (recompui::file::get_program_path() / "recompcontrollerdb.txt").u8string();
     if (SDL_GameControllerAddMappingsFromFile(reinterpret_cast<const char*>(controller_db_path.c_str())) < 0) {
         fprintf(stderr, "Failed to load controller mappings: %s\n", SDL_GetError());
     }
 
-    recomp::register_config_path(zelda64::get_app_folder_path());
+    sk2::theme::apply();
+    recomp::register_config_path(recompui::file::get_app_folder_path());
 
     // Register supported games and patches
     for (const auto& game : supported_games) {
         recomp::register_game(game);
     }
 
-    recomp::mods::register_embedded_mod("snowboardkids2_mod_template", {
-        reinterpret_cast<const uint8_t*>(snowboardkids2_mod_template),
-        snowboardkids2_mod_template_size
-    });
-    recomp::mods::register_embedded_mod("snowboardkids2_time_trial", {
-        reinterpret_cast<const uint8_t*>(snowboardkids2_time_trial),
-        snowboardkids2_time_trial_size
-    });
+    recomp::mods::register_embedded_mod(
+        "snowboardkids2_mod_template",
+        { reinterpret_cast<const uint8_t*>(snowboardkids2_mod_template), snowboardkids2_mod_template_size });
+    recomp::mods::register_embedded_mod(
+        "snowboardkids2_time_trial",
+        { reinterpret_cast<const uint8_t*>(snowboardkids2_time_trial), snowboardkids2_time_trial_size });
 
-    // REGISTER_FUNC(recomp_get_window_resolution);
     REGISTER_FUNC(recomp_get_target_aspect_ratio);
     REGISTER_FUNC(recomp_get_target_framerate);
     REGISTER_FUNC(recomp_get_film_grain_enabled);
@@ -664,20 +724,28 @@ int main(int argc, char** argv) {
     REGISTER_FUNC(recomp_get_mouse_deltas);
     REGISTER_FUNC(recomp_get_inverted_axes);
     REGISTER_FUNC(recomp_get_analog_inverted_axes);
+    REGISTER_FUNC(recomp_set_right_analog_suppressed);
+    REGISTER_FUNC(recomp_run_ui_callbacks);
     recompui::register_ui_exports();
     recomputil::register_data_api_exports();
 
     zelda64::register_overlays();
     zelda64::register_patches();
-    // recomputil::init_extended_actor_data();
-    zelda64::load_config();
+    zelda64::init_config();
+
+    recompinput::players::assign_player_one_keyboard_if_unassigned();
+    sk2::launcher::register_callbacks(supported_games[0]);
 
     recomp::rsp::callbacks_t rsp_callbacks{
         .get_rsp_microcode = get_rsp_microcode,
     };
 
     ultramodern::renderer::callbacks_t renderer_callbacks{
-        .create_render_context = zelda64::renderer::create_render_context,
+        .create_render_context =
+            [](uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode) {
+                return recompui::renderer::create_render_context(
+                    rdram, window_handle, ultramodern::renderer::PresentationMode::PresentEarly, developer_mode);
+            },
     };
 
     ultramodern::gfx_callbacks_t gfx_callbacks{
@@ -693,15 +761,15 @@ int main(int argc, char** argv) {
     };
 
     ultramodern::input::callbacks_t input_callbacks{
-        .poll_input = recomp::poll_inputs,
-        .get_input = recomp::get_n64_input,
-        .set_rumble = recomp::set_rumble,
-        .get_connected_device_info = recomp::get_connected_device_info,
+        .poll_input = recompinput::poll_inputs,
+        .get_input = recompinput::profiles::get_n64_input,
+        .set_rumble = recompinput::set_rumble,
+        .get_connected_device_info = get_sk2_connected_device_info,
     };
 
     ultramodern::events::callbacks_t thread_callbacks{
-        .vi_callback = recomp::update_rumble,
-        .gfx_init_callback = recompui::update_supported_options,
+        .vi_callback = recompinput::update_rumble,
+        .gfx_init_callback = nullptr,
     };
 
     ultramodern::error_handling::callbacks_t error_handling_callbacks{
@@ -725,21 +793,8 @@ int main(int argc, char** argv) {
     // Register the .rtz texture pack file format with the previous content type as its only allowed content type.
     recomp::mods::register_mod_container_type("rtz", std::vector{ texture_pack_content_type_id }, false);
 
-    recomp::Configuration cfg{
-        .project_version = project_version,
-        .window_handle = {},
-        .rsp_callbacks = rsp_callbacks,
-        .renderer_callbacks = renderer_callbacks,
-        .audio_callbacks = audio_callbacks,
-        .input_callbacks = input_callbacks,
-        .gfx_callbacks = gfx_callbacks,
-        .events_callbacks = thread_callbacks,
-        .error_handling_callbacks = error_handling_callbacks,
-        .threads_callbacks = threads_callbacks,
-        .message_queue_control = {},
-    };
-
-    recomp::start(cfg);
+    recomp::start(project_version, {}, rsp_callbacks, renderer_callbacks, audio_callbacks, input_callbacks,
+                  gfx_callbacks, thread_callbacks, error_handling_callbacks, threads_callbacks);
 
     NFD_Quit();
 

@@ -4,22 +4,12 @@
 #include <filesystem>
 #include <string_view>
 #include "ultramodern/config.hpp"
-#include "recomp_input.h"
 
 namespace zelda64 {
     constexpr std::u8string_view program_id = u8"SnowboardKids2Recompiled";
     constexpr std::string_view program_name = "Snowboard Kids 2: Recompiled";
 
-    // TODO: Move loading configs to the runtime once we have a way to allow per-project customization.
-    void load_config();
-    void save_config();
-    
-    void reset_input_bindings();
-    void reset_cont_input_bindings();
-    void reset_kb_input_bindings();
-    void reset_single_input_binding(recomp::InputDevice device, recomp::GameInput input);
-
-    std::filesystem::path get_app_folder_path();
+    void init_config();
     
     bool get_debug_mode_enabled();
     void set_debug_mode_enabled(bool enabled);

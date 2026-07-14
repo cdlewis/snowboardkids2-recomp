@@ -29,7 +29,6 @@
         "./RSPRecomp aspMain.us.toml",
         "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_MAKE_PROGRAM=ninja -DPATCHES_C_COMPILER=clang -DPATCHES_LD=ld.lld -DRECOMP_FLATPAK=ON -G Ninja -S . -B cmake-build",
         "cmake --build cmake-build --config Release --target SnowboardKids2Recompiled --parallel",
-        "rm -rf assets/scss",
         "mkdir -p /app/bin",
         "cp cmake-build/SnowboardKids2Recompiled /app/bin/SnowboardKids2Recompiled",
         "cp recompcontrollerdb.txt /app/bin/recompcontrollerdb.txt",

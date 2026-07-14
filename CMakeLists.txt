@@ -52,15 +52,7 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/rt64 ${CMAKE_BINARY_DIR}/rt64)
 
-# set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
 set(BUILD_SHARED_LIBS OFF)
-SET(LUNASVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lunasvg)
-# set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
-SET(RMLUI_SVG_PLUGIN ON CACHE BOOL "" FORCE)
-SET(RMLUI_TESTS_ENABLED OFF CACHE BOOL "" FORCE)
-add_subdirectory(${CMAKE_SOURCE_DIR}/lib/RmlUi)
-target_compile_definitions(rmlui_core PRIVATE LUNASVG_BUILD_STATIC)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime)
 
@@ -174,55 +166,20 @@ add_executable(SnowboardKids2Recompiled)
 
 set (SOURCES
     ${CMAKE_SOURCE_DIR}/src/main/main.cpp
+    ${CMAKE_SOURCE_DIR}/src/main/sk2_launcher.cpp
+    ${CMAKE_SOURCE_DIR}/src/main/sk2_theme.cpp
     ${CMAKE_SOURCE_DIR}/src/main/support.cpp
     ${CMAKE_SOURCE_DIR}/src/main/register_overlays.cpp
     ${CMAKE_SOURCE_DIR}/src/main/register_patches.cpp
-    ${CMAKE_SOURCE_DIR}/src/main/rt64_render_context.cpp
 
-    ${CMAKE_SOURCE_DIR}/src/game/input.cpp
-    ${CMAKE_SOURCE_DIR}/src/game/controls.cpp
     ${CMAKE_SOURCE_DIR}/src/game/config.cpp
     ${CMAKE_SOURCE_DIR}/src/game/quicksaving.cpp
     ${CMAKE_SOURCE_DIR}/src/game/recomp_api.cpp
     ${CMAKE_SOURCE_DIR}/src/game/recomp_actor_api.cpp
     ${CMAKE_SOURCE_DIR}/src/game/recomp_data_api.cpp
 
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_renderer.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_state.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_launcher.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_config.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_prompt.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_config_sub_menu.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_color_hack.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_rml_hacks.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_elements.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_mod_details_panel.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_mod_installer.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_mod_menu.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_api.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_api_events.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_api_images.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ui_utils.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/util/hsv.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/core/ui_context.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_button.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_clickable.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_container.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_element.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_image.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_label.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_radio.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_scroll_container.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_slider.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_span.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_style.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_text_input.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/elements/ui_toggle.cpp
-
     ${CMAKE_SOURCE_DIR}/rsp/aspMain.cpp
     # ${CMAKE_SOURCE_DIR}/rsp/njpgdspMain.cpp
-
-    ${CMAKE_SOURCE_DIR}/lib/RmlUi/Backends/RmlUi_Platform_SDL.cpp
 )
 
 if (APPLE)
@@ -232,10 +189,11 @@ endif()
 target_include_directories(SnowboardKids2Recompiled PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
-    ${CMAKE_SOURCE_DIR}/lib/concurrentqueue
-    ${CMAKE_SOURCE_DIR}/lib/GamepadMotionHelpers
-    ${CMAKE_SOURCE_DIR}/lib/RmlUi/Include
-    ${CMAKE_SOURCE_DIR}/lib/RmlUi/Backends
+    ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/thirdparty
+    ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/thirdparty/concurrentqueue
+    ${CMAKE_SOURCE_DIR}/lib/RecompFrontend/recompinput/include
+    ${CMAKE_SOURCE_DIR}/lib/RecompFrontend/recompui/include
+    ${CMAKE_SOURCE_DIR}/lib/RecompFrontend/recompui/src
     ${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib
     ${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/hlslpp/include
     ${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/dxc/inc
@@ -244,7 +202,6 @@ target_include_directories(SnowboardKids2Recompiled PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/rt64/src/render
     ${CMAKE_SOURCE_DIR}/lib/freetype-windows-binaries/include
     ${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/nativefiledialog-extended/src/include
-    ${CMAKE_SOURCE_DIR}/lib/SlotMap
     ${CMAKE_BINARY_DIR}/shaders
     ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -373,18 +330,6 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(SnowboardKids2Recompiled PRIVATE "-latomic -static-libstdc++" ${CMAKE_DL_LIBS} Threads::Threads)
 endif()
 
-target_link_libraries(SnowboardKids2Recompiled PRIVATE
-    PatchesLib
-    RecompiledFuncs
-    librecomp
-    ultramodern
-    rt64
-    RmlUi::Core
-    RmlUi::Debugger
-    nfd
-    lunasvg
-)
-
 # TODO fix the rt64 CMake script so that this doesn't need to be duplicated here
 # For DXC
 set (DXC_COMMON_OPTS "-I${PROJECT_SOURCE_DIR}/src")
@@ -417,8 +362,28 @@ else()
     endif()
 endif()
 
-build_vertex_shader(SnowboardKids2Recompiled "shaders/InterfaceVS.hlsl" "shaders/InterfaceVS.hlsl")
-build_pixel_shader(SnowboardKids2Recompiled "shaders/InterfacePS.hlsl" "shaders/InterfacePS.hlsl")
+set(RECOMP_FRONTEND_N64MODERNRUNTIME_PATH ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime)
+set(RECOMP_FRONTEND_RT64_PATH ${CMAKE_SOURCE_DIR}/lib/rt64)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/lib/RecompFrontend)
+
+target_include_directories(recompui BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/thirdparty
+)
+target_include_directories(recompinput BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/thirdparty
+)
+
+target_link_libraries(SnowboardKids2Recompiled PRIVATE
+    PatchesLib
+    RecompiledFuncs
+    recompui
+    recompinput
+    librecomp
+    ultramodern
+    rt64
+    nfd
+)
 
 # Embed all .nrm files in the "mods" directory
 file(GLOB NRM_FILES "${CMAKE_SOURCE_DIR}/mods/*.nrm")

@@ -42,7 +42,7 @@ static void MySwizzleSDLMetalView(void) {
     }
 
     SEL originalSelector = sel_registerName("updateDrawableSize");
-    SEL swizzledSelector = sel_registerName("my_updateDrawableSize");
+    SEL swizzledSelector = sel_registerName("sk2_noopUpdateDrawableSize");
 
     Method originalMethod = class_getInstanceMethod(cls, originalSelector);
     if (!originalMethod) {
