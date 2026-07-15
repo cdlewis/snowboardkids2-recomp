@@ -80,19 +80,42 @@ extern "C" void recomp_get_window_resolution(uint8_t* rdram, recomp_context* ctx
     MEM_W(0, height_out) = (u32)height;
 }
 
-extern "C" void recomp_get_target_aspect_ratio(uint8_t* rdram, recomp_context* ctx) {
-    ultramodern::renderer::GraphicsConfig graphics_config = ultramodern::renderer::get_graphics_config();
-    float original = _arg<0, float>(rdram, ctx);
+static float get_target_aspect_ratio(float original) {
+    const ultramodern::renderer::GraphicsConfig graphics_config = ultramodern::renderer::get_graphics_config();
     int width, height;
     recompui::get_window_size(width, height);
 
     switch (graphics_config.ar_option) {
         case ultramodern::renderer::AspectRatio::Original:
         default:
+            return original;
+        case ultramodern::renderer::AspectRatio::Expand:
+            if (height <= 0) {
+                return original;
+            }
+            return std::max(static_cast<float>(width) / height, original);
+    }
+}
+
+extern "C" void recomp_get_target_aspect_ratio(uint8_t* rdram, recomp_context* ctx) {
+    _return(ctx, get_target_aspect_ratio(_arg<0, float>(rdram, ctx)));
+}
+
+extern "C" void recomp_get_target_hud_aspect_ratio(uint8_t* rdram, recomp_context* ctx) {
+    const ultramodern::renderer::GraphicsConfig graphics_config = ultramodern::renderer::get_graphics_config();
+    const float original = _arg<0, float>(rdram, ctx);
+    const float expanded = get_target_aspect_ratio(original);
+
+    switch (graphics_config.hr_option) {
+        case ultramodern::renderer::HUDRatioMode::Original:
+        default:
             _return(ctx, original);
             return;
-        case ultramodern::renderer::AspectRatio::Expand:
-            _return(ctx, std::max(static_cast<float>(width) / height, original));
+        case ultramodern::renderer::HUDRatioMode::Clamp16x9:
+            _return(ctx, std::min(expanded, 16.0f / 9.0f));
+            return;
+        case ultramodern::renderer::HUDRatioMode::Full:
+            _return(ctx, expanded);
             return;
     }
 }

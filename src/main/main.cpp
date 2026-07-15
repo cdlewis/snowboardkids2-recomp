@@ -712,6 +712,7 @@ int main(int argc, char** argv) {
         { reinterpret_cast<const uint8_t*>(snowboardkids2_time_trial), snowboardkids2_time_trial_size });
 
     REGISTER_FUNC(recomp_get_target_aspect_ratio);
+    REGISTER_FUNC(recomp_get_target_hud_aspect_ratio);
     REGISTER_FUNC(recomp_get_target_framerate);
     REGISTER_FUNC(recomp_get_film_grain_enabled);
     REGISTER_FUNC(recomp_get_invert_y_axis_mode);

@@ -11,7 +11,6 @@
 #include "audio/audio.h"
 
 #define ORIGINAL_ASPECT (4.0f / 3.0f)
-#define HUD_ASPECT_LIMIT (16.0f / 9.0f)
 #define HUD_SCREEN_WIDTH 320.0f
 #define SCREEN_HEIGHT 240
 #define HUD_CORNER_BASE_INSET 16
@@ -20,7 +19,7 @@
 #define HUD_MULTIPLAYER_ITEM_CENTER_OFFSET 24
 #define SECONDS_TO_TICKS(s) ((s) * 30)
 
-extern float recomp_get_target_aspect_ratio(float original);
+extern float recomp_get_target_hud_aspect_ratio(float original);
 extern const char sGoldFormatShort[];
 extern const char sGoldFormatLong[];
 static const char sMultiplayerGoldFormat[] = "%5d";
@@ -32,12 +31,8 @@ static s32 sHasSavedHudTextClip = FALSE;
 static TextClipAndOffsetData sSavedHudTextClip;
 
 static s16 hudWidescreenMargin(void) {
-    float aspect = recomp_get_target_aspect_ratio(ORIGINAL_ASPECT);
+    float aspect = recomp_get_target_hud_aspect_ratio(ORIGINAL_ASPECT);
     float extraWidth;
-
-    if (aspect > HUD_ASPECT_LIMIT) {
-        aspect = HUD_ASPECT_LIMIT;
-    }
 
     extraWidth = (HUD_SCREEN_WIDTH * (aspect / ORIGINAL_ASPECT)) - HUD_SCREEN_WIDTH;
     if (extraWidth <= 0.0f) {
@@ -45,6 +40,10 @@ static s16 hudWidescreenMargin(void) {
     }
 
     return (s16) (extraWidth * 0.5f);
+}
+
+static s32 usesExpandedHudLayout(void) {
+    return hudWidescreenMargin() > 0;
 }
 
 static void setHudWidescreenAlign(u16 leftOrigin, u16 rightOrigin, s16 xOffset, s16 yOffset) {
@@ -205,7 +204,7 @@ static s16 getMultiplayerFinishPositionX(s32 playerIndex) {
 static void setPlayerLapCounterMultiplayerEdgeAlign(void* arg) {
     LapCounterMultiplayerState* state = arg;
 
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -222,7 +221,7 @@ static void setPlayerLapCounterMultiplayerEdgeAlign(void* arg) {
 }
 
 static void setBottomLeftHudAlign(void* unused) {
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -230,7 +229,7 @@ static void setBottomLeftHudAlign(void* unused) {
 }
 
 static void setTopLeftHudAlign(void* unused) {
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -238,7 +237,7 @@ static void setTopLeftHudAlign(void* unused) {
 }
 
 static void setBottomRightHudAlign(void* unused) {
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -247,7 +246,7 @@ static void setBottomRightHudAlign(void* unused) {
 }
 
 static void setShotCrossTopRightHudAlign(void* unused) {
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -256,7 +255,7 @@ static void setShotCrossTopRightHudAlign(void* unused) {
 }
 
 static void setRaceProgressHudAlign(void* unused) {
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -269,7 +268,7 @@ static void setRaceProgressHudAlign(void* unused) {
 }
 
 static void resetCornerHudAlign(void* unused) {
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -278,7 +277,7 @@ static void resetCornerHudAlign(void* unused) {
 }
 
 static void setExpandedHudClip(void* unused) {
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -289,7 +288,7 @@ static void setExpandedHudClip(void* unused) {
 static void setPlayerLapCounterHudAlign(void* arg) {
     LapCounterSinglePlayerState* state = arg;
 
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -303,7 +302,7 @@ static void setPlayerLapCounterHudAlign(void* arg) {
 static void setPlayerGoldHudAlign(void* arg) {
     PlayerGoldDisplayState* state = arg;
 
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -317,7 +316,7 @@ static void setPlayerGoldHudAlign(void* arg) {
 static void setPlayerItemHudAlign(void* arg) {
     PlayerItemDisplayState* state = arg;
 
-    if (hudWidescreenMargin() <= 0) {
+    if (!usesExpandedHudLayout()) {
         return;
     }
 
@@ -449,6 +448,13 @@ RECOMP_PATCH void updatePlayerLapCounterMultiplayer(LapCounterMultiplayerState* 
     TextData* textArg;
     s16 xOffset;
 
+    if (!usesExpandedHudLayout()) {
+        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+        state->unk3C = state->player->currentLap + 0x31;
+        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderTextPalette, &state->unk30);
+        return;
+    }
+
     updateRaceHudLayoutMode();
     xOffset = getMultiplayerLapCounterX(state->playerIndex) - ((SpriteRenderArg*) state)->x;
     iconArg = copySpriteArgWithXOffset((SpriteRenderArg*) state, xOffset);
@@ -469,13 +475,17 @@ RECOMP_PATCH void updatePlayerLapCounterMultiplayer(LapCounterMultiplayerState* 
 // @recomp significantly alter updatePlayerFinishPositionDisplay to account for widescreen HUD elements.
 // the challenge here is properly supporting 1p, 2p and 3/4p modes since these all have different aligment
 // characteristics.
- RECOMP_PATCH void updatePlayerFinishPositionDisplay(FinishPositionDisplayState* state) {
+RECOMP_PATCH void updatePlayerFinishPositionDisplay(FinishPositionDisplayState* state) {
     SpriteRenderArg* spriteArg;
     s16 xOffset;
 
-    updateRaceHudLayoutMode();
     state->spriteIndex = state->player->finishPosition;
+    if (!usesExpandedHudLayout()) {
+        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+        return;
+    }
 
+    updateRaceHudLayoutMode();
     if (usesSplitScreenColumns()) {
         xOffset = getMultiplayerFinishPositionX(state->playerIndex) - ((SpriteRenderArg*) state)->x;
     } else {
@@ -694,6 +704,12 @@ RECOMP_PATCH void updateShotCrossItemCountDisplay(CrossHudCounterDisplayState* s
 
     if (state->flashCounter != 0) {
         state->flashCounter--;
+    }
+
+    if (!usesExpandedHudLayout()) {
+        enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, &state->sprite);
+        drawNumericString(buffer, state->sprite.x + 0x10, state->sprite.y + 0x10, 0xFF, state->digitAsset, 8, 1);
+        return;
     }
 
     if (state->layoutMode == 0) {

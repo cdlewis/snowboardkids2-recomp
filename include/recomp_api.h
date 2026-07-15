@@ -16,6 +16,7 @@ extern "C" void recomp_powf(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_target_framerate(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_window_resolution(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_target_aspect_ratio(uint8_t* rdram, recomp_context* ctx);
+extern "C" void recomp_get_target_hud_aspect_ratio(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_targeting_mode(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_bgm_volume(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_sfx_volume(uint8_t* rdram, recomp_context* ctx);
