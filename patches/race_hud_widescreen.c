@@ -20,6 +20,7 @@
 #define SECONDS_TO_TICKS(s) ((s) * 30)
 
 extern float recomp_get_target_hud_aspect_ratio(float original);
+extern s32 recomp_get_vertical_2p_split_screen_enabled(void);
 extern const char sGoldFormatShort[];
 extern const char sGoldFormatLong[];
 static const char sMultiplayerGoldFormat[] = "%5d";
@@ -27,6 +28,7 @@ extern Gfx* gDisplayListAllocPtr;
 extern TextClipAndOffsetData gTextClipAndOffsetData;
 static s32 sRaceHudUsesSplitScreenColumns = FALSE;
 static s32 sRaceHudUsesHorizontalSplit = FALSE;
+static s32 sRaceHudUsesVerticalTwoPlayerSplit = FALSE;
 static s32 sHasSavedHudTextClip = FALSE;
 static TextClipAndOffsetData sSavedHudTextClip;
 
@@ -74,19 +76,31 @@ static s32 usesHorizontalSplit(void) {
     return sRaceHudUsesHorizontalSplit;
 }
 
+static s32 usesVerticalTwoPlayerSplit(void) {
+    return sRaceHudUsesVerticalTwoPlayerSplit;
+}
+
 static void updateRaceHudLayoutMode(void) {
     GameState* gameState = getCurrentAllocation();
 
-    sRaceHudUsesSplitScreenColumns = gameState->playerCount >= 3;
-    sRaceHudUsesHorizontalSplit = gameState->playerCount == 2;
+    sRaceHudUsesVerticalTwoPlayerSplit =
+        gameState->playerCount == 2 && recomp_get_vertical_2p_split_screen_enabled();
+    sRaceHudUsesSplitScreenColumns = gameState->playerCount >= 3 || sRaceHudUsesVerticalTwoPlayerSplit;
+    sRaceHudUsesHorizontalSplit = gameState->playerCount == 2 && !sRaceHudUsesVerticalTwoPlayerSplit;
 }
 
 static s32 isRightColumnPlayer(s32 playerIndex) {
-    return usesSplitScreenColumns() && playerIndex >= 2;
+    return usesVerticalTwoPlayerSplit() ? playerIndex == 1 : usesSplitScreenColumns() && playerIndex >= 2;
 }
 
 static void setPlayerTopLeftHudAlign(s32 playerIndex) {
-    setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, -HUD_CORNER_ALIGN_OFFSET);
+    if (isRightColumnPlayer(playerIndex)) {
+        setHudWidescreenAlign(G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER,
+                                 -(HUD_SCREEN_WIDTH / 2) + HUD_CORNER_ALIGN_OFFSET, -HUD_CORNER_ALIGN_OFFSET);
+    } else {
+        setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET,
+                                 -HUD_CORNER_ALIGN_OFFSET);
+    }
 }
 
 static void setPlayerTopRightHudAlign(s32 playerIndex) {
@@ -190,6 +204,11 @@ static TextData* copyTextDataWithXOffset(TextData* src, s16 xOffset) {
 }
 
 static s16 getMultiplayerLapCounterX(s32 playerIndex) {
+    if (usesVerticalTwoPlayerSplit()) {
+        // Keep the counter inset by roughly the same amount as the coin counter in each half.
+        return playerIndex == 0 ? 0x0E : 0x0D;
+    }
+
     if (usesSplitScreenColumns()) {
         return (playerIndex < 2) ? -0x44 : 0x2C;
     }
@@ -198,6 +217,11 @@ static s16 getMultiplayerLapCounterX(s32 playerIndex) {
 }
 
 static s16 getMultiplayerFinishPositionX(s32 playerIndex) {
+    if (usesVerticalTwoPlayerSplit() && playerIndex == 1) {
+        // The right-half center origin otherwise leaves a larger gutter than player 1 receives.
+        return -0x50;
+    }
+
     return -0x44;
 }
 
@@ -208,7 +232,9 @@ static void setPlayerLapCounterMultiplayerEdgeAlign(void* arg) {
         return;
     }
 
-    if (usesHorizontalSplit()) {
+    if (usesVerticalTwoPlayerSplit()) {
+        setPlayerTopRightHudAlign(state->playerIndex);
+    } else if (usesHorizontalSplit()) {
         setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, 0x28, -HUD_CORNER_ALIGN_OFFSET);
     } else if (!usesSplitScreenColumns()) {
         setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, -HUD_CORNER_ALIGN_OFFSET);
@@ -226,6 +252,22 @@ static void setBottomLeftHudAlign(void* unused) {
     }
 
     setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET, HUD_CORNER_ALIGN_OFFSET);
+}
+
+static void setPlayerBottomLeftHudAlign(void* arg) {
+    FinishPositionDisplayState* state = arg;
+
+    if (!usesExpandedHudLayout()) {
+        return;
+    }
+
+    if (isRightColumnPlayer(state->playerIndex)) {
+        setHudWidescreenAlign(G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER,
+                                 -(HUD_SCREEN_WIDTH / 2) + HUD_CORNER_ALIGN_OFFSET, HUD_CORNER_ALIGN_OFFSET);
+    } else {
+        setHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET,
+                                 HUD_CORNER_ALIGN_OFFSET);
+    }
 }
 
 static void setTopLeftHudAlign(void* unused) {
@@ -259,7 +301,10 @@ static void setRaceProgressHudAlign(void* unused) {
         return;
     }
 
-    if (usesSplitScreenColumns()) {
+    if (usesVerticalTwoPlayerSplit()) {
+        // Keep the shared tracker at the screen midpoint, matching the 3/4-player layout.
+        setHudWidescreenAlign(G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER, -0x11C, 0);
+    } else if (usesSplitScreenColumns()) {
         setHudWidescreenAlign(G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER, -0xA0, 0);
     } else {
         setHudWidescreenAlign(G_EX_ORIGIN_RIGHT, G_EX_ORIGIN_RIGHT, -((s16) HUD_SCREEN_WIDTH - HUD_CORNER_ALIGN_OFFSET),
@@ -306,7 +351,9 @@ static void setPlayerGoldHudAlign(void* arg) {
         return;
     }
 
-    if (usesHorizontalSplit() && state->playerIndex == 0) {
+    if (usesVerticalTwoPlayerSplit()) {
+        setPlayerBottomRightHudAlign(state->playerIndex);
+    } else if (usesHorizontalSplit() && state->playerIndex == 0) {
         setPlayerTopRightHudAlign(state->playerIndex);
     } else {
         setPlayerBottomRightHudAlign(state->playerIndex);
@@ -320,7 +367,9 @@ static void setPlayerItemHudAlign(void* arg) {
         return;
     }
 
-    if (usesSplitScreenColumns()) {
+    if (usesVerticalTwoPlayerSplit()) {
+        setPlayerTopLeftHudAlign(state->playerIndex);
+    } else if (usesSplitScreenColumns()) {
         setPlayerTopCenterItemHudAlign(state->playerIndex);
     } else if (usesHorizontalSplit()) {
         setPlayerTopLeftHudAlign(state->playerIndex);
@@ -337,8 +386,19 @@ RECOMP_PATCH void updatePlayerItemDisplaySinglePlayer(PlayerItemDisplayState* st
     u8 tempValue;
     void* callback;
 
-    // @recomp wrap texture rendering call to adjust for widescreen
+    // @recomp arrange the large 2P item HUD within each vertical half
     updateRaceHudLayoutMode();
+    if (usesVerticalTwoPlayerSplit()) {
+        // Keep the large item boxes close to each viewport edge, matching the position indicator gutter.
+        state->primaryItemX = state->playerIndex == 0 ? -0x42 : -0x50;
+        state->primaryItemY = -0x68;
+        state->secondaryItemX = state->primaryItemX + 0x20;
+        state->secondaryItemY = -0x68;
+        state->itemCountX = state->primaryItemX + 0x18;
+        state->itemCountY = state->primaryItemY + 0x10;
+    }
+
+    // @recomp wrap texture rendering call to adjust for widescreen
     enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, resetCornerHudAlign, NULL);
 
     player = state->player;
@@ -448,6 +508,15 @@ RECOMP_PATCH void updatePlayerLapCounterMultiplayer(LapCounterMultiplayerState* 
     TextData* textArg;
     s16 xOffset;
 
+    updateRaceHudLayoutMode();
+    if (usesVerticalTwoPlayerSplit()) {
+        SpriteRenderArg* lapIcon = (SpriteRenderArg*) state;
+        lapIcon->x = getMultiplayerLapCounterX(state->playerIndex);
+        lapIcon->y = -0x68;
+        state->unk30.x = lapIcon->x + 0x18;
+        state->unk30.y = -0x68;
+    }
+
     if (!usesExpandedHudLayout()) {
         enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
         state->unk3C = state->player->currentLap + 0x31;
@@ -455,7 +524,6 @@ RECOMP_PATCH void updatePlayerLapCounterMultiplayer(LapCounterMultiplayerState* 
         return;
     }
 
-    updateRaceHudLayoutMode();
     xOffset = getMultiplayerLapCounterX(state->playerIndex) - ((SpriteRenderArg*) state)->x;
     iconArg = copySpriteArgWithXOffset((SpriteRenderArg*) state, xOffset);
     if (iconArg == NULL) {
@@ -480,12 +548,17 @@ RECOMP_PATCH void updatePlayerFinishPositionDisplay(FinishPositionDisplayState* 
     s16 xOffset;
 
     state->spriteIndex = state->player->finishPosition;
+    updateRaceHudLayoutMode();
+    if (usesVerticalTwoPlayerSplit()) {
+        state->x = -0x48;
+        state->y = 0x48;
+    }
+
     if (!usesExpandedHudLayout()) {
         enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
         return;
     }
 
-    updateRaceHudLayoutMode();
     if (usesSplitScreenColumns()) {
         xOffset = getMultiplayerFinishPositionX(state->playerIndex) - ((SpriteRenderArg*) state)->x;
     } else {
@@ -496,7 +569,11 @@ RECOMP_PATCH void updatePlayerFinishPositionDisplay(FinishPositionDisplayState* 
         return;
     }
 
-    if (usesSplitScreenColumns() && state->playerIndex >= 2) {
+    if (usesVerticalTwoPlayerSplit()) {
+        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, spriteArg);
+        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setPlayerBottomLeftHudAlign, state);
+    } else if (usesSplitScreenColumns() && isRightColumnPlayer(state->playerIndex)) {
         spriteArg->x -= HUD_CORNER_ALIGN_OFFSET;
         spriteArg->y += HUD_CORNER_ALIGN_OFFSET;
         enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
@@ -513,6 +590,12 @@ RECOMP_PATCH void updatePlayerGoldDisplaySinglePlayer(PlayerGoldDisplayState* st
     s32 gold = state->player->raceCoins;
 
     updateRaceHudLayoutMode();
+    if (usesVerticalTwoPlayerSplit()) {
+        state->x = 7;
+        state->y = 0x58;
+        state->iconX = state->x + 0x28;
+        ((GoldDisplayState*) state)->iconY = state->y;
+    }
 
     if (gold < 100) {
         _Sprintf(state->goldTextBuffer, sGoldFormatShort, gold);

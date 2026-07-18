@@ -15,6 +15,17 @@ constexpr const char* film_grain_mode_option = "film_grain_mode";
 constexpr const char* radio_comm_box_mode_option = "radio_comm_box_mode";
 constexpr const char* invert_y_axis_mode_option = "invert_y_axis_mode";
 constexpr const char* analog_camera_invert_mode_option = "analog_camera_invert_mode";
+constexpr const char* two_player_split_screen_direction_option = "two_player_split_screen_direction";
+
+enum class TwoPlayerSplitScreenDirection : uint32_t {
+    Horizontal,
+    Vertical,
+};
+
+const std::vector<recomp::config::ConfigOptionEnumOption> two_player_split_screen_direction_options = {
+    {TwoPlayerSplitScreenDirection::Horizontal, "Horizontal"},
+    {TwoPlayerSplitScreenDirection::Vertical, "Vertical"},
+};
 
 constexpr const char* bgm_volume_option = "bgm_volume";
 constexpr const char* sfx_volume_option = "sfx_volume";
@@ -102,7 +113,14 @@ void zelda64::init_config() {
     general_options.has_gyro_sensitivity = false;
     general_options.has_mouse_sensitivity = false;
 
-    recompui::config::create_general_tab(general_options);
+    auto& general_config = recompui::config::create_general_tab(general_options);
+    general_config.add_enum_option(
+        two_player_split_screen_direction_option,
+        "2-Player Split-Screen Direction",
+        "Sets whether two-player races use a top/bottom or left/right split.",
+        two_player_split_screen_direction_options,
+        TwoPlayerSplitScreenDirection::Vertical
+    );
 
     recompui::config::create_graphics_tab();
 
@@ -118,6 +136,12 @@ void zelda64::init_config() {
 
 bool zelda64::get_debug_mode_enabled() {
     return recompui::config::general::get_debug_mode_enabled();
+}
+
+bool zelda64::get_vertical_2p_split_screen_enabled() {
+    auto direction = get_general_enum_or_default<TwoPlayerSplitScreenDirection>(
+        two_player_split_screen_direction_option, TwoPlayerSplitScreenDirection::Vertical);
+    return direction == TwoPlayerSplitScreenDirection::Vertical;
 }
 
 void zelda64::set_debug_mode_enabled(bool enabled) {

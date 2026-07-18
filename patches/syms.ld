@@ -73,3 +73,4 @@ osAiSetNextBuffer_recomp = 0x8F000100;
 osVirtualToPhysical_recomp = 0x8F000104;
 recomp_get_target_hud_aspect_ratio = 0x8F000108;
 recomp_set_game_player_count = 0x8F00010C;
+recomp_get_vertical_2p_split_screen_enabled = 0x8F000110;

@@ -24,6 +24,7 @@ extern "C" void recomp_get_voice_volume(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_low_health_beeps_enabled(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_time_us(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_film_grain_enabled(uint8_t* rdram, recomp_context* ctx);
+extern "C" void recomp_get_vertical_2p_split_screen_enabled(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_load_overlays(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_high_precision_fb_enabled(uint8_t* rdram, recomp_context* ctx);
 extern "C" void recomp_get_resolution_scale(uint8_t* rdram, recomp_context* ctx);

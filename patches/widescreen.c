@@ -12,6 +12,7 @@
 #include "transform_ids.h"
 
 extern float recomp_get_target_aspect_ratio(float original);
+extern s32 recomp_get_vertical_2p_split_screen_enabled(void);
 
 #define RACE_SPLITSCREEN_INSET_QUADRANT_CENTER_X 0x49
 #define RACE_SPLITSCREEN_INSET_HALF_CENTER_Y 0x35
@@ -23,14 +24,61 @@ extern float recomp_get_target_aspect_ratio(float original);
 #define RACE_SPLITSCREEN_EDGE_QUADRANT_HALF_WIDTH 0x50
 #define RACE_SPLITSCREEN_EDGE_HALF_HEIGHT 0x3C
 
-static s32 isRacePlayerViewport(ViewportNode* node) {
+static s32 getRacePlayerViewportIndex(ViewportNode* node) {
     s32 transformId;
 
     transformId = getViewportProjectionTransformId(node);
-    return ((transformId >= PROJECTION_RACE_PLAYER_TRANSFORM_ID_START) &&
-            (transformId < PROJECTION_RACE_PLAYER_TRANSFORM_ID_START + 4)) ||
-           ((transformId >= PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START) &&
-            (transformId < PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START + 4));
+    if ((transformId >= PROJECTION_RACE_PLAYER_TRANSFORM_ID_START) &&
+        (transformId < PROJECTION_RACE_PLAYER_TRANSFORM_ID_START + 4)) {
+        return transformId - PROJECTION_RACE_PLAYER_TRANSFORM_ID_START;
+    }
+    if ((transformId >= PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START) &&
+        (transformId < PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START + 4)) {
+        return transformId - PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START;
+    }
+
+    if (node != &gRootViewport && node->unk0.next != NULL) {
+        return getRacePlayerViewportIndex(node->unk0.next);
+    }
+
+    return -1;
+}
+
+static s32 usesVerticalTwoPlayerSplit(ViewportNode* node) {
+    s32 playerIndex = getRacePlayerViewportIndex(node);
+
+    return recomp_get_vertical_2p_split_screen_enabled() && playerIndex >= 0 && playerIndex < 2;
+}
+
+static void convertTwoPlayerViewportToVertical(
+    ViewportNode* node,
+    s16* originX,
+    s16* originY,
+    s16* left,
+    s16* top,
+    s16* right,
+    s16* bottom
+) {
+    s32 playerIndex;
+
+    if (!usesVerticalTwoPlayerSplit(node) || *left != -0xA0 || *right != 0xA0 || *top != -0x34 ||
+        *bottom != 0x34) {
+        return;
+    }
+
+    playerIndex = getRacePlayerViewportIndex(node);
+    if (*originY == -0x35 || *originY == 0x35) {
+        *originX = (playerIndex == 0) ? -RACE_SPLITSCREEN_INSET_QUADRANT_CENTER_X
+                                    : RACE_SPLITSCREEN_INSET_QUADRANT_CENTER_X;
+    } else if (*originX != 0 || *originY != 0) {
+        return;
+    }
+
+    *originY = 0;
+    *left = -RACE_SPLITSCREEN_INSET_QUADRANT_HALF_WIDTH;
+    *top = -0x78;
+    *right = RACE_SPLITSCREEN_INSET_QUADRANT_HALF_WIDTH;
+    *bottom = 0x78;
 }
 
 static void normalizeRaceSplitScreenViewportBounds(
@@ -42,7 +90,7 @@ static void normalizeRaceSplitScreenViewportBounds(
     s16* right,
     s16* bottom
 ) {
-    if (!isRacePlayerViewport(node)) {
+    if (getRacePlayerViewportIndex(node) < 0) {
         return;
     }
 
@@ -87,6 +135,9 @@ RECOMP_PATCH void setModelCameraTransform(ViewportNode* node, s16 originX, s16 o
         bottom = 0x78;
     }
 
+    // @recomp arrange 2P race viewports as left/right columns when configured
+    convertTwoPlayerViewportToVertical(node, &originX, &originY, &left, &top, &right, &bottom);
+
     // @recomp adjust viewport bounds for RT64 widescreen handling
     normalizeRaceSplitScreenViewportBounds(node, &originX, &originY, &left, &top, &right, &bottom);
 
@@ -96,6 +147,29 @@ RECOMP_PATCH void setModelCameraTransform(ViewportNode* node, s16 originX, s16 o
     node->viewportTop = top;
     node->viewportRight = right;
     node->viewportBottom = bottom;
+}
+
+RECOMP_PATCH void setViewportScale(ViewportNode *arg0, f32 scaleX, f32 scaleY) {
+    // @recomp convert the original full-width, half-height 2P scale to half-width, full-height for a vertical split
+    if (usesVerticalTwoPlayerSplit(arg0) && scaleX == 1.0f && scaleY == 0.5f) {
+        scaleX = 0.5f;
+        scaleY = 1.0f;
+    }
+
+    arg0->scaleY = scaleY;
+    arg0->viewportWidth = (s16)(scaleX * 640.0f);
+    arg0->viewportHeight = (s16)(scaleY * 480.0f);
+}
+
+RECOMP_PATCH void setViewportPerspective(ViewportNode *node, f32 fov, f32 aspect, f32 near, f32 far) {
+    // @recomp replace the original 8:3 2P projection with a 2:3 projection suited to the vertical split while
+    // preserving roughly the standard 4:3 camera's horizontal field of view
+    if (usesVerticalTwoPlayerSplit(node) && aspect == (4.0f / 3.0f) * 2.0f) {
+        fov = 110.0f;
+        aspect = (4.0f / 3.0f) * 0.5f;
+    }
+
+    guPerspective(&node->projectionMatrix, &node->perspNorm, fov, aspect, near, far, 1.0f);
 }
 
 RECOMP_PATCH void updateViewportBounds(void) {

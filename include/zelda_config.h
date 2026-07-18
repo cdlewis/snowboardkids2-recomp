@@ -13,6 +13,7 @@ namespace zelda64 {
     
     bool get_debug_mode_enabled();
     void set_debug_mode_enabled(bool enabled);
+    bool get_vertical_2p_split_screen_enabled();
     
     enum class FilmGrainMode {
         On,
