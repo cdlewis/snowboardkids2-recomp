@@ -24,6 +24,9 @@
 
 namespace {
 
+class Sk2LauncherOption;
+Sk2LauncherOption* start_option = nullptr;
+
 class Sk2LauncherOption : public recompui::Element {
   public:
     Sk2LauncherOption(recompui::ResourceId rid, recompui::Element* parent, const std::string& title,
@@ -32,7 +35,7 @@ class Sk2LauncherOption : public recompui::Element {
                   recompui::Events(recompui::EventType::Click, recompui::EventType::Hover, recompui::EventType::Focus,
                                    recompui::EventType::Enable),
                   "button", false),
-          callback(std::move(callback)) {
+          callback(std::move(callback)), primary_option(primary) {
         using namespace recompui;
 
         set_display(Display::Flex);
@@ -52,6 +55,7 @@ class Sk2LauncherOption : public recompui::Element {
         set_tab_index_auto();
         if (primary) {
             set_as_primary_focus(true);
+            initial_selection_retained = true;
         }
 
         auto context = get_current_context();
@@ -96,10 +100,16 @@ class Sk2LauncherOption : public recompui::Element {
                 break;
             case EventType::Hover:
                 hovered = std::get<EventHover>(e.variant).active;
+                if (hovered && !primary_option && start_option != nullptr) {
+                    start_option->release_initial_selection();
+                }
                 update_state();
                 break;
             case EventType::Focus:
                 focused = std::get<EventFocus>(e.variant).active;
+                if (focused && !primary_option && start_option != nullptr) {
+                    start_option->release_initial_selection();
+                }
                 update_state();
                 break;
             case EventType::Enable:
@@ -118,9 +128,19 @@ class Sk2LauncherOption : public recompui::Element {
     recompui::Svg* inactive_board = nullptr;
     recompui::Svg* active_board = nullptr;
     recompui::Label* label = nullptr;
+    bool primary_option = false;
     bool hovered = false;
     bool focused = false;
     bool enabled = true;
+    bool initial_selection_retained = false;
+
+  public:
+    void release_initial_selection() {
+        initial_selection_retained = false;
+        update_state();
+    }
+
+  private:
 
     static void style_board(recompui::Svg* board) {
         using namespace recompui;
@@ -133,7 +153,7 @@ class Sk2LauncherOption : public recompui::Element {
     }
 
     void update_state() {
-        bool active = enabled && (hovered || focused);
+        bool active = enabled && (hovered || focused || initial_selection_retained);
         inactive_board->set_opacity(active ? 0.0f : 1.0f);
         active_board->set_opacity(active ? 1.0f : 0.0f);
         label->set_color(active ? recompui::Color{ 255, 255, 255, 255 } : recompui::Color{ 16, 129, 224, 255 });
@@ -147,7 +167,6 @@ class Sk2LauncherOption : public recompui::Element {
     }
 };
 
-Sk2LauncherOption* start_option = nullptr;
 bool rom_valid = false;
 bool initial_focus_pending = false;
 std::u8string game_id;

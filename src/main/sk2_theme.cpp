@@ -125,7 +125,8 @@ void apply() {
     frontend_theme.modal.tabs->selected.set_background_color(Color{ 0, 0, 0, 0 });
     frontend_theme.modal.tabs->pulsing.set_color(Color{ 255, 255, 255, 255 });
     frontend_theme.modal.tabs->indicator.set_height(5.0f);
-    frontend_theme.modal.tabs->indicator_color = purple_accent;
+    frontend_theme.modal.tabs->indicator.set_bottom(-1.5f);
+    frontend_theme.modal.tabs->indicator_color = Color{ 242, 242, 242, 255 };
 
     frontend_theme.prompt.overlay.set_background_color(Color{ 0, 0, 0, 77 });
     frontend_theme.prompt.content.set_background_color(Color{ 0, 0, 0, 204 });
