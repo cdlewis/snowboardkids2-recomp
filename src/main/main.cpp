@@ -726,6 +726,7 @@ int main(int argc, char** argv) {
     REGISTER_FUNC(recomp_get_inverted_axes);
     REGISTER_FUNC(recomp_get_analog_inverted_axes);
     REGISTER_FUNC(recomp_set_right_analog_suppressed);
+    REGISTER_FUNC(recomp_set_game_player_count);
     REGISTER_FUNC(recomp_run_ui_callbacks);
     recompui::register_ui_exports();
     recomputil::register_data_api_exports();
@@ -734,7 +735,6 @@ int main(int argc, char** argv) {
     zelda64::register_patches();
     zelda64::init_config();
 
-    recompinput::players::assign_player_one_keyboard_if_unassigned();
     sk2::launcher::register_callbacks(supported_games[0]);
 
     recomp::rsp::callbacks_t rsp_callbacks{

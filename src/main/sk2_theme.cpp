@@ -152,6 +152,39 @@ void apply() {
     frontend_theme.controls.binding_button.focus.set_background_color(Color{ 0, 0, 0, 0 });
     frontend_theme.controls.binding_button.focus.set_border_color(Color{ 0, 0, 0, 0 });
     frontend_theme.controls.input_device_toggle = ui_theme::TogglePreset::Filled;
+
+    auto& in_game_assignment = frontend_theme.in_game_player_assignment;
+    in_game_assignment.page.set_background_color(Color{ 0, 0, 0, 255 });
+    in_game_assignment.page.set_font_family("Fredoka");
+    in_game_assignment.content.set_background_color(Color{ 0, 0, 0, 255 });
+    in_game_assignment.content.set_border_width(7.0f);
+    in_game_assignment.content.set_border_color(Color{ 255, 255, 255, 255 });
+    in_game_assignment.content.set_border_radius(64.0f);
+    in_game_assignment.content.set_padding_top(20.0f);
+    in_game_assignment.content.set_padding_right(56.0f);
+    in_game_assignment.content.set_padding_bottom(20.0f);
+    in_game_assignment.content.set_padding_left(56.0f);
+    in_game_assignment.heading.set_color(Color{ 255, 255, 255, 255 });
+    in_game_assignment.heading.set_text_align(TextAlign::Center);
+    in_game_assignment.description.set_color(Color{ 255, 255, 255, 255 });
+    in_game_assignment.description.set_text_align(TextAlign::Center);
+    in_game_assignment.card_border = Color{ 255, 255, 255, 128 };
+    in_game_assignment.card_label = Color{ 255, 255, 255, 204 };
+    in_game_assignment.card_waiting = Color{ 255, 255, 255, 128 };
+    in_game_assignment.card_active = Color{ 255, 255, 255, 255 };
+    in_game_assignment.card_assigned = Color{ 255, 255, 255, 255 };
+    in_game_assignment.card_assigned_background = Color{ 255, 255, 255, 51 };
+    in_game_assignment.button.normal.set_color(Color{ 255, 255, 255, 255 });
+    in_game_assignment.button.normal.set_background_color(Color{ 0, 0, 0, 255 });
+    in_game_assignment.button.normal.set_border_color(Color{ 255, 255, 255, 255 });
+    in_game_assignment.button.hover.set_color(Color{ 0, 0, 0, 255 });
+    in_game_assignment.button.hover.set_background_color(Color{ 255, 255, 255, 255 });
+    in_game_assignment.button.hover.set_border_color(Color{ 255, 255, 255, 255 });
+    in_game_assignment.button.focus.apply_style(in_game_assignment.button.hover);
+    in_game_assignment.button.disabled.set_color(Color{ 255, 255, 255, 96 });
+    in_game_assignment.button.disabled.set_background_color(Color{ 0, 0, 0, 255 });
+    in_game_assignment.button.disabled.set_border_color(Color{ 255, 255, 255, 64 });
+
     frontend_theme.mods.details.set_background_color(Color{ 0, 0, 0, 0 });
     frontend_theme.mods.enable_toggle = ui_theme::TogglePreset::Filled;
 

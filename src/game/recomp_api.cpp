@@ -5,6 +5,7 @@
 #include "librecomp/overlays.hpp"
 #include "zelda_config.h"
 #include "recompinput/input_state.h"
+#include "recompinput/players.h"
 #include "recompui/renderer.h"
 #include "recompui/recompui.h"
 #include "zelda_sound.h"
@@ -222,4 +223,11 @@ extern "C" void recomp_set_right_analog_suppressed(uint8_t* rdram, recomp_contex
     s32 suppressed = _arg<0, s32>(rdram, ctx);
 
     recompinput::set_right_analog_suppressed(suppressed);
+}
+
+extern "C" void recomp_set_game_player_count(uint8_t* rdram, recomp_context* ctx) {
+    u32 player_count = _arg<0, u32>(rdram, ctx);
+    if (player_count >= 1 && player_count <= 4) {
+        recompinput::players::request_game_player_count(player_count);
+    }
 }

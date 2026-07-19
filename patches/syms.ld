@@ -72,3 +72,4 @@ osAiGetLength_recomp = 0x8F0000FC;
 osAiSetNextBuffer_recomp = 0x8F000100;
 osVirtualToPhysical_recomp = 0x8F000104;
 recomp_get_target_hud_aspect_ratio = 0x8F000108;
+recomp_set_game_player_count = 0x8F00010C;
