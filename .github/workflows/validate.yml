@@ -23,6 +23,10 @@ on:
         type: string
         required: false
         default: '["linux","linux-arm64","linux-flatpak","windows","macos"]'
+      GAME_VERSION:
+        type: string
+        required: false
+        default: ''
     secrets:
       PRIVATE_REPO_ACCESS:
         required: true
@@ -34,9 +38,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  resolve_version:
+    runs-on: ubuntu-latest
+    outputs:
+      game_version: ${{ steps.resolve.outputs.game_version }}
+    steps:
+      - name: Checkout
+        if: inputs.GAME_VERSION == ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          fetch-depth: 0
+          submodules: false
+
+      - name: Resolve Game Version
+        id: resolve
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.GAME_VERSION }}
+        run: |
+          version="$REQUESTED_VERSION"
+          version="${version#v}"
+
+          if [ -z "$version" ]; then
+            while IFS= read -r tag; do
+              if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                version="${tag#v}+$(git rev-parse HEAD | tail -c 5)"
+                break
+              fi
+            done < <(git tag --merged HEAD --sort=-version:refname)
+          fi
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+            printf 'Invalid or unresolved game version: %s\n' "$version" >&2
+            exit 1
+          fi
+
+          printf 'game_version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+          printf 'Snowboard Kids 2 game version: %s\n' "$version"
+
   build-linux:
+    needs: resolve_version
     if: ${{ contains(fromJSON(inputs.PLATFORMS), 'linux') }}
     runs-on: ubuntu-22.04
+    env:
+      GAME_VERSION: ${{ needs.resolve_version.outputs.game_version }}
     strategy:
       matrix:
         type: ${{ fromJSON(inputs.BUILD_TYPES) }}
@@ -141,9 +188,11 @@ jobs:
           path: SnowboardKids2Recompiled-*.AppImage
 
   build-linux-flatpak:
+    needs: resolve_version
     if: ${{ contains(fromJSON(inputs.PLATFORMS), 'linux-flatpak') }}
     runs-on: ubuntu-latest
     env:
+      GAME_VERSION: ${{ needs.resolve_version.outputs.game_version }}
       FLATPAK_ID: io.github.snowboardkids2recomp.snowboardkids2recomp
       FREEDESKTOP_VERSION: 25.08
       LLVM_VERSION: 20
@@ -214,8 +263,11 @@ jobs:
           path: ./${{ env.FLATPAK_ID }}.flatpak
 
   build-linux-arm64:
+    needs: resolve_version
     if: ${{ contains(fromJSON(inputs.PLATFORMS), 'linux-arm64') }}
     runs-on: ubuntu-22.04-arm
+    env:
+      GAME_VERSION: ${{ needs.resolve_version.outputs.game_version }}
     strategy:
       matrix:
         type: ${{ fromJSON(inputs.BUILD_TYPES) }}
@@ -320,8 +372,11 @@ jobs:
           path: SnowboardKids2Recompiled-*.AppImage
 
   build-windows:
+    needs: resolve_version
     if: ${{ contains(fromJSON(inputs.PLATFORMS), 'windows') }}
     runs-on: windows-latest
+    env:
+      GAME_VERSION: ${{ needs.resolve_version.outputs.game_version }}
     strategy:
       matrix:
         type: ${{ fromJSON(inputs.WINDOWS_BUILD_TYPES) }}
@@ -457,8 +512,11 @@ jobs:
           path: SnowboardKids2Recompiled.pdb
 
   build-macos:
+    needs: resolve_version
     if: ${{ contains(fromJSON(inputs.PLATFORMS), 'macos') }}
     runs-on: macos-26
+    env:
+      GAME_VERSION: ${{ needs.resolve_version.outputs.game_version }}
     strategy:
       matrix:
         type: ${{ fromJSON(inputs.BUILD_TYPES) }}

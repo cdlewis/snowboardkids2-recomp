@@ -52,6 +52,9 @@
       "build-options": {
         "append-path": "/usr/lib/sdk/llvm20/bin",
         "prepend-ld-library-path": "/usr/lib/sdk/llvm20/lib",
+        "secret-env": [
+          "GAME_VERSION"
+        ],
         "build-args": [
           "--share=network"
         ]

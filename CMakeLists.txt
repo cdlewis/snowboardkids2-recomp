@@ -12,6 +12,80 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(SK2_GAME_VERSION "$ENV{GAME_VERSION}")
+string(STRIP "${SK2_GAME_VERSION}" SK2_GAME_VERSION)
+
+if(SK2_GAME_VERSION MATCHES "^v[0-9]")
+    string(SUBSTRING "${SK2_GAME_VERSION}" 1 -1 SK2_GAME_VERSION)
+endif()
+
+if(SK2_GAME_VERSION STREQUAL "")
+    find_package(Git QUIET)
+    if(NOT Git_FOUND)
+        message(FATAL_ERROR "GAME_VERSION is unset and Git was not found. Set GAME_VERSION to a semantic version.")
+    endif()
+
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        RESULT_VARIABLE SK2_GIT_HASH_RESULT
+        OUTPUT_VARIABLE SK2_GIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" tag --merged HEAD --sort=-version:refname
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        RESULT_VARIABLE SK2_GIT_TAGS_RESULT
+        OUTPUT_VARIABLE SK2_GIT_TAGS
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+
+    string(LENGTH "${SK2_GIT_HASH}" SK2_GIT_HASH_LENGTH)
+    if(NOT SK2_GIT_HASH_RESULT EQUAL 0 OR SK2_GIT_HASH_LENGTH LESS 4 OR NOT SK2_GIT_HASH MATCHES "^[0-9a-fA-F]+$")
+        message(FATAL_ERROR "GAME_VERSION is unset and the current Git commit could not be read.")
+    endif()
+    if(NOT SK2_GIT_TAGS_RESULT EQUAL 0)
+        message(FATAL_ERROR "GAME_VERSION is unset and the repository's Git tags could not be read.")
+    endif()
+
+    string(REPLACE "\r" "" SK2_GIT_TAGS "${SK2_GIT_TAGS}")
+    string(REPLACE "\n" ";" SK2_GIT_TAG_LIST "${SK2_GIT_TAGS}")
+    foreach(SK2_GIT_TAG IN LISTS SK2_GIT_TAG_LIST)
+        if(SK2_GIT_TAG MATCHES "^v[0-9]+\\.[0-9]+\\.[0-9]+$")
+            string(SUBSTRING "${SK2_GIT_TAG}" 1 -1 SK2_RELEASE_VERSION)
+            break()
+        endif()
+    endforeach()
+
+    if(NOT DEFINED SK2_RELEASE_VERSION)
+        message(FATAL_ERROR
+            "GAME_VERSION is unset and no reachable vX.Y.Z release tag was found. "
+            "Fetch tags or set GAME_VERSION explicitly."
+        )
+    endif()
+
+    math(EXPR SK2_GIT_HASH_SUFFIX_OFFSET "${SK2_GIT_HASH_LENGTH} - 4")
+    string(SUBSTRING "${SK2_GIT_HASH}" "${SK2_GIT_HASH_SUFFIX_OFFSET}" 4 SK2_GIT_HASH_SUFFIX)
+    set(SK2_GAME_VERSION "${SK2_RELEASE_VERSION}+${SK2_GIT_HASH_SUFFIX}")
+endif()
+
+if(NOT SK2_GAME_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+([+-][0-9A-Za-z.-]+)?$")
+    message(FATAL_ERROR
+        "Invalid GAME_VERSION '${SK2_GAME_VERSION}'. "
+        "Expected X.Y.Z with an optional -suffix or +suffix."
+    )
+endif()
+
+message(STATUS "Snowboard Kids 2 game version: ${SK2_GAME_VERSION}")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+configure_file(
+    "${CMAKE_SOURCE_DIR}/cmake/sk2_game_version.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/sk2_game_version.h"
+    @ONLY
+)
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-everything /W4")
 endif()
@@ -203,6 +277,7 @@ target_include_directories(SnowboardKids2Recompiled PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/freetype-windows-binaries/include
     ${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib/nativefiledialog-extended/src/include
     ${CMAKE_BINARY_DIR}/shaders
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 

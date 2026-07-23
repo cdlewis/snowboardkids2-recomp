@@ -46,6 +46,7 @@
 #include "mods/snowboardkids2_mod_template.h"
 #include "mods/snowboardkids2_randomizer.h"
 #include "mods/snowboardkids2_time_trial.h"
+#include "sk2_game_version.h"
 #include "sk2_launcher.h"
 #include "sk2_theme.h"
 
@@ -58,7 +59,7 @@
 
 #include "../../lib/rt64/src/contrib/stb/stb_image.h"
 
-const std::string version_string = "1.0.5";
+const std::string version_string = sk2_game_version;
 constexpr int sk2_max_players = 4;
 
 template <typename... Ts> void exit_error(const char* str, Ts... args) {

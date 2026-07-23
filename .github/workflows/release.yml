@@ -36,6 +36,7 @@ jobs:
     with:
       BUILD_TYPES: '["Release"]'
       WINDOWS_BUILD_TYPES: '["RelWithDebInfo"]'
+      GAME_VERSION: ${{ inputs.tag }}
     secrets: inherit
 
   release:

@@ -32,6 +32,11 @@ on:
           - RelWithDebInfo
           - Release
           - Debug
+      game_version:
+        description: "Game version override, e.g. v1.0.6 (blank uses the current commit)"
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -44,4 +49,5 @@ jobs:
       BUILD_TYPES: ${{ format('["{0}"]', inputs.build_type) }}
       WINDOWS_BUILD_TYPES: ${{ format('["{0}"]', inputs.windows_build_type) }}
       PLATFORMS: ${{ inputs.platform == 'all' && '["linux","linux-arm64","linux-flatpak","windows","macos"]' || format('["{0}"]', inputs.platform) }}
+      GAME_VERSION: ${{ inputs.game_version }}
     secrets: inherit
