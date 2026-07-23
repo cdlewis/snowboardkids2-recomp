@@ -44,6 +44,7 @@
 #include "librecomp/helpers.hpp"
 
 #include "mods/snowboardkids2_mod_template.h"
+#include "mods/snowboardkids2_randomizer.h"
 #include "mods/snowboardkids2_time_trial.h"
 #include "sk2_launcher.h"
 #include "sk2_theme.h"
@@ -707,6 +708,9 @@ int main(int argc, char** argv) {
     recomp::mods::register_embedded_mod(
         "snowboardkids2_mod_template",
         { reinterpret_cast<const uint8_t*>(snowboardkids2_mod_template), snowboardkids2_mod_template_size });
+    recomp::mods::register_embedded_mod(
+        "snowboardkids2_randomizer",
+        { reinterpret_cast<const uint8_t*>(snowboardkids2_randomizer), snowboardkids2_randomizer_size });
     recomp::mods::register_embedded_mod(
         "snowboardkids2_time_trial",
         { reinterpret_cast<const uint8_t*>(snowboardkids2_time_trial), snowboardkids2_time_trial_size });
