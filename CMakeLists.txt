@@ -367,7 +367,10 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(SDL2 REQUIRED)
     find_package(X11 REQUIRED)
 
-    add_compile_definitions("RT64_SDL_WINDOW_VULKAN")
+    add_compile_definitions(
+        "PLUME_SDL_VULKAN_ENABLED"
+        "RT64_SDL_WINDOW_VULKAN"
+    )
 
     # Generate icon_bytes.c from the app icon PNG.
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.c ${CMAKE_CURRENT_BINARY_DIR}/icon_bytes.h
