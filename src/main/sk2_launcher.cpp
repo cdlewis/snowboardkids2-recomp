@@ -285,9 +285,11 @@ void on_launcher_init(recompui::LauncherMenu* menu) {
 
     auto* background = context.create_element<Image>(menu, launcher_background_src);
     background->set_position(Position::Absolute);
-    background->set_inset(0.0f);
+    background->set_top(50.0f, Unit::Percent);
+    background->set_left(0.0f);
     background->set_width(100.0f, Unit::Percent);
-    background->set_height(100.0f, Unit::Percent);
+    background->set_height_auto();
+    background->set_translate_2D(0.0f, -50.0f, Unit::Percent);
     background->set_pointer_events(PointerEvents::None);
 
     auto* logo = context.create_element<Image>(menu, launcher_logo_src);
