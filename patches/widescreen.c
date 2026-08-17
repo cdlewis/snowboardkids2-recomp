@@ -12,7 +12,7 @@
 #include "transform_ids.h"
 
 extern float recomp_get_target_aspect_ratio(float original);
-extern s32 recomp_get_vertical_2p_split_screen_enabled(void);
+extern s32 gRaceUsesVerticalTwoPlayerSplit;
 
 #define RACE_SPLITSCREEN_INSET_QUADRANT_CENTER_X 0x49
 #define RACE_SPLITSCREEN_INSET_HALF_CENTER_Y 0x35
@@ -47,7 +47,7 @@ static s32 getRacePlayerViewportIndex(ViewportNode* node) {
 static s32 usesVerticalTwoPlayerSplit(ViewportNode* node) {
     s32 playerIndex = getRacePlayerViewportIndex(node);
 
-    return recomp_get_vertical_2p_split_screen_enabled() && playerIndex >= 0 && playerIndex < 2;
+    return gRaceUsesVerticalTwoPlayerSplit && playerIndex >= 0 && playerIndex < 2;
 }
 
 static void convertTwoPlayerViewportToVertical(

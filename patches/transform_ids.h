@@ -19,4 +19,6 @@ typedef struct {
 void resetProjectionIds(void);
 void setViewportProjectionTransformId(ViewportNode *node, s32 projectionTransformId);
 s32 getViewportProjectionTransformId(ViewportNode *node);
+void setViewportProjectionCenteredFixedAspectBySlot(u16 slot);
+s32 viewportProjectionUsesCenteredFixedAspect(ViewportNode *node);
 ViewportCameraSkipState *getViewportCameraSkipState(ViewportNode *node);

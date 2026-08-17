@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "transform_ids.h"
 
 #include "ui/character_select_ui.h"
 #include "ui/level_preview_3d.h"
@@ -135,6 +136,12 @@ RECOMP_PATCH void updateCharSelectPreviewModel(CharSelectPreviewModel *arg0) {
     u16 val;
 
     state = (GameState *)getCurrentAllocation();
+
+    /*
+     * @recomp board-select models are authored inside fixed 4:3 UI cells. Keep their perspective viewport in that
+     * coordinate space and centre that plane with the surrounding UI instead of expanding or left-anchoring it.
+     */
+    setViewportProjectionCenteredFixedAspectBySlot(arg0->playerIndex);
 
     newSelState = state->iconDisplayState[arg0->playerIndex];
     prevSelState = arg0->selectionState;

@@ -14,17 +14,31 @@
 #define CAMERA_ROT_CUT_ANGLE DEGREES_TO_GAME_ANGLE(CAMERA_ROT_CUT_DEGREES)
 #define CAMERA_ROT_MATRIX_SCALE 0x2000
 #define VIEWPORT_ALIGN_OFFSET_UNITS 4
-#define RACE_SPLIT_VIEWPORT_GAP_LEFT_EDGE ((SCREEN_WIDTH / 2) - 1)
-#define RACE_SPLIT_VIEWPORT_GAP_RIGHT_EDGE ((SCREEN_WIDTH / 2) + 1)
+#define RACE_SPLIT_VIEWPORT_GAP_LEFT_EDGE (SCREEN_WIDTH / 2)
+#define RACE_SPLIT_VIEWPORT_GAP_RIGHT_EDGE (SCREEN_WIDTH / 2)
 #define RACE_SPLIT_VIEWPORT_GAP_TOP_EDGE ((SCREEN_HEIGHT / 2) - 1)
 #define RACE_SPLIT_VIEWPORT_GAP_BOTTOM_EDGE ((SCREEN_HEIGHT / 2) + 1)
 #define G_EX_ORIGIN_LEFT_SPLIT_CENTER (G_EX_ORIGIN_CENTER / 2)
 #define G_EX_ORIGIN_RIGHT_SPLIT_CENTER (G_EX_ORIGIN_CENTER + (G_EX_ORIGIN_CENTER / 2))
+#define ORIGINAL_ASPECT (4.0f / 3.0f)
+#define VIEWPORT_CENTER_X (SCREEN_WIDTH / 2)
+#define VIEWPORT_CENTER_X_FIXED (VIEWPORT_CENTER_X * 4)
+
+#define gEXSetScissorAlignFixed(cmd, lorigin, rorigin, ulxOffset, ulyOffset, lrxOffset, lryOffset, ulxBound,          \
+                                ulyBound, lrxBound, lryBound)                                                        \
+    G_EX_COMMAND3(cmd,                                                                                              \
+                  PARAM(RT64_EXTENDED_OPCODE, 8, 24) | PARAM(G_EX_SETSCISSORALIGN_V1, 24, 0),                     \
+                  PARAM(lorigin, 12, 0) | PARAM(rorigin, 12, 12),                                                   \
+                  PARAM(ulxOffset, 16, 16) | PARAM(ulyOffset, 16, 0),                                               \
+                  PARAM(lrxOffset, 16, 16) | PARAM(lryOffset, 16, 0),                                               \
+                  PARAM(ulxBound, 16, 16) | PARAM(ulyBound, 16, 0),                                                 \
+                  PARAM(lrxBound, 16, 16) | PARAM(lryBound, 16, 0))
 
 s32 cur_perspective_projection_transform_id = 0;
 s32 skip_perspective_interpolation = FALSE;
 s32 cur_modelview_race_viewport_index = -1;
 
+extern float recomp_get_target_aspect_ratio(float original);
 extern void *gDramStack;
 extern void *gOutputBuffer;
 extern void *gYieldBuffer;
@@ -63,14 +77,54 @@ static s32 isRacePlayerViewportNode(ViewportNode *node) {
     return isRacePlayerProjectionTransformId(getViewportProjectionTransformId(node));
 }
 
-static void setDefaultViewportAlignment(void) {
+static s32 isRaceSplitColumnViewport(ViewportNode *node) {
+    if (getRacePlayerViewportIndex(node) < 0) {
+        return FALSE;
+    }
+
+    return (node->clipLeft <= 0 && node->clipRight <= VIEWPORT_CENTER_X) ||
+           (node->clipLeft >= VIEWPORT_CENTER_X && node->clipRight >= SCREEN_WIDTH);
+}
+
+static s32 roundFloatToS32(f32 value) {
+    return (s32)(value + ((value >= 0.0f) ? 0.5f : -0.5f));
+}
+
+static void adjustRaceSplitColumnViewport(Vp *viewport) {
+    f32 targetAspect = recomp_get_target_aspect_ratio(ORIGINAL_ASPECT);
+    f32 scale = targetAspect / ORIGINAL_ASPECT;
+
+    viewport->vp.vscale[0] = roundFloatToS32(viewport->vp.vscale[0] * scale);
+
+    // @recomp gEXViewport adds the selected origin to vtrans. Store the translation relative to the native screen
+    // centre; RT64 maps aspect-adjusted projection origins across the full output independently of the HUD safe area.
+    viewport->vp.vtrans[0] = roundFloatToS32((viewport->vp.vtrans[0] - VIEWPORT_CENTER_X_FIXED) * scale);
+}
+
+static void setNativeScissorAlignment(void) {
     gEXSetScissorAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0, 0, 0, SCREEN_WIDTH,
                        SCREEN_HEIGHT);
+}
+
+static void setDefaultViewportAlignment(void) {
+    setNativeScissorAlignment();
     gEXSetViewportAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_NONE, 0, 0);
 }
 
-static void setRacePlayerViewportAlignment(ViewportNode *node) {
+static void setCenteredFixedAspectViewportAlignment(void) {
+    gEXSetScissorAlignFixed(gDisplayListAllocPtr++, G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER,
+                            -SCREEN_WIDTH * 2, 0, -SCREEN_WIDTH * 2, 0, 0, 0, SCREEN_WIDTH * 4,
+                            SCREEN_HEIGHT * 4);
+    gEXSetViewportAlign(gDisplayListAllocPtr++, G_EX_ORIGIN_CENTER, -SCREEN_WIDTH * 2, 0);
+}
+
+static void setViewportAlignment(ViewportNode *node) {
+    // @recomp map the original viewport scissors onto RT64's extended origins for widescreen rendering.
     if (!isRacePlayerViewportNode(node)) {
+        if (viewportProjectionUsesCenteredFixedAspect(node)) {
+            setCenteredFixedAspectViewportAlignment();
+            return;
+        }
         setDefaultViewportAlignment();
         return;
     }
@@ -94,6 +148,7 @@ static void setRacePlayerViewportAlignment(ViewportNode *node) {
 }
 
 static void applyRaceSplitViewportGap(ViewportNode *node) {
+    // @recomp keep adjacent column viewports flush; the fixed-width vertical divider is drawn as a HUD overlay.
     if (!isRacePlayerViewportNode(node)) {
         return;
     }
@@ -178,24 +233,30 @@ static s32 updateCameraSkipState(ViewportNode *node) {
 }
 
 static void tagPerspectiveProjection(ViewportNode *node) {
+    u8 aspectMode;
     s32 skipInterpolation;
+
+    aspectMode = viewportProjectionUsesCenteredFixedAspect(node) ? G_EX_ASPECT_STRETCH : G_EX_ASPECT_AUTO;
+    if (isRaceSplitColumnViewport(node)) {
+        aspectMode = G_EX_ASPECT_ADJUST;
+    }
 
     if (cur_perspective_projection_transform_id != 0) {
         skipInterpolation = updateCameraSkipState(node);
         if (skipInterpolation) {
             gEXMatrixGroupSkipAllAspect(gDisplayListAllocPtr++, cur_perspective_projection_transform_id, G_EX_NOPUSH,
-                                         G_MTX_PROJECTION, G_EX_EDIT_NONE, G_EX_ASPECT_AUTO);
+                                         G_MTX_PROJECTION, G_EX_EDIT_NONE, aspectMode);
         } else {
             gEXMatrixGroup(gDisplayListAllocPtr++, cur_perspective_projection_transform_id, G_EX_INTERPOLATE_SIMPLE,
                            G_EX_NOPUSH, G_MTX_PROJECTION, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE,
                            G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE,
                            G_EX_COMPONENT_SKIP, G_EX_COMPONENT_INTERPOLATE, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE,
-                           G_EX_ASPECT_AUTO, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO);
+                           aspectMode, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO);
         }
     } else {
         skip_perspective_interpolation = FALSE;
-        gEXMatrixGroupSimpleNormal(gDisplayListAllocPtr++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_PROJECTION,
-                                   G_EX_EDIT_NONE);
+        gEXMatrixGroupSimpleNormalAspect(gDisplayListAllocPtr++, G_EX_ID_AUTO, G_EX_NOPUSH, G_MTX_PROJECTION,
+                                         G_EX_EDIT_NONE, aspectMode);
     }
 }
 
@@ -238,7 +299,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
 
         resetLinearAllocator();
 
-        // @recomp reset projection metadata
+        // @recomp discard projection metadata when the original function skips the frame.
         resetProjectionIds();
 
         return;
@@ -338,6 +399,8 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
     if (node != NULL) {
         for (node = rootNode; node != NULL; node = node->list3_next) {
             gActiveViewport = (ActiveViewportState *)node;
+
+            // @recomp preserve the original two-pixel race divider after widescreen viewport expansion.
             applyRaceSplitViewportGap(node);
 
             if (!isRegionAllocSpaceLow() && node->clipLeft < node->clipRight && node->clipTop < node->clipBottom) {
@@ -354,7 +417,8 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                     gDPPipeSync(gDisplayListAllocPtr++);
                 }
 
-                setRacePlayerViewportAlignment(node);
+                // @recomp align the original scissor and viewport coordinates to RT64's widescreen origins.
+                setViewportAlignment(node);
                 gDPSetScissor(gDisplayListAllocPtr++, G_SC_NON_INTERLACE, node->clipLeft, node->clipTop,
                               node->clipRight, node->clipBottom);
 
@@ -411,6 +475,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                 if (node->viewportFlags == 0) {
                     gDPSetColorDither(gDisplayListAllocPtr++, G_CD_DISABLE);
 
+                    // @recomp expose the active race-player index while preserving the original callback loop.
                     prevRaceViewportIndex = cur_modelview_race_viewport_index;
                     cur_modelview_race_viewport_index = getRacePlayerViewportIndex(node);
                     for (callbackEntry = (CallbackEntry *)node->pool; callbackEntry != NULL;
@@ -465,6 +530,11 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                     if (lookAtAlloc != NULL) {
                         memcpy(viewportAlloc, &node->viewportWidth, 16);
                         memcpy(projectionAlloc, &node->projectionMatrix, sizeof(node->projectionMatrix));
+
+                        // @recomp widen race-player column viewports to the target aspect ratio.
+                        if (isRaceSplitColumnViewport(node)) {
+                            adjustRaceSplitColumnViewport(viewportAlloc);
+                        }
 
                         lookAtAlloc[0] = ((node->viewTransform.m[0][0] << 3) & 0xFFFF0000) +
                                          (u16)(((u16)node->viewTransform.m[1][0] << 16) >> 29);
@@ -533,7 +603,12 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
 
                         gLookAtPtr = (void *)&lookAtAlloc[32];
 
-                        gSPViewport(gDisplayListAllocPtr++, viewportAlloc);
+                        // @recomp apply RT64's centered origin to widened race-player column viewports.
+                        if (isRaceSplitColumnViewport(node)) {
+                            gEXViewport(gDisplayListAllocPtr++, G_EX_ORIGIN_CENTER, viewportAlloc);
+                        } else {
+                            gSPViewport(gDisplayListAllocPtr++, viewportAlloc);
+                        }
                         gSPPerspNormalize(gDisplayListAllocPtr++, node->perspNorm);
                         gSPMatrix(gDisplayListAllocPtr++, projectionAlloc,
                                   G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_PROJECTION);
@@ -541,7 +616,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         gSPMatrix(gDisplayListAllocPtr++, &lookAtAlloc[16],
                                   G_MTX_NOPUSH | G_MTX_MUL | G_MTX_PROJECTION);
 
-                        // @recomp tag the active projection
+                        // @recomp tag the active projection so RT64 interpolates each viewport independently.
                         s32 prevProjectionTransformId = cur_perspective_projection_transform_id;
                         cur_perspective_projection_transform_id = getViewportProjectionTransformId(node);
                         tagPerspectiveProjection(node);
@@ -553,6 +628,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         goto bail;
                     }
 
+                    // @recomp expose the active race-player index while preserving the original callback loop.
                     prevRaceViewportIndex = cur_modelview_race_viewport_index;
                     cur_modelview_race_viewport_index = getRacePlayerViewportIndex(node);
                     for (callbackEntry = (CallbackEntry *)node->pool; callbackEntry != NULL;
@@ -618,6 +694,6 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
 
     resetLinearAllocator();
 
-    // @recomp reset projection metadata
+    // @recomp reset projection metadata after the original frame-rendering work completes.
     resetProjectionIds();
 }
