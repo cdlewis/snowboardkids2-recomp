@@ -9,9 +9,14 @@
 #include "patches.h"
 #include "transform_ids.h"
 
+extern s32 recomp_get_vertical_2p_split_screen_enabled(void);
+
+s32 gRaceUsesVerticalTwoPlayerSplit = FALSE;
+
 typedef struct {
     ViewportNode *node;
     s32 projectionTransformId;
+    u8 usesCenteredFixedAspect;
     ViewportCameraSkipState cameraSkipState;
 } ViewportProjectionTag;
 
@@ -26,6 +31,7 @@ static void registerViewportProjectionSlot(ViewportNode *node) {
 
     viewportProjectionTags[slot].node = node;
     viewportProjectionTags[slot].projectionTransformId = 0;
+    viewportProjectionTags[slot].usesCenteredFixedAspect = FALSE;
     viewportProjectionTags[slot].cameraSkipState.valid = FALSE;
 }
 
@@ -35,6 +41,7 @@ static void clearViewportProjectionSlot(ViewportNode *node) {
     if (viewportProjectionTags[slot].node == node) {
         viewportProjectionTags[slot].node = NULL;
         viewportProjectionTags[slot].projectionTransformId = 0;
+        viewportProjectionTags[slot].usesCenteredFixedAspect = FALSE;
         viewportProjectionTags[slot].cameraSkipState.valid = FALSE;
     }
 }
@@ -61,6 +68,23 @@ s32 getViewportProjectionTransformId(ViewportNode *node) {
     }
 
     return projectionTransformId;
+}
+
+void setViewportProjectionCenteredFixedAspectBySlot(u16 slot) {
+    if (viewportProjectionTags[slot].node != NULL) {
+        viewportProjectionTags[slot].usesCenteredFixedAspect = TRUE;
+    }
+}
+
+s32 viewportProjectionUsesCenteredFixedAspect(ViewportNode *node) {
+    u16 slot = node->callbackSlotIndex;
+    s32 usesCenteredFixedAspect = FALSE;
+
+    if (viewportProjectionTags[slot].node == node) {
+        usesCenteredFixedAspect = viewportProjectionTags[slot].usesCenteredFixedAspect;
+    }
+
+    return usesCenteredFixedAspect;
 }
 
 ViewportCameraSkipState *getViewportCameraSkipState(ViewportNode *node) {
@@ -154,6 +178,10 @@ RECOMP_PATCH void initViewportNode(ViewportNode *arg0, ViewportNode *arg1, s32 a
     registerViewportProjectionSlot(arg0);
     if (arg1 == NULL && (u32)(arg2 - 4) < 4 && arg3 == 5 && arg4_byte == 1) {
         setViewportProjectionTransformId(arg0, PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START + arg2 - 4);
+        if (arg2 == 4) {
+            // @recomp latch the split direction when the first player viewport for a new race is initialized
+            gRaceUsesVerticalTwoPlayerSplit = recomp_get_vertical_2p_split_screen_enabled();
+        }
     } else if (arg1 != NULL && (u32)arg2 < 4 && arg3 == 0xA && arg4_byte == 1 &&
                isRacePlayerParentProjectionTransformId(getViewportProjectionTransformId(arg1))) {
         setViewportProjectionTransformId(arg0, PROJECTION_RACE_PLAYER_TRANSFORM_ID_START + arg2);

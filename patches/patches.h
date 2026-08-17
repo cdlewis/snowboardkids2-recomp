@@ -75,11 +75,14 @@
                    G_EX_COMPONENT_SKIP, G_EX_ORDER_LINEAR, edit, aspect, G_EX_COMPONENT_SKIP,                  \
                    G_EX_COMPONENT_SKIP)
 
-#define gEXMatrixGroupSimpleNormal(cmd, id, push, proj, edit)                                                   \
+#define gEXMatrixGroupSimpleNormalAspect(cmd, id, push, proj, edit, aspect)                                     \
     gEXMatrixGroup(cmd, id, G_EX_INTERPOLATE_SIMPLE, push, proj, G_EX_COMPONENT_INTERPOLATE,                    \
                    G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE,          \
                    G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_INTERPOLATE,                 \
-                   G_EX_ORDER_LINEAR, edit, G_EX_ASPECT_AUTO, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO)
+                   G_EX_ORDER_LINEAR, edit, aspect, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO)
+
+#define gEXMatrixGroupSimpleNormal(cmd, id, push, proj, edit)                                                   \
+    gEXMatrixGroupSimpleNormalAspect(cmd, id, push, proj, edit, G_EX_ASPECT_AUTO)
 
 #define gEXMatrixGroupSimpleVerts(cmd, id, push, proj, edit)                                                    \
     gEXMatrixGroup(cmd, id, G_EX_INTERPOLATE_SIMPLE, push, proj, G_EX_COMPONENT_INTERPOLATE,                    \
