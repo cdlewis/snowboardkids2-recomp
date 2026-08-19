@@ -50,6 +50,7 @@ typedef enum {
 } RaceHudLayout;
 
 typedef struct {
+    s32 leftFixed;
     s32 centerFixed;
     s32 rightFixed;
 } PlayerItemGroupBounds;
@@ -270,7 +271,13 @@ static ViewportHudBounds getViewportHudBounds(void) {
     float safeHeightFraction = usesHorizontalSplit() ? 1.0f : clipHeight / (float) SCREEN_HEIGHT;
     float viewportAspect =
         targetAspect * (clipWidth / HUD_SCREEN_WIDTH) / safeHeightFraction;
-    float safeAspect = hudAspect < viewportAspect ? hudAspect : viewportAspect;
+    /*
+     * 3P/4P corner HUD belongs to each quadrant, so use the quadrant's physical aspect instead of applying
+     * the full-screen HUD safe area a second time. Keep the selected HUD ratio for single-player and 2P layouts.
+     */
+    float safeAspect = sRaceHudLayout == RACE_HUD_LAYOUT_MULTIPLAYER_GRID
+                           ? viewportAspect
+                           : (hudAspect < viewportAspect ? hudAspect : viewportAspect);
     float logicalCenter = (logicalLeft + logicalRight) * 0.5f;
     float safeHalfWidth =
         (HUD_SCREEN_WIDTH * 0.5f) * (safeAspect / targetAspect) * safeHeightFraction;
@@ -373,6 +380,12 @@ static void setViewportTopRightItemHudAlign(s32 authoredRightFixed, s16 yOffset)
     setViewportHudRectAlign(targetRight, offsetFixed, yOffset * 4);
 }
 
+static void setViewportTopLeftItemHudAlign(s32 authoredLeftFixed, s16 yOffset) {
+    ViewportHudBounds bounds = getViewportHudBounds();
+
+    setViewportHudRectAlign(bounds.safeLeftX, -authoredLeftFixed + HUD_CORNER_INSET * 4, yOffset * 4);
+}
+
 static void setSplitColumnPlayerLeftHudAlign(s16 yOffset) {
     setSplitViewportHudAlign(VIEWPORT_HUD_ANCHOR_LEFT, -HUD_CORNER_ALIGN_OFFSET, yOffset);
 }
@@ -396,39 +409,56 @@ static void setPlayerViewportBottomLeftHudAlign(SpriteRenderArg* sprite, s16 yOf
     setViewportHudRectAlign(targetLeft, -authoredLeftFixed + targetInset * 4, yOffset * 4);
 }
 
-static void setPlayerViewportTopLeftHudAlign(LapCounterMultiplayerState* state) {
+static void setPlayerViewportTopLeftLapHudAlign(LapCounterMultiplayerState* state) {
     SpriteRenderArg* icon = (SpriteRenderArg*) state;
     ViewportHudBounds bounds = getViewportHudBounds();
     f32 targetLeft = bounds.safeLeftX;
-    s32 targetInset = usesHorizontalSplit() ? HUD_CORNER_INSET : HUD_CORNER_ALIGN_OFFSET;
+    s32 targetInset = HUD_CORNER_ALIGN_OFFSET;
     s32 authoredLeftFixed = (icon->x + gTextClipAndOffsetData.offsetX) * 4;
     s32 authoredTopFixed = (icon->y + gTextClipAndOffsetData.offsetY) * 4;
-    s32 targetTopInset = HUD_HORIZONTAL_2P_LAP_TOP_INSET;
-
-    if (usesSplitScreenColumns()) {
-        /*
-         * align the lap group's visible top edge with the held-item frames in vertical 2P, 3P, and 4P.
-         * Their authored item Y differs by layout, while offsetY - clipTop describes the active viewport's local
-         * origin. Reusing the item's -8 alignment translation keeps this relationship independent of output size.
-         * Horizontal 2P intentionally retains its original compact lap inset.
-         */
-        s32 authoredItemY = usesVerticalTwoPlayerSplit() ? -0x60 : -0x30;
-        targetTopInset = authoredItemY + gTextClipAndOffsetData.offsetY - gTextClipAndOffsetData.clipTop -
+    s32 authoredItemY = usesVerticalTwoPlayerSplit() ? -0x60 : -0x30;
+    s32 targetTopInset = authoredItemY + gTextClipAndOffsetData.offsetY - gTextClipAndOffsetData.clipTop -
                          HUD_CORNER_ALIGN_OFFSET;
-    }
 
     s32 targetTopFixed = (gTextClipAndOffsetData.clipTop + targetTopInset) * 4;
 
     /*
-     * position the compact lap icon and text as one authored group. Deriving the translation from the active
-     * clip and the group's actual coordinates avoids coupling viewport placement to layout-specific magic X values.
-     * Target the selected HUD safe-area edge so the lap group shares the finish-position sprite's left anchor in both
-     * two-player split layouts. Horizontal rows retain the authored 24-pixel corner inset, while vertical columns use
-     * the same compact 8-pixel inset as their right-side HUD groups. Both groups' authored left coordinates are their
-     * visible left anchors, so applying the same target inset keeps the visible lap and finish-position edges aligned.
+     * Align the lap group's visible top edge with the held-item frames in vertical 2P, 3P, and 4P. Deriving the
+     * translation from the active clip and actual group coordinates keeps it independent of output size.
      */
     setViewportHudRectAlign(targetLeft, -authoredLeftFixed + targetInset * 4,
                             -authoredTopFixed + targetTopFixed);
+}
+
+static void setPlayerViewportCenteredLapHudAlign(LapCounterMultiplayerState* state) {
+    SpriteRenderArg* icon = (SpriteRenderArg*) state;
+    SpriteFrameEntry* frame = &icon->spriteData->frames[icon->frameIndex];
+    u8* text = state->unk30.string;
+    s32 textWidth = 0;
+    s32 iconLeft = icon->x;
+    s32 iconRight = icon->x + frame->width;
+    s32 textLeft = state->unk30.x;
+    s32 textRight;
+    s32 groupLeft;
+    s32 groupRight;
+    s32 groupCenterFixed;
+    s32 authoredTopFixed = (icon->y + gTextClipAndOffsetData.offsetY) * 4;
+    s32 targetTopFixed = (gTextClipAndOffsetData.clipTop + HUD_HORIZONTAL_2P_LAP_TOP_INSET) * 4;
+
+    while (*text != '\0') {
+        if (*text >= 0x20) {
+            textWidth += 8;
+        }
+        text++;
+    }
+
+    textRight = textLeft + textWidth;
+    groupLeft = iconLeft < textLeft ? iconLeft : textLeft;
+    groupRight = iconRight > textRight ? iconRight : textRight;
+    groupCenterFixed = (groupLeft + groupRight + gTextClipAndOffsetData.offsetX * 2) * 2;
+
+    // The horizontal-2P lap icon and text form one group centred in each player viewport.
+    setViewportCenteredHudAlign(groupCenterFixed, (-authoredTopFixed + targetTopFixed) / 4);
 }
 
 static void setPlayerTopLeftHudAlign(s32 playerIndex) {
@@ -486,6 +516,14 @@ static s32 getItemGroupCenterFixed(PlayerItemDisplayState* state) {
      * visible group half a pixel left of that point, so express the visible centre directly in 10.2 coordinates.
      */
     return (left + right) * 2 + gTextClipAndOffsetData.offsetX * 4 - ITEM_GROUP_COVERED_RIGHT_EDGE_FIXED;
+}
+
+static s32 getItemGroupLeftFixed(PlayerItemDisplayState* state) {
+    SpriteRenderArg* primary = (SpriteRenderArg*) state;
+    SpriteRenderArg* secondary = (SpriteRenderArg*) &state->secondaryItemX;
+    s32 left = primary->x < secondary->x ? primary->x : secondary->x;
+
+    return (left + gTextClipAndOffsetData.offsetX) * 4;
 }
 
 static s32 getItemGroupRightFixed(PlayerItemDisplayState* state) {
@@ -610,8 +648,10 @@ static void setPlayerLapCounterMultiplayerEdgeAlign(void* arg) {
         return;
     }
 
-    if (usesSplitScreenColumns() || usesHorizontalSplit()) {
-        setPlayerViewportTopLeftHudAlign(state);
+    if (usesHorizontalSplit()) {
+        setPlayerViewportCenteredLapHudAlign(state);
+    } else if (usesSplitScreenColumns()) {
+        setPlayerViewportTopLeftLapHudAlign(state);
     } else if (!usesSplitScreenColumns()) {
         setSharedHudWidescreenAlign(G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT, -HUD_CORNER_ALIGN_OFFSET,
                                     -HUD_CORNER_ALIGN_OFFSET);
@@ -795,6 +835,7 @@ static void setPlayerGoldHudAlign(void* arg) {
 
 static void setPlayerItemHudAlign(void* arg) {
     PlayerItemDisplayState* state = arg;
+    s32 groupLeftFixed;
     s32 groupCenterFixed;
     s32 groupRightFixed;
 
@@ -802,15 +843,17 @@ static void setPlayerItemHudAlign(void* arg) {
         return;
     }
 
+    groupLeftFixed = getItemGroupLeftFixed(state);
     groupCenterFixed = getItemGroupCenterFixed(state);
     groupRightFixed = getItemGroupRightFixed(state);
+    sPlayerItemGroupBounds[state->playerIndex].leftFixed = groupLeftFixed;
     sPlayerItemGroupBounds[state->playerIndex].centerFixed = groupCenterFixed;
     sPlayerItemGroupBounds[state->playerIndex].rightFixed = groupRightFixed;
 
     if (usesSplitScreenColumns()) {
         setViewportTopRightItemHudAlign(groupRightFixed, -HUD_CORNER_ALIGN_OFFSET);
     } else if (usesHorizontalSplit()) {
-        setViewportCenteredHudAlign(groupCenterFixed, -HUD_CORNER_ALIGN_OFFSET);
+        setViewportTopLeftItemHudAlign(groupLeftFixed, -HUD_CORNER_ALIGN_OFFSET);
     } else {
         setViewportCenteredHudAlign(groupCenterFixed, 0);
     }
@@ -827,7 +870,7 @@ static void setPlayerFloatingItemHudAlign(void* arg) {
     if (usesSplitScreenColumns()) {
         setViewportTopRightItemHudAlign(sPlayerItemGroupBounds[playerIndex].rightFixed, -HUD_CORNER_ALIGN_OFFSET);
     } else if (usesHorizontalSplit()) {
-        setViewportCenteredHudAlign(sPlayerItemGroupBounds[playerIndex].centerFixed, -HUD_CORNER_ALIGN_OFFSET);
+        setViewportTopLeftItemHudAlign(sPlayerItemGroupBounds[playerIndex].leftFixed, -HUD_CORNER_ALIGN_OFFSET);
     } else {
         setViewportCenteredHudAlign(sPlayerItemGroupBounds[playerIndex].centerFixed, 0);
     }
