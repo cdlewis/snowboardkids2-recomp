@@ -1,6 +1,7 @@
 #include "patches.h"
 #include "transform_ids.h"
 
+#include "ui/character_select_gfx.h"
 #include "ui/character_select_ui.h"
 #include "ui/level_preview_3d.h"
 
@@ -124,9 +125,9 @@ void setBoardSelectSceneModelInterpolationSkip(void* model, s32 skip) {
     }
 }
 
-RECOMP_PATCH void updateCharSelectPreviewModel(CharSelectPreviewModel *arg0) {
+RECOMP_PATCH void updateCharSelectPreviewModel(CharSelectPreviewTaskState *arg0) {
     Transform3D sp10;
-    GameState *state;
+    CharacterSelectState *state;
     u8 prevSelState;
     u8 newSelState;
     u8 charIndex;
@@ -135,7 +136,7 @@ RECOMP_PATCH void updateCharSelectPreviewModel(CharSelectPreviewModel *arg0) {
     u16 rotation;
     u16 val;
 
-    state = (GameState *)getCurrentAllocation();
+    state = (CharacterSelectState *)getCurrentAllocation();
 
     /*
      * @recomp board-select models are authored inside fixed 4:3 UI cells. Keep their perspective viewport in that
@@ -143,7 +144,7 @@ RECOMP_PATCH void updateCharSelectPreviewModel(CharSelectPreviewModel *arg0) {
      */
     setViewportProjectionCenteredFixedAspectBySlot(arg0->playerIndex);
 
-    newSelState = state->iconDisplayState[arg0->playerIndex];
+    newSelState = state->iconDisplayStates[arg0->playerIndex];
     prevSelState = arg0->selectionState;
 
     if (prevSelState != newSelState) {
@@ -151,30 +152,30 @@ RECOMP_PATCH void updateCharSelectPreviewModel(CharSelectPreviewModel *arg0) {
         updateCharSelectPreviewLighting(arg0, arg0->playerIndex);
     }
 
-    charIndex = state->charSelectCharRow[arg0->playerIndex];
-    paletteIndex = state->charSelectCharCol[arg0->playerIndex];
+    charIndex = state->characterCategories[arg0->playerIndex];
+    paletteIndex = state->characterVariants[arg0->playerIndex];
     assetIndex = paletteIndex + charIndex * 3;
 
     memcpy(&sp10, &identityMatrix, sizeof(Transform3D));
     memcpy(&sp10.translation, &arg0->positionMatrix.translation.x, sizeof(Vec3i));
 
-    if (state->charSelectCursorIndices[arg0->playerIndex] == state->charSelectMaxMenuOption - 1) {
-        val = state->charSelectMenuStates[arg0->playerIndex];
+    if (state->cursorIndices[arg0->playerIndex] == state->maxMenuOption - 1) {
+        val = state->menuStates[arg0->playerIndex];
         if (val != 1) {
-            rotation = state->charSelectPreviewAngles[arg0->playerIndex];
+            rotation = state->previewSpinAngles[arg0->playerIndex];
             createYRotationMatrix(&arg0->positionMatrix, rotation);
             goto after_rotation;
         }
     }
 
-    rotation = state->charSelectCarouselAngles[arg0->playerIndex];
+    rotation = state->carouselAngles[arg0->playerIndex];
     createYRotationMatrix(&arg0->positionMatrix, (0x2000 - rotation) & 0xFFFF);
 
 after_rotation:
     composeTransform3D(&arg0->rotationMatrix, &arg0->positionMatrix, &sp10);
-    composeTransform3D(&sp10, &state->charSelectRotations[arg0->playerIndex], (Transform3D *)arg0);
+    composeTransform3D(&sp10, &state->characterRotations[arg0->playerIndex], &arg0->displayObject.transform);
 
-    val = state->charSelectMenuStates[arg0->playerIndex];
+    val = state->menuStates[arg0->playerIndex];
     
     // @recomp Track board-select menu transitions that teleport this preview model.
     if (sLastCharPreviewMenuState[arg0->playerIndex] != val) {
@@ -182,24 +183,24 @@ after_rotation:
         sLastCharPreviewMenuState[arg0->playerIndex] = val;
 
         if (isBoardSelectSkipTransition(oldState, val)) {
-            setBoardSelectObjectInterpolationSkip(arg0, TRUE);
+            setBoardSelectObjectInterpolationSkip(&arg0->displayObject, TRUE);
         }
     }
 
     if (val == 4 || val == 9) {
-        arg0->animationAsset = freeNodeMemory(arg0->animationAsset);
-        arg0->skeletonAsset = freeNodeMemory(arg0->skeletonAsset);
-        arg0->paletteAsset = freeNodeMemory(arg0->paletteAsset);
+        arg0->displayObject.segment1 = freeNodeMemory(arg0->displayObject.segment1);
+        arg0->displayObject.segment2 = freeNodeMemory(arg0->displayObject.segment2);
+        arg0->displayObject.segment3 = freeNodeMemory(arg0->displayObject.segment3);
         setCallback(initCharSelectSlidePosition);
     } else {
         if (assetIndex != arg0->charPaletteIndex) {
             arg0->charPaletteIndex = assetIndex;
-            arg0->animationAsset = freeNodeMemory(arg0->animationAsset);
-            arg0->skeletonAsset = freeNodeMemory(arg0->skeletonAsset);
-            arg0->paletteAsset = freeNodeMemory(arg0->paletteAsset);
+            arg0->displayObject.segment1 = freeNodeMemory(arg0->displayObject.segment1);
+            arg0->displayObject.segment2 = freeNodeMemory(arg0->displayObject.segment2);
+            arg0->displayObject.segment3 = freeNodeMemory(arg0->displayObject.segment3);
             setCallback(reloadCharSelectPreviewAssets);
         } else {
-            enqueueDisplayListObjectWithLights(arg0->playerIndex, (DisplayListObject *)arg0);
+            enqueueDisplayListObjectWithLights(arg0->playerIndex, &arg0->displayObject);
         }
     }
 }
@@ -207,28 +208,28 @@ after_rotation:
 RECOMP_PATCH void updateCharSelectBoardPreview(CharSelectBoardPreview *arg0) {
     Transform3D localMatrix;
     Transform3D *localPtr;
-    GameState *state;
+    CharacterSelectState *state;
     Transform3D *transformPtr;
     u16 rotation;
     u16 val;
 
-    state = (GameState *)getCurrentAllocation();
+    state = (CharacterSelectState *)getCurrentAllocation();
 
     localPtr = &localMatrix;
     memcpy(localPtr, &identityMatrix, sizeof(Transform3D));
 
     transformPtr = &arg0->transform;
-    rotation = state->charSelectCarouselAngles[arg0->playerIndex];
+    rotation = state->carouselAngles[arg0->playerIndex];
     createYRotationMatrix(transformPtr, 0x2000 - rotation);
 
-    composeTransform3D(transformPtr, &state->charSelectRotations[arg0->playerIndex], localPtr);
+    composeTransform3D(transformPtr, &state->characterRotations[arg0->playerIndex], localPtr);
 
     applyTransformToModel(arg0->model, localPtr);
 
     clearModelRotation(arg0->model);
     updateModelGeometry(arg0->model);
 
-    val = state->charSelectMenuStates[arg0->playerIndex];
+    val = state->menuStates[arg0->playerIndex];
     
     // @recomp Track board-select menu transitions that teleport this preview model.
     if (sLastBoardPreviewMenuState[arg0->playerIndex] != val) {
@@ -252,12 +253,12 @@ RECOMP_PATCH void cleanupCharSelectBoardModel(CharSelectBoardPreview *preview) {
     destroySceneModel(preview->model);
 }
 
-RECOMP_PATCH void cleanupCharSelectPreviewAssets(CharSelectPreviewModel *arg0) {
+RECOMP_PATCH void cleanupCharSelectPreviewAssets(CharSelectPreviewTaskState *arg0) {
     // @recomp Clear any pending skip tag for this display object before its assets are released.
-    setBoardSelectObjectInterpolationSkip(arg0, FALSE);
-    arg0->animationAsset = freeNodeMemory(arg0->animationAsset);
-    arg0->skeletonAsset = freeNodeMemory(arg0->skeletonAsset);
-    arg0->paletteAsset = freeNodeMemory(arg0->paletteAsset);
+    setBoardSelectObjectInterpolationSkip(&arg0->displayObject, FALSE);
+    arg0->displayObject.segment1 = freeNodeMemory(arg0->displayObject.segment1);
+    arg0->displayObject.segment2 = freeNodeMemory(arg0->displayObject.segment2);
+    arg0->displayObject.segment3 = freeNodeMemory(arg0->displayObject.segment3);
 }
 
 RECOMP_PATCH SceneModel *cleanupSceneModelHolder(SceneModel **arg0) {

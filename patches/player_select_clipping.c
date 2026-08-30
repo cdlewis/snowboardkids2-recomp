@@ -43,10 +43,10 @@ RECOMP_PATCH void renderScaledShadedSpriteFrame(ScaledSpriteArg *sprite) {
         paletteIndex = sprite->overridePaletteCount - 1;
     }
 
-    if (sprite->renderWidth > 0x7FFF || sprite->renderWidth == 0) {
+    if (sprite->scaleX > 0x7FFF || sprite->scaleX == 0) {
         return;
     }
-    if (sprite->renderHeight > 0x7FFF || sprite->renderHeight == 0) {
+    if (sprite->scaleY > 0x7FFF || sprite->scaleY == 0) {
         return;
     }
 
@@ -55,12 +55,12 @@ RECOMP_PATCH void renderScaledShadedSpriteFrame(ScaledSpriteArg *sprite) {
     sprite->tileMode = sprite->tileMode & 3;
 
     widthTimes4 = frameEntry->width << 2;
-    scaleW = (frameEntry->width << 12) / sprite->renderWidth;
-    scaleH = (frameEntry->height << 12) / sprite->renderHeight;
+    scaleW = (frameEntry->width << 12) / sprite->scaleX;
+    scaleH = (frameEntry->height << 12) / sprite->scaleY;
 
     left = (sprite->x * 4) - ((u32)scaleW >> 1) + (gTextClipAndOffsetData.offsetX * 4);
     top = (sprite->y * 4) - ((u32)scaleH >> 1) + (gTextClipAndOffsetData.offsetY * 4);
-    renderHeight = sprite->renderHeight;
+    renderHeight = sprite->scaleY;
     if (renderHeight == 0x500) {
         // @recomp Align the scaled player-count portraits to whole pixels so RT64 does not skip the top texels.
         top &= ~3;
@@ -125,11 +125,11 @@ RECOMP_PATCH void renderScaledShadedSpriteFrame(ScaledSpriteArg *sprite) {
             (gfx + 2)->words.w0 = 0xFA000000;
 
             {
-                u8 shade = sprite->shade;
+                u8 shade = sprite->mode.shaded.shade.components.intensity;
                 (gfx + 2)->words.w1 = (shade << 24) | (shade << 16) | (shade << 8) | 0xFF;
             }
 
-            if (sprite->renderWidth != 0x400 || sprite->renderHeight != sprite->renderWidth) {
+            if (sprite->scaleX != 0x400 || sprite->scaleY != sprite->scaleX) {
                 gDisplayListAllocPtr = (Gfx *)((s32)gfx + 0x20);
                 (gfx + 3)->words.w0 = 0xE200001C;
                 (gfx + 3)->words.w1 = 0x0F0A7008;
@@ -180,14 +180,14 @@ RECOMP_PATCH void renderScaledShadedSpriteFrame(ScaledSpriteArg *sprite) {
             G_TX_RENDERTILE,
             clipOffsetX << 3,
             clipOffsetY << 3,
-            (s16)scaleS * sprite->renderWidth,
+            (s16)scaleS * sprite->scaleX,
             (s16)scaleT * renderHeight
         );
 
         gDPPipeSync(gDisplayListAllocPtr++);
         gDPSetCombineMode(gDisplayListAllocPtr++, G_CC_DECALRGBA, G_CC_DECALRGBA);
 
-        if (sprite->renderWidth != 0x400 || sprite->renderHeight != sprite->renderWidth) {
+        if (sprite->scaleX != 0x400 || sprite->scaleY != sprite->scaleX) {
             Gfx *_g2 = gDisplayListAllocPtr++;
             _g2->words.w0 = 0xE200001C;
             _g2->words.w1 = 0x503048;

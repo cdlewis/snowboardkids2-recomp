@@ -51,7 +51,7 @@ void initGraphicsArenas(void);
 void initGraphicsSystem(void);
 
 RECOMP_PATCH void initDisplayBuffers(void) {
-    DisplayBufferMsg* msg;
+    DisplayBufferTask* msg;
     u8 exists;
     s32 i;
     Gfx* gfx;
@@ -73,7 +73,7 @@ RECOMP_PATCH void initDisplayBuffers(void) {
     __additional_scanline_0 = 0;
     gDisplayFramePending = 0;
 
-    gDisplayBufferMsgs = msg = allocateMemoryNode(0, 3 * sizeof(DisplayBufferMsg), &exists);
+    gDisplayBufferMsgs = msg = allocateMemoryNode(0, 3 * sizeof(DisplayBufferTask), &exists);
 
     for (i = 0; i < 3; msg++, i++) {
         gfx = msg->displayList;
@@ -93,44 +93,45 @@ RECOMP_PATCH void initDisplayBuffers(void) {
         // @recomp remove call to gDPFullSync, we'll do this once at the end
         gSPEndDisplayList(gfx++);
 
-        msg->yield_data_ptr = &gAuxFrameBuffers[i];
-        msg->unk4C = 0;
-        msg->unk4E = 2;
+        msg->graphicsTask.framebuffer = &gAuxFrameBuffers[i];
+        msg->graphicsTask.frameIndex = 0;
+        msg->graphicsTask.flags = 2;
 
-        msg->data_ptr = msg->displayList;
-        msg->data_size = 0x70; // @recomp adjust message size to reflect missing gDPFullSync
-        msg->type = 1;
-        msg->flags = 0;
-        msg->ucode_boot = rspbootTextStart;
+        msg->graphicsTask.task.t.data_ptr = (u64*) msg->displayList;
+        // @recomp adjust message size to reflect missing gDPFullSync
+        msg->graphicsTask.task.t.data_size = 0x70;
+        msg->graphicsTask.task.t.type = 1;
+        msg->graphicsTask.task.t.flags = 0;
+        msg->graphicsTask.task.t.ucode_boot = (u64*) rspbootTextStart;
 
-        msg->ucode_boot_size = (u32) aspMainTextStart;
-        msg->ucode_boot_size = msg->ucode_boot_size - ((u32) rspbootTextStart);
+        msg->graphicsTask.task.t.ucode_boot_size = (u32) aspMainTextStart;
+        msg->graphicsTask.task.t.ucode_boot_size -= (u32) rspbootTextStart;
 
-        msg->ucode = microcodeGroups[1].ucode;
-        msg->output_buff_size = microcodeGroups[1].ucode_data;
-        msg->ucode_data_size = 0x800;
-        msg->ucode_data = gDramStack;
-        msg->dram_stack_size = 0x400;
-        msg->dram_stack = gOutputBuffer;
-        msg->task_2C = (u32) msg->dram_stack + 0x10000;
-        msg->output_buff = gYieldBuffer;
-        msg->yield_data_size = 0xC00;
+        msg->graphicsTask.task.t.ucode = microcodeGroups[1].ucode;
+        msg->graphicsTask.task.t.ucode_data = microcodeGroups[1].ucode_data;
+        msg->graphicsTask.task.t.ucode_data_size = 0x800;
+        msg->graphicsTask.task.t.dram_stack = gDramStack;
+        msg->graphicsTask.task.t.dram_stack_size = 0x400;
+        msg->graphicsTask.task.t.output_buff = gOutputBuffer;
+        msg->graphicsTask.task.t.output_buff_size = (u64*) ((u32) gOutputBuffer + 0x10000);
+        msg->graphicsTask.task.t.yield_data_ptr = gYieldBuffer;
+        msg->graphicsTask.task.t.yield_data_size = 0xC00;
     }
 }
 
 RECOMP_PATCH void processDisplayFrameUpdate(void) {
     ViewportNode* node;
     ViewportNode* temp;
-    FrameCallbackMsg* firstMsg = NULL;
-    FrameCallbackMsg* lastMsg = NULL;
-    FrameCallbackMsg* initMsg;
+    GraphicsTask* firstMsg = NULL;
+    GraphicsTask* lastMsg = NULL;
+    GraphicsTask* initMsg;
     Gfx* mergedDL = NULL;
     Gfx* mergedGfx = NULL;
     s32 msgCount = 0;
     s32 groupCount = 0;
     s32 nextDisplayBufferIndex;
 
-    temp = gRootViewport.list3_next;
+    temp = gRootViewport.renderNext;
     gDisplayFramePending = 0;
     if (temp == NULL) {
         temp = &gRootViewport;
@@ -141,10 +142,10 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
     // that embeds the next framebuffer-init task before the grouped draws.
     node = temp;
     while (node != NULL) {
-        FrameCallbackMsg* msg = node->frameCallbackMsg;
+        GraphicsTask* msg = node->graphicsTask;
 
         if (msg != NULL) {
-            Gfx* wrapper = (Gfx*) msg->t.t.data_ptr;
+            Gfx* wrapper = (Gfx*) msg->task.t.data_ptr;
 
             msgCount++;
             // @recomp Only merge patched wrappers whose second command jumps to the real draw list.
@@ -157,33 +158,33 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
             }
         }
 
-        node = node->list3_next;
+        node = node->renderNext;
     }
     if ((groupCount > 1) && (groupCount == msgCount)) {
         nextDisplayBufferIndex = gCurrentDisplayBufferIndex + 1;
         if (nextDisplayBufferIndex >= 3) {
             nextDisplayBufferIndex = 0;
         }
-        initMsg = (FrameCallbackMsg*) ((u8*) gDisplayBufferMsgs + (nextDisplayBufferIndex * 0x150));
+        initMsg = (GraphicsTask*) ((u8*) gDisplayBufferMsgs + (nextDisplayBufferIndex * sizeof(DisplayBufferTask)));
 
         mergedDL = (Gfx*) arenaAlloc16(48 * (s32) sizeof(Gfx));
         mergedGfx = mergedDL;
         gEXEnable(mergedGfx++);
-        gSPDisplayList(mergedGfx++, initMsg->t.t.data_ptr);
+        gSPDisplayList(mergedGfx++, initMsg->task.t.data_ptr);
     }
 
     node = temp;
     if (node != NULL) {
         do {
-            if (node->frameCallbackMsg != NULL) {
+            if (node->graphicsTask != NULL) {
                 // @recomp Merge multi-group frames instead of submitting one task per group.
                 if ((groupCount > 1) && (groupCount == msgCount)) {
-                    Gfx* wrapper = (Gfx*) node->frameCallbackMsg->t.t.data_ptr;
+                    Gfx* wrapper = (Gfx*) node->graphicsTask->task.t.data_ptr;
 
                     Gfx* gfx = mergedGfx;
                     u32 drawsAddr = wrapper[1].words.w1;
 
-                    gSPLoadUcode(gfx++, node->frameCallbackMsg->t.t.ucode, node->frameCallbackMsg->t.t.ucode_data);
+                    gSPLoadUcode(gfx++, node->graphicsTask->task.t.ucode, node->graphicsTask->task.t.ucode_data);
                     gSPSegment(gfx++, 0, 0);
                     gSPDisplayList(gfx++, drawsAddr);
 
@@ -191,28 +192,28 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
                     gFrameBufferFlags[gCurrentDoubleBufferIndex] = 1;
                 } else {
                     gFrameBufferFlags[gCurrentDoubleBufferIndex] = 1;
-                    submitDisplayTask((OSMesg) node->frameCallbackMsg);
+                    submitDisplayTask((OSMesg) node->graphicsTask);
                 }
             }
-            node = node->list3_next;
+            node = node->renderNext;
         } while (node != NULL);
     }
     // @recomp submit a single, merged task list if there was more than one task
     if ((groupCount > 1) && (groupCount == msgCount)) {
-        FrameCallbackMsg* msg = firstMsg;
+        GraphicsTask* msg = firstMsg;
 
         gDPFullSync(mergedGfx++);
         gSPEndDisplayList(mergedGfx++);
 
-        msg->t.t.ucode = (u64*) gspF3DEX2_fifoTextStart;
-        msg->t.t.ucode_data = (u64*) gspF3DEX2_fifoDataStart;
-        msg->t.t.data_ptr = (u64*) mergedDL;
-        msg->t.t.data_size = (u32) ((u8*) mergedGfx - (u8*) mergedDL);
+        msg->task.t.ucode = (u64*) gspF3DEX2_fifoTextStart;
+        msg->task.t.ucode_data = (u64*) gspF3DEX2_fifoDataStart;
+        msg->task.t.data_ptr = (u64*) mergedDL;
+        msg->task.t.data_size = (u32) ((u8*) mergedGfx - (u8*) mergedDL);
 
         if (lastMsg != msg) {
-            msg->taskFlags = lastMsg->taskFlags;
-            msg->msgQueue = lastMsg->msgQueue;
-            msg->msgData = lastMsg->msgData;
+            msg->flags = lastMsg->flags;
+            msg->messageQueue = lastMsg->messageQueue;
+            msg->completionMessage = lastMsg->completionMessage;
         }
 
         submitDisplayTask((OSMesg) msg);
@@ -226,6 +227,6 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
 
     if ((groupCount <= 1) || (groupCount != msgCount)) {
         // @recomp Non-merged frames submit the display-buffer init task just like the original.
-        submitDisplayTask((OSMesg) ((u8*) gDisplayBufferMsgs + (gCurrentDisplayBufferIndex * 0x150)));
+        submitDisplayTask((OSMesg) ((u8*) gDisplayBufferMsgs + (gCurrentDisplayBufferIndex * sizeof(DisplayBufferTask))));
     }
 }

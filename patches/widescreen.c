@@ -37,8 +37,8 @@ static s32 getRacePlayerViewportIndex(ViewportNode* node) {
         return transformId - PROJECTION_RACE_PLAYER_PARENT_TRANSFORM_ID_START;
     }
 
-    if (node != &gRootViewport && node->unk0.next != NULL) {
-        return getRacePlayerViewportIndex(node->unk0.next);
+    if (node != &gRootViewport && node->parent != NULL) {
+        return getRacePlayerViewportIndex(node->parent);
     }
 
     return -1;
@@ -157,8 +157,8 @@ RECOMP_PATCH void setViewportScale(ViewportNode *arg0, f32 scaleX, f32 scaleY) {
     }
 
     arg0->scaleY = scaleY;
-    arg0->viewportWidth = (s16)(scaleX * 640.0f);
-    arg0->viewportHeight = (s16)(scaleY * 480.0f);
+    arg0->viewport.vp.vscale[0] = (s16)(scaleX * 640.0f);
+    arg0->viewport.vp.vscale[1] = (s16)(scaleY * 480.0f);
 }
 
 RECOMP_PATCH void setViewportPerspective(ViewportNode *node, f32 fov, f32 aspect, f32 near, f32 far) {
@@ -196,7 +196,7 @@ RECOMP_PATCH void updateViewportBounds(void) {
 
     if (node != NULL) {
         do {
-            childNode = node->unk0.next;
+            childNode = node->parent;
             if (childNode != NULL) {
                 inheritedCenterX = childNode->offsetX;
                 inheritedCenterY = childNode->offsetY;
@@ -207,8 +207,8 @@ RECOMP_PATCH void updateViewportBounds(void) {
             }
             node->offsetX = inheritedCenterX + (u16)node->originX;
             node->offsetY = inheritedCenterY + (u16)node->originY;
-            node->unkD0 = node->offsetX * 4;
-            node->unkD2 = node->offsetY * 4;
+            node->viewport.vp.vtrans[0] = node->offsetX * 4;
+            node->viewport.vp.vtrans[1] = node->offsetY * 4;
             node->clipLeft = (u16)node->offsetX + (u16)node->viewportLeft;
             node->clipTop = (u16)node->offsetY + (u16)node->viewportTop;
             node->clipRight = (u16)node->offsetX + (u16)node->viewportRight;
@@ -233,7 +233,7 @@ RECOMP_PATCH void updateViewportBounds(void) {
             if (node->clipBottom < computedTop) {
                 node->clipBottom = computedTop;
             }
-            node = node->unk8.list2_next;
+            node = node->nextSibling;
         } while (node != NULL);
     }
 }

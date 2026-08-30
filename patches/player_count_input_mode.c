@@ -1,7 +1,7 @@
 #include "patches.h"
 #include "patch_helpers.h"
 
-#include "D_800AFE8C_A71FC_type.h"
+#include "gamestate.h"
 #include "graphics/graphics.h"
 #include "system/task_scheduler.h"
 

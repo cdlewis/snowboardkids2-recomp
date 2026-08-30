@@ -24,7 +24,7 @@ typedef struct {
 // But we're feeling generous so double to 0x20 just to be safe.
 static ViewportProjectionTag viewportProjectionTags[0x20];
 
-extern CallbackPoolSlot *gViewportCallbackPools[];
+extern ViewportNode *gViewportCallbackPools[];
 
 static void registerViewportProjectionSlot(ViewportNode *node) {
     u16 slot = node->callbackSlotIndex;
@@ -103,61 +103,61 @@ RECOMP_PATCH void initViewportNode(ViewportNode *arg0, ViewportNode *arg1, s32 a
     ViewportNode *var_a0;
     u8 arg4_byte = (u8)arg4;
 
-    gViewportCallbackPools[arg2 & 0xFFFF] = (CallbackPoolSlot *)arg0;
+    gViewportCallbackPools[arg2 & 0xFFFF] = arg0;
 
     if (arg1 == NULL) {
-        arg0->unk0.next = &gRootViewport;
-        arg0->prev = &gRootViewport;
-        temp_v0 = gRootViewport.unk8.list2_next;
-        arg0->unk8.list2_next = temp_v0;
+        arg0->parent = &gRootViewport;
+        arg0->hierarchyPrev = &gRootViewport;
+        temp_v0 = gRootViewport.nextSibling;
+        arg0->nextSibling = temp_v0;
         if (temp_v0 != NULL) {
-            temp_v0->prev = arg0;
+            temp_v0->hierarchyPrev = arg0;
         }
-        gRootViewport.unk8.list2_next = arg0;
+        gRootViewport.nextSibling = arg0;
     } else {
-        arg0->unk0.next = arg1;
-        arg0->prev = arg1;
-        temp_v0 = arg1->unk8.list2_next;
-        arg0->unk8.list2_next = temp_v0;
+        arg0->parent = arg1;
+        arg0->hierarchyPrev = arg1;
+        temp_v0 = arg1->nextSibling;
+        arg0->nextSibling = temp_v0;
         if (temp_v0 != NULL) {
-            temp_v0->prev = arg0;
+            temp_v0->hierarchyPrev = arg0;
         }
-        arg1->unk8.list2_next = arg0;
+        arg1->nextSibling = arg0;
     }
 
     var_a0 = &gRootViewport;
-    if (gRootViewport.list3_next != NULL) {
+    if (gRootViewport.renderNext != NULL) {
         do {
-            ViewportNode *temp_v1 = var_a0->list3_next;
+            ViewportNode *temp_v1 = var_a0->renderNext;
             if ((u8)arg3 < (u8)temp_v1->renderOrder) {
                 break;
             }
             var_a0 = temp_v1;
-        } while (var_a0->list3_next != NULL);
+        } while (var_a0->renderNext != NULL);
     }
 
-    arg0->list2_prev = var_a0;
-    arg0->list3_next = var_a0->list3_next;
-    var_a0->list3_next = arg0;
-    temp_v0 = arg0->list3_next;
+    arg0->renderPrev = var_a0;
+    arg0->renderNext = var_a0->renderNext;
+    var_a0->renderNext = arg0;
+    temp_v0 = arg0->renderNext;
     if (temp_v0 != NULL) {
-        temp_v0->list2_prev = arg0;
+        temp_v0->renderPrev = arg0;
     }
 
     arg0->renderOrder = (s8)arg3;
     arg0->callbackSlotIndex = (u16)arg2;
-    arg0->viewportFlags = (s8)arg4_byte;
+    arg0->uses3DRendering = (s8)arg4_byte;
     arg0->displayFlags = 0;
     arg0->viewportId = 0;
     arg0->numLights = 0;
-    arg0->viewportWidth = 0x280;
-    arg0->viewportHeight = 0x1E0;
-    arg0->unkCC = 0x1FF;
-    arg0->unkCE = 0;
-    arg0->unkD0 = 0x280;
-    arg0->unkD2 = 0x1E0;
-    arg0->unkD4 = 0x1FF;
-    arg0->unkD6 = 0;
+    arg0->viewport.vp.vscale[0] = 0x280;
+    arg0->viewport.vp.vscale[1] = 0x1E0;
+    arg0->viewport.vp.vscale[2] = 0x1FF;
+    arg0->viewport.vp.vscale[3] = 0;
+    arg0->viewport.vp.vtrans[0] = 0x280;
+    arg0->viewport.vp.vtrans[1] = 0x1E0;
+    arg0->viewport.vp.vtrans[2] = 0x1FF;
+    arg0->viewport.vp.vtrans[3] = 0;
     memcpy(&arg0->viewTransform, &identityMatrix, sizeof(Transform3D));
     guPerspective(&arg0->projectionMatrix, &arg0->perspNorm, 30.0f, 1.3333334f, 20.0f, 2000.0f, 1.0f);
     arg0->fogA = 0xFF;
@@ -195,26 +195,26 @@ RECOMP_PATCH void unlinkNode(ViewportNode *node) {
     current = &gRootViewport;
     gViewportCallbackPools[node->callbackSlotIndex] = NULL;
 
-    next = gRootViewport.unk8.list2_next;
+    next = gRootViewport.nextSibling;
     while (next != 0) {
-        if (current->unk0.next == node) {
-            current->unk0.next = node->unk0.next;
+        if (current->parent == node) {
+            current->parent = node->parent;
         }
 
-        current = current->unk8.list2_next;
-        next = current->unk8.list2_next;
+        current = current->nextSibling;
+        next = current->nextSibling;
     }
 
-    if (node->unk8.list2_next != 0) {
-        node->unk8.list2_next->prev = node->prev;
+    if (node->nextSibling != 0) {
+        node->nextSibling->hierarchyPrev = node->hierarchyPrev;
     }
 
-    node->prev->unk8.list2_next = node->unk8.list2_next;
-    if (node->list3_next != 0) {
-        node->list3_next->list2_prev = node->list2_prev;
+    node->hierarchyPrev->nextSibling = node->nextSibling;
+    if (node->renderNext != 0) {
+        node->renderNext->renderPrev = node->renderPrev;
     }
 
-    node->list2_prev->list3_next = node->list3_next;
+    node->renderPrev->renderNext = node->renderNext;
 
     // @recomp clear projection metadata
     clearViewportProjectionSlot(node);

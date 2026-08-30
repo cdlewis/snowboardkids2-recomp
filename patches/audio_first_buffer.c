@@ -1,6 +1,7 @@
 #include "patches.h"
 
 #include "abi.h"
+#include "audio/audio_manager.h"
 #include "libaudio.h"
 #include "os_ai.h"
 #include "os_convert.h"
@@ -35,7 +36,6 @@ typedef struct {
     u8 _pad58[0x18];
 } AudioStruct;
 
-extern Acmd *gAudioCmdBuffers[];
 extern s32 gAudioCmdBufferToggle;
 extern u32 gAudioBufferSize;
 extern u32 gAudioBufferPadding;
@@ -82,17 +82,17 @@ RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStr
         audioTaskDesc->frameSizeInSamples = gMinAudioFrameSize;
     }
 
-    commandBuffer = gAudioCmdBuffers[gAudioCmdBufferToggle];
+    commandBuffer = gAudioManager.commandLists[gAudioCmdBufferToggle];
     commandBufferEnd =
         alAudioFrame(commandBuffer, &commandLength, (void *)outputBuffer, audioTaskDesc->frameSizeInSamples);
     if (commandLength == 0) {
         return 0;
     }
 
-    audioTaskDesc->unk48 = &gAudioCmdBuffers[0x80];
+    audioTaskDesc->unk48 = &gAudioManager.taskDoneQueue;
     audioTaskDesc->unk4C = &audioTaskDesc->unk50;
-    audioTaskDesc->commandBuffer = gAudioCmdBuffers[gAudioCmdBufferToggle];
-    commandBufferStart = gAudioCmdBuffers[gAudioCmdBufferToggle];
+    audioTaskDesc->commandBuffer = gAudioManager.commandLists[gAudioCmdBufferToggle];
+    commandBufferStart = gAudioManager.commandLists[gAudioCmdBufferToggle];
     commandBufferSize = commandBufferEnd - commandBufferStart;
     commandBufferSize = commandBufferSize * 8;
 

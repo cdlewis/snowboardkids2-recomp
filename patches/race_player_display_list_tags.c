@@ -29,7 +29,7 @@ static void tagRacePlayerMultipartBones(DisplayListObject* displayObjects) {
 
     for (i = 0; i < gameState->numPlayers; i++) {
         player = &gameState->players[i];
-        if ((displayObjects == player->boneDisplayObjects) && (player->flyingAttackState == 0)) {
+        if ((displayObjects == player->bodyPartDisplayObjects) && (player->flyingAttackState == 0)) {
             setDisplayListObjectRacePlayerBones(displayObjects, player->playerIndex);
             return;
         }
@@ -98,14 +98,14 @@ RECOMP_PATCH void enqueuePreLitMultiPartDisplayList(s32 arg0, DisplayListObject*
     }
 
     if (renderFlags & 1) {
-        enqueueCallbackBySlotIndex(arg0 & 0xFFFF, 1, &renderMultiPartOpaqueDisplayLists, arg1);
+        pushViewportCallbackBySlot(arg0 & 0xFFFF, 1, &renderMultiPartOpaqueDisplayLists, arg1);
     }
     new_var = arg1;
     if (renderFlags & 2) {
-        enqueueCallbackBySlotIndex((arg0 & 0xFFFF) ^ 0, 3, &renderMultiPartTransparentDisplayLists, new_var);
+        pushViewportCallbackBySlot((arg0 & 0xFFFF) ^ 0, 3, &renderMultiPartTransparentDisplayLists, new_var);
     }
     if (renderFlags & 4) {
-        enqueueCallbackBySlotIndex(arg0 & 0xFFFF, 5, &renderMultiPartOverlayDisplayLists, arg1);
+        pushViewportCallbackBySlot(arg0 & 0xFFFF, 5, &renderMultiPartOverlayDisplayLists, arg1);
     }
 }
 
@@ -143,15 +143,15 @@ RECOMP_PATCH void enqueueMultiPartDisplayList(s32 arg0, DisplayListObject* arg1,
         } while (i < arg2);
     }
     if (renderFlags & 1) {
-        enqueueCallbackBySlotIndex(arg0 & 0xFFFF, 1, &renderMultiPartOpaqueDisplayListsWithLights, arg1);
+        pushViewportCallbackBySlot(arg0 & 0xFFFF, 1, &renderMultiPartOpaqueDisplayListsWithLights, arg1);
     }
     new_var = arg1;
     if (renderFlags & 2) {
-        enqueueCallbackBySlotIndex((arg0 & 0xFFFF) ^ 0, 3, &renderMultiPartTransparentDisplayListsWithLights,
+        pushViewportCallbackBySlot((arg0 & 0xFFFF) ^ 0, 3, &renderMultiPartTransparentDisplayListsWithLights,
                                    new_var);
     }
     if (renderFlags & 4) {
-        enqueueCallbackBySlotIndex(arg0 & 0xFFFF, 5, &renderMultiPartOverlayDisplayListsWithLights, arg1);
+        pushViewportCallbackBySlot(arg0 & 0xFFFF, 5, &renderMultiPartOverlayDisplayListsWithLights, arg1);
     }
 }
 
@@ -222,7 +222,7 @@ RECOMP_PATCH void renderRacerProjectedShadow(Player* player) {
         gSPMatrix(gDisplayListAllocPtr++, player->shadowMatrix, (G_MTX_NOPUSH | G_MTX_LOAD) | G_MTX_MODELVIEW);
         gGraphicsMode = -1;
         gSPDisplayList(gDisplayListAllocPtr++, gPlayerShadowRenderSetupDl);
-        getTableEntryByU16Index(player->assetTable, 0, &shadowTexture);
+        getTableEntryByU16Index(player->itemSpriteAssetTable, 0, &shadowTexture);
 
         gDPSetTextureImage(gDisplayListAllocPtr++, G_IM_FMT_I, G_IM_SIZ_16b, 1, shadowTexture.data_ptr);
         gDPSetTile(gDisplayListAllocPtr++, G_IM_FMT_I, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0, G_TX_CLAMP, 5, G_TX_NOLOD,

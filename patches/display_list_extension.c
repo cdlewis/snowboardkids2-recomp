@@ -451,12 +451,12 @@ RECOMP_PATCH void renderMultiPartOpaqueDisplayListsWithLights(DisplayListObject*
     }
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
-                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
-                      gActiveViewport->defaultLight1B << 8);
+                  gActiveViewport->lights[0].l.col[0] << 0x18 | gActiveViewport->lights[0].l.col[1] << 0x10 |
+                      gActiveViewport->lights[0].l.col[2] << 8);
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
-                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
-                      gActiveViewport->defaultLight2B << 8);
+                  gActiveViewport->lights[1].l.col[0] << 0x18 | gActiveViewport->lights[1].l.col[1] << 0x10 |
+                      gActiveViewport->lights[1].l.col[2] << 8);
 }
 
 // @recomp Modified to insert matrix groups around the display list.
@@ -498,12 +498,12 @@ RECOMP_PATCH void renderMultiPartTransparentDisplayListsWithLights(DisplayListOb
     }
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
-                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
-                      gActiveViewport->defaultLight1B << 8);
+                  gActiveViewport->lights[0].l.col[0] << 0x18 | gActiveViewport->lights[0].l.col[1] << 0x10 |
+                      gActiveViewport->lights[0].l.col[2] << 8);
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
-                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
-                      gActiveViewport->defaultLight2B << 8);
+                  gActiveViewport->lights[1].l.col[0] << 0x18 | gActiveViewport->lights[1].l.col[1] << 0x10 |
+                      gActiveViewport->lights[1].l.col[2] << 8);
 }
 
 // @recomp Modified to insert matrix groups around the display list.
@@ -545,12 +545,12 @@ RECOMP_PATCH void renderMultiPartOverlayDisplayListsWithLights(DisplayListObject
     }
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
-                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
-                      gActiveViewport->defaultLight1B << 8);
+                  gActiveViewport->lights[0].l.col[0] << 0x18 | gActiveViewport->lights[0].l.col[1] << 0x10 |
+                      gActiveViewport->lights[0].l.col[2] << 8);
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
-                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
-                      gActiveViewport->defaultLight2B << 8);
+                  gActiveViewport->lights[1].l.col[0] << 0x18 | gActiveViewport->lights[1].l.col[1] << 0x10 |
+                      gActiveViewport->lights[1].l.col[2] << 8);
 }
 
 // @recomp Modified to insert matrix groups around the display list.
@@ -719,11 +719,11 @@ RECOMP_PATCH void renderOpaqueDisplayListWithLights(DisplayListObject *arg0) {
     gSPDisplayList(gDisplayListAllocPtr++, arg0->displayLists->opaqueDisplayList);
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
-                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
-                      gActiveViewport->defaultLight1B << 8);
+                  gActiveViewport->lights[0].l.col[0] << 0x18 | gActiveViewport->lights[0].l.col[1] << 0x10 |
+                      gActiveViewport->lights[0].l.col[2] << 8);
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
-                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
-                      gActiveViewport->defaultLight2B << 8);
+                  gActiveViewport->lights[1].l.col[0] << 0x18 | gActiveViewport->lights[1].l.col[1] << 0x10 |
+                      gActiveViewport->lights[1].l.col[2] << 8);
 
     popObjectMatrixGroup();
 }
@@ -736,11 +736,11 @@ RECOMP_PATCH void renderTransparentDisplayListWithLights(DisplayListObject *arg0
     gSPDisplayList(gDisplayListAllocPtr++, arg0->displayLists->transparentDisplayList);
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
-                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
-                      gActiveViewport->defaultLight1B << 8);
+                  gActiveViewport->lights[0].l.col[0] << 0x18 | gActiveViewport->lights[0].l.col[1] << 0x10 |
+                      gActiveViewport->lights[0].l.col[2] << 8);
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
-                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
-                      gActiveViewport->defaultLight2B << 8);
+                  gActiveViewport->lights[1].l.col[0] << 0x18 | gActiveViewport->lights[1].l.col[1] << 0x10 |
+                      gActiveViewport->lights[1].l.col[2] << 8);
 
     popObjectMatrixGroup();
 }
@@ -753,11 +753,11 @@ RECOMP_PATCH void renderOverlayDisplayListWithLights(DisplayListObject *arg0) {
     gSPDisplayList(gDisplayListAllocPtr++, arg0->displayLists->overlayDisplayList);
 
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_1,
-                  gActiveViewport->defaultLight1R << 0x18 | gActiveViewport->defaultLight1G << 0x10 |
-                      gActiveViewport->defaultLight1B << 8);
+                  gActiveViewport->lights[0].l.col[0] << 0x18 | gActiveViewport->lights[0].l.col[1] << 0x10 |
+                      gActiveViewport->lights[0].l.col[2] << 8);
     gSPLightColor(gDisplayListAllocPtr++, LIGHT_2,
-                  gActiveViewport->defaultLight2R << 0x18 | gActiveViewport->defaultLight2G << 0x10 |
-                      gActiveViewport->defaultLight2B << 8);
+                  gActiveViewport->lights[1].l.col[0] << 0x18 | gActiveViewport->lights[1].l.col[1] << 0x10 |
+                      gActiveViewport->lights[1].l.col[2] << 8);
 
     popObjectMatrixGroup();
 }

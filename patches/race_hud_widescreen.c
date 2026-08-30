@@ -409,7 +409,7 @@ static void setPlayerViewportBottomLeftHudAlign(SpriteRenderArg* sprite, s16 yOf
     setViewportHudRectAlign(targetLeft, -authoredLeftFixed + targetInset * 4, yOffset * 4);
 }
 
-static void setPlayerViewportTopLeftLapHudAlign(LapCounterMultiplayerState* state) {
+static void setPlayerViewportTopLeftLapHudAlign(LapCounterState* state) {
     SpriteRenderArg* icon = (SpriteRenderArg*) state;
     ViewportHudBounds bounds = getViewportHudBounds();
     f32 targetLeft = bounds.safeLeftX;
@@ -430,14 +430,14 @@ static void setPlayerViewportTopLeftLapHudAlign(LapCounterMultiplayerState* stat
                             -authoredTopFixed + targetTopFixed);
 }
 
-static void setPlayerViewportCenteredLapHudAlign(LapCounterMultiplayerState* state) {
+static void setPlayerViewportCenteredLapHudAlign(LapCounterState* state) {
     SpriteRenderArg* icon = (SpriteRenderArg*) state;
     SpriteFrameEntry* frame = &icon->spriteData->frames[icon->frameIndex];
-    u8* text = state->unk30.string;
+    u8* text = (u8*) state->lapText;
     s32 textWidth = 0;
     s32 iconLeft = icon->x;
     s32 iconRight = icon->x + frame->width;
-    s32 textLeft = state->unk30.x;
+    s32 textLeft = state->textX;
     s32 textRight;
     s32 groupLeft;
     s32 groupRight;
@@ -608,25 +608,25 @@ static void restoreViewportRectState(void* unused) {
 
 static void beginPlayerViewportOverlay(s32 playerIndex) {
     // Callbacks execute LIFO. Enqueue restoration first so it runs after the player-local overlay.
-    enqueueCallbackBySlotIndex(PLAYER_OVERLAY_VIEWPORT_SLOT(playerIndex), OVERLAY_CALLBACK_LAYER,
+    pushViewportCallbackBySlot(PLAYER_OVERLAY_VIEWPORT_SLOT(playerIndex), OVERLAY_CALLBACK_LAYER,
                                restoreViewportRectState, NULL);
 }
 
 static void endPlayerViewportOverlay(s32 playerIndex) {
     // Enqueue setup last so it runs before the player-local overlay.
-    enqueueCallbackBySlotIndex(PLAYER_OVERLAY_VIEWPORT_SLOT(playerIndex), OVERLAY_CALLBACK_LAYER,
+    pushViewportCallbackBySlot(PLAYER_OVERLAY_VIEWPORT_SLOT(playerIndex), OVERLAY_CALLBACK_LAYER,
                                applyPlayerViewportOverlayRectState, NULL);
 }
 
 static void beginFullScreenOverlay(void) {
     // Callbacks execute LIFO. Enqueue restoration first so it runs after the full-screen overlay.
-    enqueueCallbackBySlotIndex(FULL_SCREEN_RACE_VIEWPORT_SLOT, OVERLAY_CALLBACK_LAYER, restoreViewportRectState,
+    pushViewportCallbackBySlot(FULL_SCREEN_RACE_VIEWPORT_SLOT, OVERLAY_CALLBACK_LAYER, restoreViewportRectState,
                                NULL);
 }
 
 static void endFullScreenOverlay(void) {
     // Enqueue setup last so it runs before the full-screen overlay.
-    enqueueCallbackBySlotIndex(FULL_SCREEN_RACE_VIEWPORT_SLOT, OVERLAY_CALLBACK_LAYER,
+    pushViewportCallbackBySlot(FULL_SCREEN_RACE_VIEWPORT_SLOT, OVERLAY_CALLBACK_LAYER,
                                applyFullScreenOverlayRectState, NULL);
 }
 
@@ -642,7 +642,7 @@ static SpriteRenderArg* copySpriteArgWithXOffset(SpriteRenderArg* src, s16 xOffs
 }
 
 static void setPlayerLapCounterMultiplayerEdgeAlign(void* arg) {
-    LapCounterMultiplayerState* state = arg;
+    LapCounterState* state = arg;
 
     if (!usesAdjustedHudLayout()) {
         return;
@@ -670,7 +670,7 @@ static void setBottomLeftHudAlign(void* unused) {
 }
 
 static void setPlayerBottomLeftHudAlign(void* arg) {
-    FinishPositionDisplayState* state = arg;
+    PlayerSpriteDisplayState* state = arg;
 
     if (!usesAdjustedHudLayout()) {
         return;
@@ -805,7 +805,7 @@ static void resetCornerHudAlign(void* unused) {
 }
 
 static void setPlayerLapCounterHudAlign(void* arg) {
-    LapCounterSinglePlayerState* state = arg;
+    LapCounterState* state = arg;
 
     if (!usesAdjustedHudLayout()) {
         return;
@@ -819,7 +819,7 @@ static void setPlayerLapCounterHudAlign(void* arg) {
 }
 
 static void setPlayerGoldHudAlign(void* arg) {
-    PlayerGoldDisplayState* state = arg;
+    GoldDisplayState* state = arg;
 
     if (!usesAdjustedHudLayout()) {
         return;
@@ -918,7 +918,7 @@ else_branch:
     state->secondaryItemY = -0x30;
     state->secondaryItemAsset = state->primaryItemAsset =
         loadCompressedData(&playerItemIconMultiplayerAsset_ROM_START, &playerItemIconMultiplayerAsset_ROM_END, 0xB08);
-    state->unk28 = 0;
+    state->ammoTextPalette = 0;
     state->charDisplayPtr = &state->charDisplayValue;
     state->charDisplayX = state->primaryItemX + 8;
     state->charDisplayY = state->primaryItemY + 8;
@@ -944,42 +944,42 @@ RECOMP_PATCH void updatePlayerItemDisplaySinglePlayer(PlayerItemDisplayState* st
     updateRaceHudLayoutMode();
 
     // @recomp wrap texture rendering call to adjust for widescreen
-    enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, resetCornerHudAlign, NULL);
 
     player = state->player;
     tempValue = player->primaryItemAmmo;
     if (tempValue != 0) {
         state->itemCountValue = tempValue;
-        enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, renderSpriteFrame, &state->itemCountX);
+        pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, renderSpriteFrame, &state->itemCountX);
     }
 
     callback = renderSpriteFrame;
     tempValue = state->player->primaryItemId;
     state->primaryItemIndex = tempValue;
-    enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, callback, state);
+    pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, callback, state);
 
     player = state->player;
-    if ((player->unkBD8 & 1) != 0) {
+    if ((player->itemHudNotificationFlags & 1) != 0) {
         spawnFloatingItemSprite(state->primaryItemX - 8, state->primaryItemY - 8, 0, state->playerIndex + 8, 0);
         playerRef = state->player;
-        tempValue = playerRef->unkBD8;
-        playerRef->unkBD8 = tempValue & 0xFE;
+        tempValue = playerRef->itemHudNotificationFlags;
+        playerRef->itemHudNotificationFlags = tempValue & 0xFE;
     }
 
     tempValue = state->player->secondaryItemId;
     state->secondaryItemIndex = tempValue + 7;
-    enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, callback, &state->secondaryItemX);
+    pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, callback, &state->secondaryItemX);
 
     player = state->player;
-    if ((player->unkBD8 & 2) != 0) {
+    if ((player->itemHudNotificationFlags & 2) != 0) {
         spawnFloatingItemSprite(state->secondaryItemX - 8, state->secondaryItemY - 8, 1, state->playerIndex + 8, 0);
         playerRef = state->player;
-        tempValue = playerRef->unkBD8;
-        playerRef->unkBD8 = tempValue & 0xFD;
+        tempValue = playerRef->itemHudNotificationFlags;
+        playerRef->itemHudNotificationFlags = tempValue & 0xFD;
     }
 
     // @recomp wrap texture rendering call to adjust for widescreen
-    enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, setPlayerItemHudAlign, state);
+    pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, setPlayerItemHudAlign, state);
 }
 
 // @recomp wrap calls to renderSpriteFrame(WithPalette) to adjust for widescreen
@@ -991,42 +991,42 @@ RECOMP_PATCH void updatePlayerItemDisplayMultiplayer(PlayerItemDisplayState* sta
 
     // @recomp wrap texture rendering call to adjust for widescreen
     updateRaceHudLayoutMode();
-    enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, resetCornerHudAlign, NULL);
 
     player = state->player;
     tempValue = player->primaryItemAmmo;
     if (tempValue != 0) {
         state->charDisplayValue = tempValue + 0x30;
-        enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, renderTextPalette, &state->charDisplayX);
+        pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, renderTextPalette, &state->charDisplayX);
     }
 
     callback = renderSpriteFrame;
     tempValue = state->player->primaryItemId;
     state->primaryItemIndex = tempValue;
-    enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, callback, state);
+    pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, callback, state);
 
     player = state->player;
-    if ((player->unkBD8 & 1) != 0) {
+    if ((player->itemHudNotificationFlags & 1) != 0) {
         spawnFloatingItemSprite(state->primaryItemX - 4, state->primaryItemY - 4, 0, state->playerIndex + 8, 1);
         playerRef = state->player;
-        tempValue = playerRef->unkBD8;
-        playerRef->unkBD8 = tempValue & 0xFE;
+        tempValue = playerRef->itemHudNotificationFlags;
+        playerRef->itemHudNotificationFlags = tempValue & 0xFE;
     }
 
     tempValue = state->player->secondaryItemId;
     state->secondaryItemIndex = tempValue + 7;
-    enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, callback, &state->secondaryItemX);
+    pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, callback, &state->secondaryItemX);
 
     player = state->player;
-    if ((player->unkBD8 & 2) != 0) {
+    if ((player->itemHudNotificationFlags & 2) != 0) {
         spawnFloatingItemSprite(state->secondaryItemX - 4, state->secondaryItemY - 4, 1, state->playerIndex + 8, 1);
         playerRef = state->player;
-        tempValue = playerRef->unkBD8;
-        playerRef->unkBD8 = tempValue & 0xFD;
+        tempValue = playerRef->itemHudNotificationFlags;
+        playerRef->itemHudNotificationFlags = tempValue & 0xFD;
     }
 
     // @recomp wrap texture rendering call to adjust for widescreen
-    enqueueCallbackBySlotIndex((state->playerIndex + 8) & 0xFFFF, 0, setPlayerItemHudAlign, state);
+    pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, setPlayerItemHudAlign, state);
 }
 
 RECOMP_PATCH void updateFloatingItemSprite(FloatingItemSpriteTask* state) {
@@ -1038,27 +1038,27 @@ RECOMP_PATCH void updateFloatingItemSprite(FloatingItemSpriteTask* state) {
     }
 
     // @recomp wrap texture rendering call to adjust for player viewport + screen layout
-    enqueueCallbackBySlotIndex(state->renderPriority, 1, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot(state->renderPriority, 1, resetCornerHudAlign, NULL);
 
     if (state->halfSizeRender == 0) {
-        enqueueCallbackBySlotIndex(state->renderPriority, 1, renderSpriteFrameWithPalette, state);
+        pushViewportCallbackBySlot(state->renderPriority, 1, renderSpriteFrameWithPalette, state);
     } else {
-        enqueueCallbackBySlotIndex(state->renderPriority, 1, renderHalfSizeSpriteWithCustomPalette, state);
+        pushViewportCallbackBySlot(state->renderPriority, 1, renderHalfSizeSpriteWithCustomPalette, state);
     }
 
     // @recomp wrap texture rendering call to adjust for player viewport + screen layout
-    enqueueCallbackBySlotIndex(state->renderPriority, 1, setPlayerFloatingItemHudAlign, state);
+    pushViewportCallbackBySlot(state->renderPriority, 1, setPlayerFloatingItemHudAlign, state);
 }
 
 RECOMP_PATCH void initPlayerLapCounterTask(LapCounterState* state) {
-    LapCounterAllocation* allocation;
+    GameState* gameState;
     char* textBuffer;
     s16 temp;
 
-    allocation = (LapCounterAllocation*) getCurrentAllocation();
-    state->player = (void*) (((u8*) allocation->players) + (state->playerIndex * 0xBE8));
+    gameState = getCurrentAllocation();
+    state->player = &gameState->players[state->playerIndex];
 
-    if (allocation->numPlayers == 1) {
+    if (gameState->playerCount == 1) {
         state->x = -0x88;
         state->y = -0x60;
         state->lapIconAsset =
@@ -1069,19 +1069,19 @@ RECOMP_PATCH void initPlayerLapCounterTask(LapCounterState* state) {
         state->digitsAsset =
             loadCompressedData(&digit_sprite_ROM_START, &COSTUME_SLOT_00_COMPRESSED_DATA_ROM_START, 0x508);
         state->digitX2 = ((u16) state->digitX1) + 8;
-        state->unk16 = 1;
-        state->unk20 = 1;
+        state->currentLapPaletteIndex = 1;
+        state->separatorSpriteIndex = 1;
         state->digitY2 = state->y;
-        state->unk1C = state->lapIconAsset;
+        state->separatorAsset = state->lapIconAsset;
         temp = state->digitX2;
         state->digitY3 = state->y;
-        state->unk28 = state->digitsAsset;
+        state->totalLapDigitAsset = state->digitsAsset;
         state->digitX3 = ((u16) temp) + 8;
-        state->totalLaps = allocation->totalLaps + 1;
-        state->unk2E = 3;
+        state->totalLaps = gameState->finalLapNumber + 1;
+        state->totalLapPaletteIndex = 3;
     } else {
         state->y = -0x30;
-        if (allocation->numPlayers == 2) {
+        if (gameState->playerCount == 2) {
             // @recomp adjust lap counter position depending on 2 player split mode.
             if (gRaceUsesVerticalTwoPlayerSplit) {
                 state->x = HUD_VERTICAL_2P_LAP_X;
@@ -1106,13 +1106,13 @@ RECOMP_PATCH void initPlayerLapCounterTask(LapCounterState* state) {
                                                  &lapCounterMultiplayerIconAsset_ROM_END, 0x98);
         state->spriteIndex = 0;
         state->digitsAsset = 0;
-        _Sprintf(textBuffer, D_8009E868_9F468, 1, allocation->totalLaps + 1);
-        state->unk34 = 1;
+        _Sprintf(textBuffer, D_8009E868_9F468, 1, gameState->finalLapNumber + 1);
+        state->textPaletteIndex = 1;
         state->lapText = textBuffer;
     }
 
     setCleanupCallback(cleanupPlayerLapCounterTask);
-    if (allocation->numPlayers == 1) {
+    if (gameState->playerCount == 1) {
         setCallbackWithContinue(updatePlayerLapCounterSinglePlayer);
     } else {
         setCallbackWithContinue(updatePlayerLapCounterMultiplayer);
@@ -1120,45 +1120,45 @@ RECOMP_PATCH void initPlayerLapCounterTask(LapCounterState* state) {
 }
 
 // @recomp wrap calls to renderSpriteFrame(WithPalette) to adjust for widescreen
-RECOMP_PATCH void updatePlayerLapCounterSinglePlayer(LapCounterSinglePlayerState* state) {
+RECOMP_PATCH void updatePlayerLapCounterSinglePlayer(LapCounterState* state) {
     // @recomp wrap texture rendering call to adjust for widescreen
     updateRaceHudLayoutMode();
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
 
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
     state->currentLap = state->player->currentLap + 1;
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrameWithPalette, &state->digitX1);
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, &state->digitX2);
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrameWithPalette, &state->digitX3);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrameWithPalette, &state->digitX1);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrame, &state->digitX2);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrameWithPalette, &state->digitX3);
 
     // @recomp wrap texture rendering call to adjust for widescreen
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setPlayerLapCounterHudAlign, state);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, setPlayerLapCounterHudAlign, state);
 }
 
 // @recomp significantly alter updatePlayerLapCounterMultiplayer to account for widescreen HUD elements.
 // the challenge here is properly supporting 1p, 2p and 3/4p modes since these all have different aligment
 // characteristics.
-RECOMP_PATCH void updatePlayerLapCounterMultiplayer(LapCounterMultiplayerState* state) {
+RECOMP_PATCH void updatePlayerLapCounterMultiplayer(LapCounterState* state) {
     updateRaceHudLayoutMode();
 
     if (!usesAdjustedHudLayout()) {
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
-        state->unk3C = state->player->currentLap + 0x31;
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderTextPalette, &state->unk30);
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+        state->lapTextBuffer[0] = state->player->currentLap + 0x31;
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderTextPalette, &state->textX);
         return;
     }
 
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
-    state->unk3C = state->player->currentLap + 0x31;
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderTextPalette, &state->unk30);
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setPlayerLapCounterMultiplayerEdgeAlign, state);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+    state->lapTextBuffer[0] = state->player->currentLap + 0x31;
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderTextPalette, &state->textX);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, setPlayerLapCounterMultiplayerEdgeAlign, state);
 }
 
 // @recomp significantly alter updatePlayerFinishPositionDisplay to account for widescreen HUD elements.
 // the challenge here is properly supporting 1p, 2p and 3/4p modes since these all have different aligment
 // characteristics.
-RECOMP_PATCH void updatePlayerFinishPositionDisplay(FinishPositionDisplayState* state) {
+RECOMP_PATCH void updatePlayerFinishPositionDisplay(PlayerSpriteDisplayState* state) {
     state->spriteIndex = state->player->finishPosition;
     updateRaceHudLayoutMode();
     if (usesVerticalTwoPlayerSplit()) {
@@ -1167,23 +1167,23 @@ RECOMP_PATCH void updatePlayerFinishPositionDisplay(FinishPositionDisplayState* 
     }
 
     if (!usesAdjustedHudLayout()) {
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
         return;
     }
 
     if (usesSplitScreenColumns() || usesHorizontalSplit()) {
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setPlayerBottomLeftHudAlign, state);
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, setPlayerBottomLeftHudAlign, state);
     } else {
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
-        enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setBottomLeftHudAlign, NULL);
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrame, state);
+        pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, setBottomLeftHudAlign, NULL);
     }
 }
 
-RECOMP_PATCH void updatePlayerGoldDisplaySinglePlayer(PlayerGoldDisplayState* state) {
-    s32 gold = state->player->raceCoins;
+RECOMP_PATCH void updatePlayerGoldDisplaySinglePlayer(GoldDisplayState* state) {
+    s32 gold = state->player->raceGold;
 
     updateRaceHudLayoutMode();
     if (usesVerticalTwoPlayerSplit()) {
@@ -1200,7 +1200,7 @@ RECOMP_PATCH void updatePlayerGoldDisplaySinglePlayer(PlayerGoldDisplayState* st
     }
 
     // @recomp wrap texture rendering call to adjust for widescreen
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
 
     drawNumericString(state->goldTextBuffer, state->x, state->y, 0xFF, state->digitsTexture, (u16) (state->playerIndex + 8), 0);
 
@@ -1211,14 +1211,14 @@ RECOMP_PATCH void updatePlayerGoldDisplaySinglePlayer(PlayerGoldDisplayState* st
 
     state->animFrame = (s16) state->animCounter >> 1;
 
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderSpriteFrame, &state->iconX);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderSpriteFrame, &state->iconX);
 
     // @recomp wrap texture rendering call to adjust for widescreen
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setPlayerGoldHudAlign, state);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, setPlayerGoldHudAlign, state);
 }
 
-RECOMP_PATCH void updatePlayerGoldDisplayMultiplayer(MultiplayerGoldDisplayState* state) {
-    s32 gold = state->player->raceCoins;
+RECOMP_PATCH void updatePlayerGoldDisplayMultiplayer(GoldDisplayState* state) {
+    s32 gold = state->player->raceGold;
 
     updateRaceHudLayoutMode();
 
@@ -1228,12 +1228,12 @@ RECOMP_PATCH void updatePlayerGoldDisplayMultiplayer(MultiplayerGoldDisplayState
         state->digitCount = 2;
     }
 
-    _Sprintf(state->goldTextBuffer, sMultiplayerGoldFormat, state->player->raceCoins);
+    _Sprintf(state->goldTextBuffer, sMultiplayerGoldFormat, state->player->raceGold);
 
     // @recomp wrap texture rendering call to adjust for widescreen
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, resetCornerHudAlign, NULL);
 
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderTextPalette, &state->textX);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderTextPalette, &state->textX);
 
     state->animCounter++;
     if ((s16) state->animCounter >= 12) {
@@ -1242,14 +1242,14 @@ RECOMP_PATCH void updatePlayerGoldDisplayMultiplayer(MultiplayerGoldDisplayState
 
     state->animFrame = (s16) state->animCounter >> 1;
 
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, renderHalfSizeSpriteFrame, &state->iconX);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, renderHalfSizeSpriteFrame, &state->iconX);
 
     // @recomp wrap texture rendering call to adjust for widescreen
-    enqueueCallbackBySlotIndex((u16) (state->playerIndex + 8), 0, setPlayerGoldHudAlign, state);
+    pushViewportCallbackBySlot((u16) (state->playerIndex + 8), 0, setPlayerGoldHudAlign, state);
 }
 
 RECOMP_PATCH void updatePlayerRaceProgressIndicator(RaceProgressIndicatorState* state) {
-    RaceProgressIndicatorAllocation* allocation;
+    GameState* gameState;
     s32 i;
     u8 playerIndex;
     Player* playerData;
@@ -1261,23 +1261,23 @@ RECOMP_PATCH void updatePlayerRaceProgressIndicator(RaceProgressIndicatorState* 
     s32 playerCount;
     u8 pad[0x8];
 
-    allocation = getCurrentAllocation();
+    gameState = getCurrentAllocation();
     updateRaceHudLayoutMode();
 
     // @recomp fill the column divider around, but never over, the shared race-progress tracker.
-    enqueueCallbackBySlotIndex(0xC, 0, drawRaceSplitDividers, state);
+    pushViewportCallbackBySlot(0xC, 0, drawRaceSplitDividers, state);
 
     // @recomp wrap race progress indicator rendering with its shared-viewport widescreen alignment.
-    enqueueCallbackBySlotIndex(0xC, 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot(0xC, 0, resetCornerHudAlign, NULL);
 
-    playerCount = allocation->numPlayers;
+    playerCount = gameState->numPlayers;
     i = 0;
     if (playerCount > 0) {
         do {
-            playerIndex = allocation->playerIndices[i];
-            playerData = (Player*) ((u8*) allocation->players + playerIndex * 0xBE8);
+            playerIndex = gameState->rankOrder[i];
+            playerData = &gameState->players[playerIndex];
 
-            targetPosition = (0x2000 - playerData->raceProgress) * 0x8C;
+            targetPosition = (0x2000 - playerData->lapProgressRemaining) * 0x8C;
             elem = &state->elements[playerIndex];
 
             if (targetPosition < 0) {
@@ -1324,19 +1324,19 @@ RECOMP_PATCH void updatePlayerRaceProgressIndicator(RaceProgressIndicatorState* 
             elem->spriteFrame = (s8) elem->flashCounter;
 
             if (playerData->slowdownLevel != 0) {
-                elem->hasActiveEffect = 1;
+                elem->paletteIndex = 1;
             } else {
-                elem->hasActiveEffect = 0;
+                elem->paletteIndex = 0;
             }
 
-            enqueueCallbackBySlotIndex(0xC, 0, renderSpriteFrameWithPalette, elem);
+            pushViewportCallbackBySlot(0xC, 0, renderSpriteFrameWithPalette, elem);
             i++;
-            playerCount = allocation->numPlayers;
+            playerCount = gameState->numPlayers;
         } while (i < playerCount);
     }
 
-    enqueueCallbackBySlotIndex(0xC, 0, renderSpriteFrame, state);
-    enqueueCallbackBySlotIndex(0xC, 0, setRaceProgressHudAlign, state);
+    pushViewportCallbackBySlot(0xC, 0, renderSpriteFrame, state);
+    pushViewportCallbackBySlot(0xC, 0, setRaceProgressHudAlign, state);
 }
 
 RECOMP_PATCH void renderTrickScoreDisplay(TrickScoreDisplayState* state) {
@@ -1345,21 +1345,21 @@ RECOMP_PATCH void renderTrickScoreDisplay(TrickScoreDisplayState* state) {
     // @recomp render the trick-score display in its player's aspect-corrected overlay viewport.
     beginPlayerViewportOverlay(state->playerIndex);
 
-    enqueueCallbackBySlotIndex(viewportSlot, OVERLAY_CALLBACK_LAYER, renderSpriteFrame, state);
+    pushViewportCallbackBySlot(viewportSlot, OVERLAY_CALLBACK_LAYER, renderSpriteFrame, state);
 
     if (state->useGoldFormat == 0) {
         drawNumericString(state->scoreText, state->xPos + 0x38, state->yPos, 0xFF, state->digitsTexture,
                           viewportSlot, OVERLAY_CALLBACK_LAYER);
     } else {
         state->textX = state->xPos + 0x38;
-        enqueueCallbackBySlotIndex(viewportSlot, OVERLAY_CALLBACK_LAYER, renderTextPalette, &state->textX);
+        pushViewportCallbackBySlot(viewportSlot, OVERLAY_CALLBACK_LAYER, renderTextPalette, &state->textX);
     }
 
     // @recomp render the trick-score display in its player's aspect-corrected overlay viewport.
     endPlayerViewportOverlay(state->playerIndex);
 }
 
-RECOMP_PATCH void renderPauseMenuDisplay(PauseMenuDisplayState* state) {
+RECOMP_PATCH void queuePauseMenuDisplayCallbacks(PauseMenuDisplayState* state) {
     GameState* gameState;
     s32 i;
 
@@ -1371,11 +1371,11 @@ RECOMP_PATCH void renderPauseMenuDisplay(PauseMenuDisplayState* state) {
 
         do {
             if (gameState->pauseMenuSelection == i) {
-                state->elements[i].padA[0] = 0x12;
+                state->elements[i].paletteIndex = 0x12;
             } else {
-                state->elements[i].padA[0] = 0x11;
+                state->elements[i].paletteIndex = 0x11;
             }
-            enqueueCallbackBySlotIndex(FULL_SCREEN_RACE_VIEWPORT_SLOT, OVERLAY_CALLBACK_LAYER,
+            pushViewportCallbackBySlot(FULL_SCREEN_RACE_VIEWPORT_SLOT, OVERLAY_CALLBACK_LAYER,
                                        renderSpriteFrameWithPalette, &state->elements[i]);
             i++;
         } while (i < 3);
@@ -1387,31 +1387,31 @@ RECOMP_PATCH void renderPauseMenuDisplay(PauseMenuDisplayState* state) {
     }
 }
 
-RECOMP_PATCH void updateSpeedCrossFinishPositionDisplay(FinishPositionDisplayState* state) {
+RECOMP_PATCH void updateSpeedCrossFinishPositionDisplay(PlayerSpriteDisplayState* state) {
     state->spriteIndex = state->player->finishPosition;
 
     // @recomp wrap the Speed Cross finish-position icon with top-left widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 6, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 6, resetCornerHudAlign, NULL);
 
-    enqueueCallbackBySlotIndex(8, 6, renderSpriteFrame, state);
+    pushViewportCallbackBySlot(8, 6, renderSpriteFrame, state);
 
     // @recomp wrap the Speed Cross finish-position icon with top-left widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 6, setTopLeftHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 6, setTopLeftHudAlign, NULL);
 }
 
 RECOMP_PATCH void updateShotCrossScoreDisplay(ShotCrossScoreDisplayState* state) {
     char buf[16];
 
     // @recomp wrap the Shoot Cross ammo/newspaper HUD with top-left widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, resetCornerHudAlign, NULL);
 
     _Sprintf(buf, sIntegerFormat, state->player->primaryItemAmmo);
     drawNumericString(buf, -0x70, -0x54, 0xFF, state->digitAsset, state->player->playerIndex + 8, 0);
-    enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, &state->ammoPanel);
-    enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, &state->ammoIcon);
+    pushViewportCallbackBySlot(8, 0, renderSpriteFrame, &state->ammoPanel);
+    pushViewportCallbackBySlot(8, 0, renderSpriteFrame, &state->ammoIcon);
 
     // @recomp wrap the Shoot Cross ammo/newspaper HUD with top-left widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, setTopLeftHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, setTopLeftHudAlign, NULL);
 }
 
 RECOMP_PATCH void updateShotCrossItemCountDisplay(CrossHudCounterDisplayState* state) {
@@ -1438,14 +1438,14 @@ RECOMP_PATCH void updateShotCrossItemCountDisplay(CrossHudCounterDisplayState* s
     }
 
     if (!usesExpandedHudLayout()) {
-        enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, &state->sprite);
+        pushViewportCallbackBySlot(8, 0, renderSpriteFrame, &state->sprite);
         drawNumericString(buffer, state->sprite.x + 0x10, state->sprite.y + 0x10, 0xFF, state->digitAsset, 8, 1);
         return;
     }
 
     if (state->layoutMode == 0) {
         // @recomp active Shoot Cross counter/icon render together in layer 0 so widescreen state is shared.
-        enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
+        pushViewportCallbackBySlot(8, 0, resetCornerHudAlign, NULL);
 
         // @recomp tune the hit-count digits under the widened letterbox icon.
         countX = state->sprite.x + 0x18;
@@ -1453,83 +1453,83 @@ RECOMP_PATCH void updateShotCrossItemCountDisplay(CrossHudCounterDisplayState* s
 
         // @recomp tune only the icon relative to the hit count.
         iconArg = copySpriteArgWithXOffset(&state->sprite, 8);
-        enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, iconArg);
-        enqueueCallbackBySlotIndex(8, 0, setShotCrossTopRightHudAlign, NULL);
+        pushViewportCallbackBySlot(8, 0, renderSpriteFrame, iconArg);
+        pushViewportCallbackBySlot(8, 0, setShotCrossTopRightHudAlign, NULL);
     } else {
         // @recomp wrap the result-layout icon with top-left widescreen alignment.
-        enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
-        enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, &state->sprite);
-        enqueueCallbackBySlotIndex(8, 0, setTopLeftHudAlign, NULL);
+        pushViewportCallbackBySlot(8, 0, resetCornerHudAlign, NULL);
+        pushViewportCallbackBySlot(8, 0, renderSpriteFrame, &state->sprite);
+        pushViewportCallbackBySlot(8, 0, setTopLeftHudAlign, NULL);
 
         // @recomp wrap the result-layout count with matching top-left widescreen alignment.
-        enqueueCallbackBySlotIndex(8, 1, resetCornerHudAlign, NULL);
+        pushViewportCallbackBySlot(8, 1, resetCornerHudAlign, NULL);
         countX = state->sprite.x + 0x10;
         drawNumericString(buffer, countX, state->sprite.y + 0x10, 0xFF, state->digitAsset, 8, 1);
-        enqueueCallbackBySlotIndex(8, 1, setTopLeftHudAlign, NULL);
+        pushViewportCallbackBySlot(8, 1, setTopLeftHudAlign, NULL);
     }
 }
 
-RECOMP_PATCH void updateShotCrossCountdownTimer(ShotCrossCountdownTimerUpdateState* state) {
+RECOMP_PATCH void updateShotCrossCountdownTimer(TimerDisplayState* state) {
     char buffer[16];
-    Allocation* allocation;
+    GameState* gameState;
     s32 timeValue;
     s32 minutes;
     s32 seconds;
     s32 remainingTicks;
     s32 temp;
 
-    allocation = getCurrentAllocation();
+    gameState = getCurrentAllocation();
 
-    if (allocation->activeRaceEffectCount == 0 && allocation->raceUpdatePaused == 0) {
-        PlayerInfo* player = allocation->timeRemaining;
-        if ((player->animFlags & 0x80000) == 0) {
-            if (state->timeRemaining != 0) {
-                state->timeRemaining--;
-                if (state->timeRemaining == 0) {
-                    allocation->timerExpired = 1;
+    if (gameState->raceIntroState == 0 && gameState->gamePaused == 0) {
+        Player* player = gameState->players;
+        if ((player->animationFlags & 0x80000) == 0) {
+            if (state->timerValue != 0) {
+                state->timerValue--;
+                if (state->timerValue == 0) {
+                    gameState->playerLost = 1;
                 }
             }
         }
     }
 
-    timeValue = state->timeRemaining;
+    timeValue = state->timerValue;
     minutes = timeValue / 1800;
     temp = timeValue - minutes * 1800;
     seconds = temp / 30;
     temp = temp - seconds * 30;
     remainingTicks = temp * 100 / 30;
 
-    if (state->timeRemaining < SECONDS_TO_TICKS(30)) {
+    if (state->timerValue < SECONDS_TO_TICKS(30)) {
         _Sprintf(buffer, sTimerFormatLow, minutes, seconds, remainingTicks);
     } else {
         _Sprintf(buffer, sTimerFormatNormal, minutes, seconds, remainingTicks);
     }
 
     // @recomp wrap the Shoot Cross countdown timer with bottom-right widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, resetCornerHudAlign, NULL);
 
-    enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, state);
+    pushViewportCallbackBySlot(8, 0, renderSpriteFrame, state);
     drawNumericString(buffer, 0x48, 0x50, 0xFF, state->digitAsset, 8, 0);
 
     // @recomp wrap the Shoot Cross countdown timer with bottom-right widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, setBottomRightHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, setBottomRightHudAlign, NULL);
 }
 
 RECOMP_PATCH void updateRaceTimerDisplay(RaceTimerState* state) {
     char sp20[0x10];
-    Allocation* alloc;
+    GameState* gameState;
     s32 minutes;
     s32 seconds;
 
-    alloc = (Allocation*) getCurrentAllocation();
+    gameState = getCurrentAllocation();
 
-    if (alloc->activeRaceEffectCount != 0) {
+    if (gameState->raceIntroState != 0) {
         goto check_time_flag;
     }
-    if (alloc->raceUpdatePaused != 0) {
+    if (gameState->gamePaused != 0) {
         goto check_time_flag;
     }
-    if (alloc->timeRemaining->animFlags & 0x80000) {
+    if (gameState->players->animationFlags & 0x80000) {
         goto set_7E;
     }
     if (state->elapsedTicks == 0x433C8) {
@@ -1539,21 +1539,21 @@ RECOMP_PATCH void updateRaceTimerDisplay(RaceTimerState* state) {
     if (state->elapsedTicks != 0x433C8) {
         goto check_time_flag;
     }
-    alloc->timerExpired = 1;
+    gameState->playerLost = 1;
     playSoundEffectWithPriorityDefaultVolume(0x46, 6);
 
 check_time_flag:
-    if (!(alloc->timeRemaining->animFlags & 0x80000)) {
+    if (!(gameState->players->animationFlags & 0x80000)) {
         goto after_7E;
     }
 set_7E:
     if (state->elapsedTicks > 0x4309E) {
         goto after_7E;
     }
-    alloc->raceTimerHoldFlag = 1;
+    gameState->bestBoardBonus = 1;
 
 after_7E:
-    alloc->raceTimerElapsedTicks = state->elapsedTicks;
+    gameState->raceTimerElapsedTicks = state->elapsedTicks;
 
     minutes = state->elapsedTicks / 32400;
     seconds = (state->elapsedTicks % 32400) / 540;
@@ -1578,18 +1578,18 @@ after_7E:
     }
 
     // @recomp wrap the Speed Cross timer with bottom-right widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, resetCornerHudAlign, NULL);
 
-    enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, state);
+    pushViewportCallbackBySlot(8, 0, renderSpriteFrame, state);
     drawNumericString(sp20, 0x68, 0x50, 0xFF, state->digitAsset, 8, 0);
 
     // @recomp wrap the Speed Cross timer with bottom-right widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, setBottomRightHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, setBottomRightHudAlign, NULL);
 }
 
-RECOMP_PATCH void updateSkillGameResultTimerDisplay(ShotCrossCountdownTimerState* state) {
+RECOMP_PATCH void updateSkillGameResultTimerDisplay(TimerDisplayState* state) {
     char timeString[16];
-    SkillGameTimerAllocation* allocation;
+    GameState* gameState;
     s32 time;
     s32 minutes;
     s32 seconds;
@@ -1597,19 +1597,19 @@ RECOMP_PATCH void updateSkillGameResultTimerDisplay(ShotCrossCountdownTimerState
     s16 blinkCounter;
     const char* timeFormat;
 
-    allocation = (SkillGameTimerAllocation*) getCurrentAllocation();
-    time = allocation->elapsedTicks;
+    gameState = getCurrentAllocation();
+    time = gameState->raceTimerElapsedTicks;
     minutes = time / 32400;
     seconds = (time % 32400) / 540;
     frames = ((time % 32400) % 540) / 9;
 
-    blinkCounter = (u16) state->timeRemaining + 1;
-    state->timeRemaining = blinkCounter;
+    blinkCounter = (u16) state->timerValue + 1;
+    state->timerValue = blinkCounter;
     if (blinkCounter == 0x28) {
-        state->timeRemaining = 0;
+        state->timerValue = 0;
     }
 
-    if (state->timeRemaining < 0x14) {
+    if (state->timerValue < 0x14) {
         timeFormat = sSkillGameResultTimerColonFormat;
     } else {
         timeFormat = sSkillGameResultTimerSpaceFormat;
@@ -1617,19 +1617,19 @@ RECOMP_PATCH void updateSkillGameResultTimerDisplay(ShotCrossCountdownTimerState
     _Sprintf(timeString, timeFormat, minutes, seconds, frames);
 
     // @recomp wrap the skill-game result timer with top-left widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, resetCornerHudAlign, NULL);
 
-    enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, state);
+    pushViewportCallbackBySlot(8, 0, renderSpriteFrame, state);
     drawNumericString(timeString, -0x54, -0x28, 0xFF, state->digitAsset, 8, 0);
 
     // @recomp wrap the skill-game result timer with top-left widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, setTopLeftHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, setTopLeftHudAlign, NULL);
 }
 
 RECOMP_PATCH void updateCrossRaceBadgeDisplay(CrossRaceBadgeState* state) {
     // @recomp wrap the cross-race badge with bottom-left widescreen alignment.
-    enqueueCallbackBySlotIndex(8, 0, resetCornerHudAlign, NULL);
-    enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, &state->bgX);
-    enqueueCallbackBySlotIndex(8, 0, renderSpriteFrame, state);
-    enqueueCallbackBySlotIndex(8, 0, setBottomLeftHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, resetCornerHudAlign, NULL);
+    pushViewportCallbackBySlot(8, 0, renderSpriteFrame, &state->background);
+    pushViewportCallbackBySlot(8, 0, renderSpriteFrame, &state->foreground);
+    pushViewportCallbackBySlot(8, 0, setBottomLeftHudAlign, NULL);
 }

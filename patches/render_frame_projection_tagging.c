@@ -280,7 +280,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
     s32 prevRaceViewportIndex;
     u8 padding[0x20];
 
-    for (node = &gRootViewport; node != NULL; node = node->list3_next) {
+    for (node = &gRootViewport; node != NULL; node = node->renderNext) {
         if (node->fadeMode != 0) {
             temp = node->fadeValue - node->prevFadeValue;
             temp /= node->fadeMode;
@@ -294,7 +294,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
             gFrameSkipCounter = gFrameSkipCounter - 1;
         }
 
-        for (node = &gRootViewport; node != NULL; node = node->list3_next) {
+        for (node = &gRootViewport; node != NULL; node = node->renderNext) {
             initViewportCallbackPool(node);
         }
 
@@ -318,7 +318,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
     gFrameBufferCounters[gCurrentDoubleBufferIndex] = gFrameCounter;
     updateViewportBounds();
 
-    rootNodePtr = &gRootViewport.list3_next;
+    rootNodePtr = &gRootViewport.renderNext;
     rootNode = *rootNodePtr;
     if (!rootNode) {
         rootNode = &gRootViewport;
@@ -331,18 +331,18 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
         storedViScanline = viScanline + 3;
 
         do {
-            temp = node->viewportFlags;
+            temp = node->uses3DRendering;
 
-            while (node->list3_next != NULL) {
-                node->frameCallbackMsg = NULL;
-                if (node->list3_next->viewportFlags != (u8)temp) {
+            while (node->renderNext != NULL) {
+                node->graphicsTask = NULL;
+                if (node->renderNext->uses3DRendering != (u8)temp) {
                     break;
                 }
 
-                node = node->list3_next;
+                node = node->renderNext;
             }
 
-            node->frameCallbackMsg = arenaAlloc16(0x50);
+            node->graphicsTask = arenaAlloc16(0x50);
             displayListStart = gDisplayListAllocPtr;
 
             gSPSegment(gDisplayListAllocPtr++, 0, 0);
@@ -361,45 +361,45 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
             gSPEndDisplayList(gDisplayListAllocPtr++);
             displayListEnd = gDisplayListAllocPtr;
 
-            if (node->list3_next == NULL) {
-                node->frameCallbackMsg->taskFlags = 1;
-                node->frameCallbackMsg->msgQueue = &mainMessageQueue;
+            if (node->renderNext == NULL) {
+                node->graphicsTask->flags = 1;
+                node->graphicsTask->messageQueue = &mainMessageQueue;
                 callbackEntry = (CallbackEntry *)((u32)callbackEntry & 0xFFFF);
                 callbackEntry = (CallbackEntry *)((u32)callbackEntry | (gCallbackEntrySegment << 16));
-                node->frameCallbackMsg->msgData = (s32)callbackEntry;
+                node->graphicsTask->completionMessage = (OSMesg)callbackEntry;
             } else {
-                node->frameCallbackMsg->taskFlags = 0;
+                node->graphicsTask->flags = 0;
             }
 
-            node->frameCallbackMsg->auxBuffer =
+            node->graphicsTask->framebuffer =
                 (void *)((u8 *)gAuxFrameBuffers +
                          ((gCurrentDisplayBufferIndex * 5 * 16 - gCurrentDisplayBufferIndex * 5) << 11));
-            node->frameCallbackMsg->scanlineValue = storedViScanline + __additional_scanline_0 * 2;
+            node->graphicsTask->frameIndex = storedViScanline + __additional_scanline_0 * 2;
 
-            node->frameCallbackMsg->t.t.data_ptr = (u64 *)displayListStart;
-            node->frameCallbackMsg->t.t.data_size = (s32)displayListEnd - (s32)displayListStart;
-            node->frameCallbackMsg->t.t.type = M_GFXTASK;
-            node->frameCallbackMsg->t.t.flags = 0;
-            node->frameCallbackMsg->t.t.ucode_boot = (u64 *)rspbootTextStart;
-            node->frameCallbackMsg->t.t.ucode_boot_size = (s32)aspMainTextStart - (s32)rspbootTextStart;
-            node->frameCallbackMsg->t.t.ucode = microcodeGroups[temp].ucode;
-            node->frameCallbackMsg->t.t.ucode_data = microcodeGroups[temp].ucode_data;
-            node->frameCallbackMsg->t.t.ucode_data_size = 0x800;
-            node->frameCallbackMsg->t.t.dram_stack = (u64 *)gDramStack;
-            node->frameCallbackMsg->t.t.dram_stack_size = 0x400;
-            node->frameCallbackMsg->t.t.output_buff = (u64 *)gOutputBuffer;
-            node->frameCallbackMsg->t.t.output_buff_size = (u64 *)((s32)gOutputBuffer + BUFFER_SIZE);
-            node->frameCallbackMsg->t.t.yield_data_ptr = (u64 *)gYieldBuffer;
-            node->frameCallbackMsg->t.t.yield_data_size = 0xC00;
-            node = node->list3_next;
+            node->graphicsTask->task.t.data_ptr = (u64 *)displayListStart;
+            node->graphicsTask->task.t.data_size = (s32)displayListEnd - (s32)displayListStart;
+            node->graphicsTask->task.t.type = M_GFXTASK;
+            node->graphicsTask->task.t.flags = 0;
+            node->graphicsTask->task.t.ucode_boot = (u64 *)rspbootTextStart;
+            node->graphicsTask->task.t.ucode_boot_size = (s32)aspMainTextStart - (s32)rspbootTextStart;
+            node->graphicsTask->task.t.ucode = microcodeGroups[temp].ucode;
+            node->graphicsTask->task.t.ucode_data = microcodeGroups[temp].ucode_data;
+            node->graphicsTask->task.t.ucode_data_size = 0x800;
+            node->graphicsTask->task.t.dram_stack = (u64 *)gDramStack;
+            node->graphicsTask->task.t.dram_stack_size = 0x400;
+            node->graphicsTask->task.t.output_buff = (u64 *)gOutputBuffer;
+            node->graphicsTask->task.t.output_buff_size = (u64 *)((s32)gOutputBuffer + BUFFER_SIZE);
+            node->graphicsTask->task.t.yield_data_ptr = (u64 *)gYieldBuffer;
+            node->graphicsTask->task.t.yield_data_size = 0xC00;
+            node = node->renderNext;
         } while (node != NULL);
     }
 
     node = rootNode;
     needsDisplayListSetup = TRUE;
     if (node != NULL) {
-        for (node = rootNode; node != NULL; node = node->list3_next) {
-            gActiveViewport = (ActiveViewportState *)node;
+        for (node = rootNode; node != NULL; node = node->renderNext) {
+            gActiveViewport = node;
 
             // @recomp preserve the original two-pixel race divider after widescreen viewport expansion.
             applyRaceSplitViewportGap(node);
@@ -470,16 +470,16 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                 gTextClipAndOffsetData.offsetX = node->offsetX;
                 gTextClipAndOffsetData.offsetY = node->offsetY;
 
-                gTextureEnabled = node->viewportFlags;
+                gTextureEnabled = node->uses3DRendering;
                 gGraphicsMode = -1;
 
-                if (node->viewportFlags == 0) {
+                if (node->uses3DRendering == 0) {
                     gDPSetColorDither(gDisplayListAllocPtr++, G_CD_DISABLE);
 
                     // @recomp expose the active race-player index while preserving the original callback loop.
                     prevRaceViewportIndex = cur_modelview_race_viewport_index;
                     cur_modelview_race_viewport_index = getRacePlayerViewportIndex(node);
-                    for (callbackEntry = (CallbackEntry *)node->pool; callbackEntry != NULL;
+                    for (callbackEntry = (CallbackEntry *)node->callbackLayers; callbackEntry != NULL;
                          callbackEntry = callbackEntry->next) {
                         if (callbackEntry->callback == NULL) {
                             continue;
@@ -489,7 +489,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                             break;
                         }
 
-                        gCurrentPoolIndex = callbackEntry->poolIndex;
+                        gCurrentPoolIndex = callbackEntry->callbackLayer;
                         ((void (*)(void *))callbackEntry->callback)(callbackEntry->callbackData);
                         gCallbackCounter++;
                     }
@@ -504,7 +504,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         gDPPipeSync(gDisplayListAllocPtr++);
                     }
                 } else {
-                    viewportAlloc = arenaAlloc16(sizeof(node->viewportWidth) * 8);
+                    viewportAlloc = arenaAlloc16(sizeof(node->viewport.vp.vscale[0]) * 8);
                     projectionAlloc = arenaAlloc16(sizeof(node->projectionMatrix));
                     lookAtAlloc = arenaAlloc16(48 * sizeof(s32));
 
@@ -529,7 +529,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                     }
 
                     if (lookAtAlloc != NULL) {
-                        memcpy(viewportAlloc, &node->viewportWidth, 16);
+                        memcpy(viewportAlloc, &node->viewport.vp.vscale[0], 16);
                         memcpy(projectionAlloc, &node->projectionMatrix, sizeof(node->projectionMatrix));
 
                         // @recomp widen race-player column viewports to the target aspect ratio.
@@ -632,7 +632,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                     // @recomp expose the active race-player index while preserving the original callback loop.
                     prevRaceViewportIndex = cur_modelview_race_viewport_index;
                     cur_modelview_race_viewport_index = getRacePlayerViewportIndex(node);
-                    for (callbackEntry = (CallbackEntry *)node->pool; callbackEntry != NULL;
+                    for (callbackEntry = (CallbackEntry *)node->callbackLayers; callbackEntry != NULL;
                          callbackEntry = callbackEntry->next) {
                         if (callbackEntry->callback == NULL) {
                             continue;
@@ -642,7 +642,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                             break;
                         }
 
-                        gCurrentPoolIndex = callbackEntry->poolIndex;
+                        gCurrentPoolIndex = callbackEntry->callbackLayer;
                         ((void (*)(void *))callbackEntry->callback)(callbackEntry->callbackData);
                         gCallbackCounter++;
                     }
@@ -661,20 +661,20 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                 }
             }
 
-            if (node->frameCallbackMsg != NULL) {
+            if (node->graphicsTask != NULL) {
                 if (!needsDisplayListSetup) {
-                    if (gRootViewport.prevFadeValue != 0 && node->list3_next == 0) {
-                        BorderData *bd = (BorderData *)&gRootViewport.clipLeft;
-
+                    if (gRootViewport.prevFadeValue != 0 && node->renderNext == 0) {
                         gSPDisplayList(gDisplayListAllocPtr++, gFadeOverlayDisplayList);
 
-                        gDPSetScissor(gDisplayListAllocPtr++, G_SC_NON_INTERLACE, bd->clipLeft, bd->clipTop,
-                                      bd->clipRight, bd->clipBottom);
+                        gDPSetScissor(gDisplayListAllocPtr++, G_SC_NON_INTERLACE, gRootViewport.clipLeft,
+                                      gRootViewport.clipTop, gRootViewport.clipRight, gRootViewport.clipBottom);
 
-                        gDPSetPrimColor(gDisplayListAllocPtr++, 0, 0, bd->envR, bd->envG, bd->envB, bd->envA);
+                        gDPSetPrimColor(gDisplayListAllocPtr++, 0, 0, gRootViewport.envR, gRootViewport.envG,
+                                        gRootViewport.envB, gRootViewport.prevFadeValue);
 
-                        gSPTextureRectangle(gDisplayListAllocPtr++, bd->clipLeft << 2, bd->clipTop << 2,
-                                            bd->clipRight << 2, bd->clipBottom << 2, 0, 0, 0, 0x400, 0x400);
+                        gSPTextureRectangle(gDisplayListAllocPtr++, gRootViewport.clipLeft << 2,
+                                            gRootViewport.clipTop << 2, gRootViewport.clipRight << 2,
+                                            gRootViewport.clipBottom << 2, 0, 0, 0, 0x400, 0x400);
                     }
 
                     gSPEndDisplayList(gDisplayListAllocPtr++);

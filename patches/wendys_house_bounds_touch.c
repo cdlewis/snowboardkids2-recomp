@@ -54,9 +54,9 @@ RECOMP_PATCH void scheduleSkyRenderTask(s32 skyType) {
 
 RECOMP_PATCH void enqueueCameraRelativeDisplayList(s32 viewportSlot, DisplayListObject* arg1) {
     arg1->transformMatrix = NULL;
-    enqueueCallbackBySlotIndex(viewportSlot, 0, &renderCameraRelativeDisplayList, arg1);
+    pushViewportCallbackBySlot(viewportSlot, 0, &renderCameraRelativeDisplayList, arg1);
 
     if (sWendysHouseBoundsTouchEnabled && (viewportSlot >= 4) && (viewportSlot < 8)) {
-        enqueueCallbackBySlotIndex(viewportSlot, 0, &touchWendysHouseBottomBounds, NULL);
+        pushViewportCallbackBySlot(viewportSlot, 0, &touchWendysHouseBottomBounds, NULL);
     }
 }
