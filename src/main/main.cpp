@@ -49,7 +49,7 @@
 #include "mods/snowboardkids2_time_trial.h"
 #include "sk2_game_version.h"
 #include "sk2_launcher.h"
-#include "sk2_theme.h"
+#include "recomp_theme.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -799,7 +799,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Failed to load controller mappings: %s\n", SDL_GetError());
     }
 
-    sk2::theme::apply();
+    snowboardkids::theme::apply();
     recomp::register_config_path(recompui::file::get_app_folder_path());
 
     // Register supported games and patches

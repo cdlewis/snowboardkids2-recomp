@@ -235,13 +235,17 @@ add_custom_command(OUTPUT
                    DEPENDS ${CMAKE_SOURCE_DIR}/patches/patches.elf
 )
 
+# Launcher and config-menu theming shared with snowboardkids-recomp. Added before
+# the game target so its source, include and asset variables are available below.
+add_subdirectory(${CMAKE_SOURCE_DIR}/lib/recomp-theme ${CMAKE_BINARY_DIR}/recomp-theme)
+
 # Main executable
 add_executable(SnowboardKids2Recompiled)
 
 set (SOURCES
     ${CMAKE_SOURCE_DIR}/src/main/main.cpp
     ${CMAKE_SOURCE_DIR}/src/main/sk2_launcher.cpp
-    ${CMAKE_SOURCE_DIR}/src/main/sk2_theme.cpp
+    ${SNOWBOARDKIDS_THEME_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/main/support.cpp
     ${CMAKE_SOURCE_DIR}/src/main/register_overlays.cpp
     ${CMAKE_SOURCE_DIR}/src/main/register_patches.cpp
@@ -261,6 +265,7 @@ if (APPLE)
 endif()
 
 target_include_directories(SnowboardKids2Recompiled PRIVATE
+    ${SNOWBOARDKIDS_THEME_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/thirdparty

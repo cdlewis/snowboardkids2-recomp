@@ -68,7 +68,9 @@ add_custom_command(TARGET SnowboardKids2Recompiled POST_BUILD
     # Copy and fix frameworks first
     COMMAND ${CMAKE_COMMAND} -D CMAKE_BUILD_TYPE=$<CONFIG> -D CMAKE_GENERATOR=${CMAKE_GENERATOR} -P ${CMAKE_SOURCE_DIR}/.github/macos/fixup_bundle.cmake
 
-    # Copy all resources
+    # Copy all resources. The shared theming tree is staged first so that any
+    # game-specific asset of the same name overrides it.
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SNOWBOARDKIDS_THEME_ASSETS_DIR} ${CMAKE_BINARY_DIR}/temp_assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/temp_assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/temp_assets $<TARGET_BUNDLE_DIR:SnowboardKids2Recompiled>/Contents/Resources/assets
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/temp_assets

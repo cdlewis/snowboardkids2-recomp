@@ -1,7 +1,0 @@
-/*
- * RecompFrontend currently requires a project RCSS file. The active UI is
- * styled programmatically; this file only declares the registered host font.
- */
-body {
-  font-family: Fredoka;
-}
