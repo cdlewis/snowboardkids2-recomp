@@ -173,7 +173,6 @@ std::u8string game_id;
 std::string mod_game_id;
 
 constexpr const char* launcher_background_src = "?/sk2_launcher/background";
-constexpr const char* launcher_logo_src = "?/sk2_launcher/logo";
 constexpr const char* launcher_rock_src = "?/sk2_launcher/rock";
 
 std::vector<char> read_asset_bytes(const char* asset_name) {
@@ -205,12 +204,6 @@ void queue_launcher_png_assets() {
         if (background_rgba != nullptr) {
             stbi_image_free(background_rgba);
         }
-    }
-
-    std::vector<char> logo_bytes = read_asset_bytes("logo.png");
-    if (!logo_bytes.empty()) {
-        recompui::release_image(launcher_logo_src);
-        recompui::queue_image_from_bytes_file(launcher_logo_src, logo_bytes);
     }
 
     std::vector<char> rock_bytes = read_asset_bytes("rock.png");
@@ -292,7 +285,7 @@ void on_launcher_init(recompui::LauncherMenu* menu) {
     background->set_translate_2D(0.0f, -50.0f, Unit::Percent);
     background->set_pointer_events(PointerEvents::None);
 
-    auto* logo = context.create_element<Image>(menu, launcher_logo_src);
+    auto* logo = context.create_element<Svg>(menu, "logo.svg");
     logo->set_position(Position::Absolute);
     logo->set_top(20.0f);
     logo->set_left(30.0f);
