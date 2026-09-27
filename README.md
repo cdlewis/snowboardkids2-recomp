@@ -6,11 +6,7 @@
 
 You can read more about the Snowboard Kids 2 recompilation process [here](https://blog.chrislewis.au/snowboard-kids-2-is-recompiled/).
 
-Join the [N64: Recompiled Community Discord](https://discord.gg/AWZThJ4dPf) to discuss this and other N64: Recompiled projects!
-
-[![Discord Invitation](https://discordapp.com/api/guilds/1374083583739826328/widget.png?style=banner2 "N64 Recomp")](https://discord.gg/AWZThJ4dPf)
-
-You're also welcome to join the [Snowboard Kids Community Discord](https://discord.gg/bwQ85rUED), an active and welcoming server for fans of the series.
+Join the [Snowboard Kids Community Discord](https://discord.gg/bwQ85rUED) to discuss this and other Snowboard Kids games/projects.
 
 [![Discord Invitation](https://discordapp.com/api/guilds/729856662357278750/widget.png?style=banner2 "Snowboard Kids")](https://discord.gg/ASJMYtSGcf)
 
