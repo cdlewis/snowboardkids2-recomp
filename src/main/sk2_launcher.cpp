@@ -237,7 +237,13 @@ void start_or_select_rom() {
             case recomp::RomValidationError::Good:
                 rom_valid = true;
                 if (start_option != nullptr) {
+                    // The file dialog callback can run after the launcher's UI context has closed.
+                    recompui::ContextId context = recompui::get_launcher_context_id();
+                    bool opened = context.open_if_not_already();
                     start_option->set_title("Start game");
+                    if (opened) {
+                        context.close();
+                    }
                 }
                 break;
             case recomp::RomValidationError::FailedToOpen:
