@@ -47,6 +47,8 @@
 #include "mods/snowboardkids2_mod_template.h"
 #include "mods/snowboardkids2_randomizer.h"
 #include "mods/snowboardkids2_time_trial.h"
+#include "mods/snowboardkids2_quickstart.h"
+#include "mods/snowboardkids2_nepo_kids.h"
 #include "sk2_game_version.h"
 #include "sk2_launcher.h"
 #include "recomp_theme.h"
@@ -816,6 +818,13 @@ int main(int argc, char** argv) {
     recomp::mods::register_embedded_mod(
         "snowboardkids2_time_trial",
         { reinterpret_cast<const uint8_t*>(snowboardkids2_time_trial), snowboardkids2_time_trial_size });
+
+    recomp::mods::register_embedded_mod(
+        "snowboardkids2_quickstart",
+        { reinterpret_cast<const uint8_t*>(snowboardkids2_quickstart), snowboardkids2_quickstart_size });
+    recomp::mods::register_embedded_mod(
+        "snowboardkids2_nepo_kids",
+        { reinterpret_cast<const uint8_t*>(snowboardkids2_nepo_kids), snowboardkids2_nepo_kids_size });
 
     REGISTER_FUNC(recomp_get_target_aspect_ratio);
     REGISTER_FUNC(recomp_get_target_hud_aspect_ratio);
