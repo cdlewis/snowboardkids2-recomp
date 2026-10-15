@@ -15,7 +15,6 @@
 #define PILLARBOX_RECTANGLE_TRANSFORM_ID_START 0x31000000
 
 extern float recomp_get_target_aspect_ratio(float original);
-extern Gfx* gDisplayListAllocPtr;
 extern char gDebugFrameFormatString[];
 
 extern void guMtxF2L(float mf[4][4], Mtx* m);
@@ -96,9 +95,9 @@ static void drawCutscenePillarbox(void* unused) {
         return;
     }
 
-    projection = arenaAlloc16(sizeof(float) * 4 * 4);
-    modelview = arenaAlloc16(sizeof(Mtx) * 2);
-    verts = arenaAlloc16(sizeof(Vtx) * 4);
+    projection = graphicsAlloc(sizeof(float) * 4 * 4);
+    modelview = graphicsAlloc(sizeof(Mtx) * 2);
+    verts = graphicsAlloc(sizeof(Vtx) * 4);
 
     if (projection == NULL || modelview == NULL || verts == NULL) {
         return;

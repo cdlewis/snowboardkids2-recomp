@@ -20,7 +20,6 @@
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
 
-extern Gfx* gDisplayListAllocPtr;
 extern s16 gGraphicsMode;
 extern void initSkyRenderTask(SkyRenderTaskState* state);
 extern void renderCameraRelativeDisplayList(DisplayListObject* displayListObj);
@@ -38,7 +37,7 @@ static void touchWendysHouseBottomBounds(void* unused) {
     gDPPipeSync(gfx++);
 
     gDisplayListAllocPtr = gfx;
-    gGraphicsMode = -1;
+    gGraphicsMode = GRAPHICS_MODE_INVALID;
 }
 
 RECOMP_PATCH void scheduleSkyRenderTask(s32 skyType) {

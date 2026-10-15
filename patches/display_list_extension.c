@@ -9,7 +9,6 @@
 #include "system/memory_allocator.h"
 #include "ui/level_preview_3d.h"
 
-extern Gfx* gDisplayListAllocPtr;
 extern Node* gDMAOverlay;
 extern s32 cur_modelview_race_viewport_index;
 
@@ -260,11 +259,11 @@ RECOMP_PATCH void terminateCurrentTask(void) {
     // @recomp Free any extension data for display list objects at this address
     deleteTaskNodeDisplayListObjectExtensions(gDMAOverlay);
 
-    temp = gDMAOverlay->unkE - 3;
+    temp = gDMAOverlay->state - TASK_STATE_WAITING_FOR_DMA;
     if (temp < 2) {
-        gDMAOverlay->unkE = 4;
+        gDMAOverlay->state = TASK_STATE_WAITING_FOR_DMA_CLEANUP;
     } else {
-        gDMAOverlay->unkE = 2;
+        gDMAOverlay->state = TASK_STATE_PENDING_CLEANUP;
     }
 }
 
@@ -275,10 +274,10 @@ RECOMP_PATCH void terminateAllTasks(void) {
     for (i = gActiveScheduler->activeList; i != NULL; i = i->next) {
         // @recomp Free any extension data for display list objects at this address
         deleteTaskNodeDisplayListObjectExtensions(i);
-        if ((u32)(i->unkE - 3) < 2) {
-            i->unkE = 4;
+        if ((u32)(i->state - TASK_STATE_WAITING_FOR_DMA) < 2) {
+            i->state = TASK_STATE_WAITING_FOR_DMA_CLEANUP;
         } else {
-            i->unkE = 2;
+            i->state = TASK_STATE_PENDING_CLEANUP;
         }
     }
 }
@@ -288,13 +287,13 @@ RECOMP_PATCH void terminateTasksByType(s32 taskType) {
     Node* i;
 
     for (i = gActiveScheduler->activeList; i != NULL; i = i->next) {
-        if (i->unkC == (u8)taskType) {
+        if (i->taskType == (u8)taskType) {
             // @recomp Free any extension data for display list objects at this address
             deleteTaskNodeDisplayListObjectExtensions(i);
-            if ((u32)(i->unkE - 3) < 2) {
-                i->unkE = 4;
+            if ((u32)(i->state - TASK_STATE_WAITING_FOR_DMA) < 2) {
+                i->state = TASK_STATE_WAITING_FOR_DMA_CLEANUP;
             } else {
-                i->unkE = 2;
+                i->state = TASK_STATE_PENDING_CLEANUP;
             }
         }
     }
@@ -305,13 +304,13 @@ RECOMP_PATCH void terminateTasksByTypeAndID(s32 taskType, s32 taskID) {
     Node* i;
 
     for (i = gActiveScheduler->activeList; i != NULL; i = i->next) {
-        if (i->unkC == (u8)taskType && i->field_D == (u8)taskID) {
+        if (i->taskType == (u8)taskType && i->taskId == (u8)taskID) {
             // @recomp Free any extension data for display list objects at this address
             deleteTaskNodeDisplayListObjectExtensions(i);
-            if ((u32)(i->unkE - 3) < 2) {
-                i->unkE = 4;
+            if ((u32)(i->state - TASK_STATE_WAITING_FOR_DMA) < 2) {
+                i->state = TASK_STATE_WAITING_FOR_DMA_CLEANUP;
             } else {
-                i->unkE = 2;
+                i->state = TASK_STATE_PENDING_CLEANUP;
             }
         }
     }

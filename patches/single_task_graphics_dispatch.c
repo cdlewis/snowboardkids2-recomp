@@ -35,17 +35,13 @@ extern s32 gBufferedFrameCounter;
 extern s32 gFrameSkipCounter;
 extern u32 __additional_scanline_0;
 extern u8 gDisplayFramePending;
-extern void* gDisplayBufferMsgs;
-extern void* gDramStack;
-extern void* gOutputBuffer;
-extern void* gYieldBuffer;
 extern long long int rspbootTextStart[];
 extern long long int aspMainTextStart[];
 extern Gfx gDefaultRenderDisplayList[];
 
 void submitDisplayTask(OSMesg message);
 void* allocateMemoryNode(s32 ownerID, u32 requestedSize, u8* nodeExists);
-void initLinearArenaRegions(void);
+void initDisplayListBuffers(void);
 void initLinearAllocator(void);
 void initGraphicsArenas(void);
 void initGraphicsSystem(void);
@@ -56,7 +52,7 @@ RECOMP_PATCH void initDisplayBuffers(void) {
     s32 i;
     Gfx* gfx;
 
-    initLinearArenaRegions();
+    initDisplayListBuffers();
     initLinearAllocator();
     initGraphicsArenas();
 
@@ -167,7 +163,7 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
         }
         initMsg = (GraphicsTask*) ((u8*) gDisplayBufferMsgs + (nextDisplayBufferIndex * sizeof(DisplayBufferTask)));
 
-        mergedDL = (Gfx*) arenaAlloc16(48 * (s32) sizeof(Gfx));
+        mergedDL = (Gfx*) graphicsAlloc(48 * (s32) sizeof(Gfx));
         mergedGfx = mergedDL;
         gEXEnable(mergedGfx++);
         gSPDisplayList(mergedGfx++, initMsg->task.t.data_ptr);

@@ -1,6 +1,5 @@
 #include "patches.h"
 
-extern Gfx *gDisplayListAllocPtr;
 extern Gfx gSpriteRDPSetupDL[];
 extern s16 gTileTextureFlipTable[];
 extern u16 gSpritePaletteModes[];
@@ -100,8 +99,8 @@ RECOMP_PATCH void renderScaledShadedSpriteFrame(ScaledSpriteArg *sprite) {
     if ((gTextClipAndOffsetData.clipRight * 4 >= left) && (!(gTextClipAndOffsetData.clipBottom * 4 < top)) &&
         (left < right) && (top < bottom)) {
 
-        if (gGraphicsMode != 0x100) {
-            gGraphicsMode = 0x100;
+        if (gGraphicsMode != GRAPHICS_MODE_SPRITE_RDP) {
+            gGraphicsMode = GRAPHICS_MODE_SPRITE_RDP;
             gCachedPaletteAddr = NULL;
             gCachedTextureAddr = 0;
             gSPDisplayList(gDisplayListAllocPtr++, gSpriteRDPSetupDL);

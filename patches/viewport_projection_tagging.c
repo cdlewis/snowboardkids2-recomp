@@ -24,7 +24,6 @@ typedef struct {
 // But we're feeling generous so double to 0x20 just to be safe.
 static ViewportProjectionTag viewportProjectionTags[0x20];
 
-extern ViewportNode *gViewportCallbackPools[];
 
 static void registerViewportProjectionSlot(ViewportNode *node) {
     u16 slot = node->callbackSlotIndex;

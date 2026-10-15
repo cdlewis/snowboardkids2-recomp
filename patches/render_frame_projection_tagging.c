@@ -39,14 +39,9 @@ s32 skip_perspective_interpolation = FALSE;
 s32 cur_modelview_race_viewport_index = -1;
 
 extern float recomp_get_target_aspect_ratio(float original);
-extern void *gDramStack;
-extern void *gOutputBuffer;
-extern void *gYieldBuffer;
 extern long long int rspbootTextStart[];
 extern long long int aspMainTextStart[];
-extern Gfx *gDisplayListAllocPtr;
 extern s16 gTextureEnabled;
-extern void *gLookAtPtr;
 
 void resetProjectionIds(void) {
     cur_perspective_projection_transform_id = 0;
@@ -307,7 +302,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
     }
 
     selectGraphicsArena(gCurrentDoubleBufferIndex);
-    linearAllocSelectRegion(gCurrentDoubleBufferIndex);
+    selectDisplayListBuffer(gCurrentDoubleBufferIndex);
     // @recomp force gFrameSkipCounter to be 0.
     //
     // Multiplayer race setup calls osViExtendVStart(1). The original game also
@@ -342,7 +337,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                 node = node->renderNext;
             }
 
-            node->graphicsTask = arenaAlloc16(0x50);
+            node->graphicsTask = graphicsAlloc(sizeof(GraphicsTask));
             displayListStart = gDisplayListAllocPtr;
 
             gSPSegment(gDisplayListAllocPtr++, 0, 0);
@@ -404,7 +399,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
             // @recomp preserve the original two-pixel race divider after widescreen viewport expansion.
             applyRaceSplitViewportGap(node);
 
-            if (!isRegionAllocSpaceLow() && node->clipLeft < node->clipRight && node->clipTop < node->clipBottom) {
+            if (!isDisplayListSpaceLow() && node->clipLeft < node->clipRight && node->clipTop < node->clipBottom) {
 
                 if (needsDisplayListSetup) {
                     displayListStart = gDisplayListAllocPtr;
@@ -471,7 +466,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                 gTextClipAndOffsetData.offsetY = node->offsetY;
 
                 gTextureEnabled = node->uses3DRendering;
-                gGraphicsMode = -1;
+                gGraphicsMode = GRAPHICS_MODE_INVALID;
 
                 if (node->uses3DRendering == 0) {
                     gDPSetColorDither(gDisplayListAllocPtr++, G_CD_DISABLE);
@@ -485,7 +480,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                             continue;
                         }
 
-                        if (isRegionAllocSpaceLow()) {
+                        if (isDisplayListSpaceLow()) {
                             break;
                         }
 
@@ -504,12 +499,12 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         gDPPipeSync(gDisplayListAllocPtr++);
                     }
                 } else {
-                    viewportAlloc = arenaAlloc16(sizeof(node->viewport.vp.vscale[0]) * 8);
-                    projectionAlloc = arenaAlloc16(sizeof(node->projectionMatrix));
-                    lookAtAlloc = arenaAlloc16(48 * sizeof(s32));
+                    viewportAlloc = graphicsAlloc(sizeof(node->viewport));
+                    projectionAlloc = graphicsAlloc(sizeof(node->projectionMatrix));
+                    lookAtAlloc = graphicsAlloc(48 * sizeof(s32));
 
                     if (node->numLights > 0) {
-                        lightArray = arenaAlloc16((node->numLights + 1) * sizeof(Light));
+                        lightArray = graphicsAlloc((node->numLights + 1) * sizeof(Light));
                         if (lightArray != NULL) {
                             for (i = 0; i < node->numLights; i++) {
                                 memcpy((Light *)(i * sizeof(Light) + (u32)lightArray),
@@ -602,7 +597,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                         lookAtAlloc[46] = 0;
                         lookAtAlloc[47] = 0;
 
-                        gLookAtPtr = (void *)&lookAtAlloc[32];
+                        gLookAtPtr = (Mtx *)&lookAtAlloc[32];
 
                         // @recomp apply RT64's centered origin to widened race-player column viewports.
                         if (isRaceSplitColumnViewport(node)) {
@@ -638,7 +633,7 @@ RECOMP_PATCH void renderFrame(u32 viScanline) {
                             continue;
                         }
 
-                        if (isRegionAllocSpaceLow() != 0) {
+                        if (isDisplayListSpaceLow() != 0) {
                             break;
                         }
 

@@ -8,46 +8,13 @@
 #include "system/thread_manager.h"
 #include "ucode.h"
 
-typedef struct {
-    /* 0x00 */ void *outputBuffer;
-    /* 0x04 */ s16 frameSizeInSamples;
-    s16 _pad6;
-    /* 0x08 */ s32 taskType;
-    /* 0x0C */ s32 taskFlags;
-    /* 0x10 */ void *bootCode;
-    /* 0x14 */ s32 bootCodeSize;
-    /* 0x18 */ void *taskCode;
-    /* 0x1C */ s32 taskCodeSize;
-    /* 0x20 */ void *dataMemory;
-    /* 0x24 */ s32 dataMemorySize;
-    s32 unk28;
-    s32 unk2C;
-    s32 unk30;
-    s32 unk34;
-    /* 0x38 */ Acmd *commandBuffer;
-    /* 0x3C */ s32 commandBufferSize;
-    s32 unk40;
-    s32 unk44;
-    void *unk48;
-    void *unk4C;
-    /* 0x50 */ s16 unk50;
-    s16 _pad52;
-    /* 0x54 */ void *unk54;
-    u8 _pad58[0x18];
-} AudioStruct;
-
-extern s32 gAudioCmdBufferToggle;
-extern u32 gAudioBufferSize;
-extern u32 gAudioBufferPadding;
-extern u32 gMinAudioFrameSize;
 extern long long int rspbootTextStart[];
 extern long long int rspbootTextEnd[];
 extern long long int aspMainTextStart[];
 extern long long int aspMainDataStart[];
 
-void processAudioNodeList(void);
-
-RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStruct *prevBuffer) {
+// @recomp Preserve the original audio task construction with a guard against stale startup buffers.
+RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioInfo *audioTaskDesc, AudioInfo *prevBuffer) {
     s32 commandLength;
     s16 *outputBuffer;
     s32 commandBufferSize;
@@ -59,59 +26,52 @@ RECOMP_PATCH s32 audioCreateAndScheduleTask(AudioStruct *audioTaskDesc, AudioStr
 
     processAudioNodeList();
     outputBuffer = (s16 *)osVirtualToPhysical(audioTaskDesc->outputBuffer);
-
     if (prevBuffer != 0) {
-        s16 frameSizeInSamples = prevBuffer->frameSizeInSamples;
-
-        // @recomp Starting the game before the launcher has settled can pass stale previous-buffer state. Real audio
-        // buffers are initialized with unk54 pointing back to themselves, so use that before queueing.
-        // TODO(#42): root-cause why stale state can reach this path.
-        if ((prevBuffer->unk54 == prevBuffer) &&
-            (prevBuffer->outputBuffer != NULL) &&
-            (frameSizeInSamples > 0) &&
-            ((s32)frameSizeInSamples <= (s32)(gAudioBufferSize + gAudioBufferPadding + 0x10))) {
-            osAiSetNextBuffer(prevBuffer->outputBuffer, frameSizeInSamples * 4);
+        // @recomp Reject stale previous-buffer state at startup using the initialized self-pointer and buffer bounds.
+        if ((prevBuffer->doneMessage.info == prevBuffer) && (prevBuffer->outputBuffer != NULL) &&
+            (prevBuffer->frameSamples > 0) &&
+            ((s32)prevBuffer->frameSamples <= (s32)(gAudioBufferSize + gAudioBufferPadding + 0x10))) {
+            osAiSetNextBuffer(prevBuffer->outputBuffer, prevBuffer->frameSamples * 4);
         }
     }
 
     currentSamplesInBuffer = osAiGetLength() / 4;
     samplesToProcess = (((gAudioBufferSize - currentSamplesInBuffer) + gAudioBufferPadding) + 16) & 0xFFF0;
 
-    audioTaskDesc->frameSizeInSamples = samplesToProcess;
+    audioTaskDesc->frameSamples = samplesToProcess;
     if ((s16)samplesToProcess < gMinAudioFrameSize) {
-        audioTaskDesc->frameSizeInSamples = gMinAudioFrameSize;
+        audioTaskDesc->frameSamples = gMinAudioFrameSize;
     }
 
     commandBuffer = gAudioManager.commandLists[gAudioCmdBufferToggle];
-    commandBufferEnd =
-        alAudioFrame(commandBuffer, &commandLength, (void *)outputBuffer, audioTaskDesc->frameSizeInSamples);
+    commandBufferEnd = alAudioFrame(commandBuffer, &commandLength, (void *)outputBuffer, audioTaskDesc->frameSamples);
     if (commandLength == 0) {
         return 0;
     }
 
-    audioTaskDesc->unk48 = &gAudioManager.taskDoneQueue;
-    audioTaskDesc->unk4C = &audioTaskDesc->unk50;
-    audioTaskDesc->commandBuffer = gAudioManager.commandLists[gAudioCmdBufferToggle];
+    audioTaskDesc->messageQueue = &gAudioManager.taskDoneQueue;
+    audioTaskDesc->message = &audioTaskDesc->doneMessage;
+    audioTaskDesc->task.t.data_ptr = (u64 *)gAudioManager.commandLists[gAudioCmdBufferToggle];
     commandBufferStart = gAudioManager.commandLists[gAudioCmdBufferToggle];
     commandBufferSize = commandBufferEnd - commandBufferStart;
     commandBufferSize = commandBufferSize * 8;
 
-    audioTaskDesc->taskType = M_AUDTASK;
-    audioTaskDesc->bootCode = rspbootTextStart;
-    audioTaskDesc->bootCodeSize = (u32)rspbootTextEnd - (u32)rspbootTextStart;
-    audioTaskDesc->taskCode = aspMainTextStart;
-    audioTaskDesc->taskFlags = 0;
-    audioTaskDesc->dataMemory = &aspMainDataStart;
-    audioTaskDesc->dataMemorySize = 0x800;
-    audioTaskDesc->unk28 = 0;
-    audioTaskDesc->unk2C = 0;
-    audioTaskDesc->unk30 = 0;
-    audioTaskDesc->unk34 = 0;
-    audioTaskDesc->unk40 = 0;
-    audioTaskDesc->unk44 = 0;
-    audioTaskDesc->commandBufferSize = commandBufferSize;
+    audioTaskDesc->task.t.type = M_AUDTASK;
+    audioTaskDesc->task.t.ucode_boot = (u64 *)rspbootTextStart;
+    audioTaskDesc->task.t.ucode_boot_size = (u32)rspbootTextEnd - (u32)rspbootTextStart;
+    audioTaskDesc->task.t.ucode = (u64 *)aspMainTextStart;
+    audioTaskDesc->task.t.flags = 0;
+    audioTaskDesc->task.t.ucode_data = (u64 *)&aspMainDataStart;
+    audioTaskDesc->task.t.ucode_data_size = 0x800;
+    audioTaskDesc->task.t.dram_stack = NULL;
+    audioTaskDesc->task.t.dram_stack_size = 0;
+    audioTaskDesc->task.t.output_buff = NULL;
+    audioTaskDesc->task.t.output_buff_size = NULL;
+    audioTaskDesc->task.t.yield_data_ptr = NULL;
+    audioTaskDesc->task.t.yield_data_size = 0;
+    audioTaskDesc->task.t.data_size = commandBufferSize;
 
-    submitAudioTask(((OSMesg)&audioTaskDesc->taskType));
+    submitAudioTask((OSMesg)&audioTaskDesc->task);
 
     gAudioCmdBufferToggle ^= 1;
 

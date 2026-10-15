@@ -11,6 +11,7 @@
 #include "assets.h"
 #include "audio/audio.h"
 #include "graphics/clip_text_render.h"
+#include "race/spray_particles.h"
 
 #define ORIGINAL_ASPECT (4.0f / 3.0f)
 #define HUD_SCREEN_WIDTH 320.0f
@@ -37,9 +38,7 @@ extern float recomp_get_target_hud_aspect_ratio(float original);
 extern s32 gRaceUsesVerticalTwoPlayerSplit;
 extern const char sGoldFormatShort[];
 extern const char sGoldFormatLong[];
-extern const char D_8009E868_9F468[];
 static const char sMultiplayerGoldFormat[] = "%5d";
-extern Gfx* gDisplayListAllocPtr;
 extern TextClipAndOffsetData gTextClipAndOffsetData;
 
 typedef enum {
@@ -57,19 +56,6 @@ typedef struct {
 
 static RaceHudLayout sRaceHudLayout = RACE_HUD_LAYOUT_SINGLE_PLAYER;
 static PlayerItemGroupBounds sPlayerItemGroupBounds[4];
-
-typedef struct {
-    s16 x;
-    s16 y;
-    MemoryAllocatorNode* assetTable;
-    s16 baseAssetIndex;
-    s8 assetType;
-    u8 paddingB;
-    s32 paddingC;
-    s32 frameCounter;
-    u16 renderPriority;
-    s16 halfSizeRender;
-} FloatingItemSpriteTask;
 
 static s16 hudWidescreenMargin(void) {
     float aspect = recomp_get_target_hud_aspect_ratio(ORIGINAL_ASPECT);
@@ -631,7 +617,7 @@ static void endFullScreenOverlay(void) {
 }
 
 static SpriteRenderArg* copySpriteArgWithXOffset(SpriteRenderArg* src, s16 xOffset) {
-    SpriteRenderArg* dst = (SpriteRenderArg*) advanceLinearAlloc(sizeof(SpriteRenderArg));
+    SpriteRenderArg* dst = (SpriteRenderArg*) linearAlloc8(sizeof(SpriteRenderArg));
 
     if (dst != NULL) {
         *dst = *src;
@@ -793,7 +779,7 @@ static void drawRaceSplitDividers(void* arg) {
     gEXSetRectAlign(gfx++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0);
 
     gDisplayListAllocPtr = gfx;
-    gGraphicsMode = -1;
+    gGraphicsMode = GRAPHICS_MODE_INVALID;
 }
 
 static void resetCornerHudAlign(void* unused) {
@@ -1029,25 +1015,36 @@ RECOMP_PATCH void updatePlayerItemDisplayMultiplayer(PlayerItemDisplayState* sta
     pushViewportCallbackBySlot((state->playerIndex + 8) & 0xFFFF, 0, setPlayerItemHudAlign, state);
 }
 
-RECOMP_PATCH void updateFloatingItemSprite(FloatingItemSpriteTask* state) {
-    state->baseAssetIndex = (state->frameCounter >> 1) + 0x45;
-    state->frameCounter++;
+// @recomp Replace the original floating-item update to apply the owning player's HUD alignment.
+RECOMP_PATCH void updateFloatingItemSprite(FloatingItemSpriteTask *arg0) {
+    arg0->sprite.frameIndex = (arg0->frameCounter >> 1) + 0x45;
+    arg0->frameCounter = arg0->frameCounter + 1;
 
-    if (state->frameCounter == 0x10) {
+    if (arg0->frameCounter == 0x10) {
         terminateCurrentTask();
     }
 
-    // @recomp wrap texture rendering call to adjust for player viewport + screen layout
-    pushViewportCallbackBySlot(state->renderPriority, 1, resetCornerHudAlign, NULL);
+    // @recomp Queue restoration first because viewport callbacks run in reverse order within this layer.
+    pushViewportCallbackBySlot(arg0->renderPriority, VIEWPORT_CALLBACK_LAYER_OPAQUE, resetCornerHudAlign, NULL);
 
-    if (state->halfSizeRender == 0) {
-        pushViewportCallbackBySlot(state->renderPriority, 1, renderSpriteFrameWithPalette, state);
+    if (arg0->halfSizeRender == 0) {
+        pushViewportCallbackBySlot(
+            arg0->renderPriority,
+            VIEWPORT_CALLBACK_LAYER_OPAQUE,
+            renderSpriteFrameWithPalette,
+            &arg0->sprite
+        );
     } else {
-        pushViewportCallbackBySlot(state->renderPriority, 1, renderHalfSizeSpriteWithCustomPalette, state);
+        pushViewportCallbackBySlot(
+            arg0->renderPriority,
+            VIEWPORT_CALLBACK_LAYER_OPAQUE,
+            renderHalfSizeSpriteWithCustomPalette,
+            &arg0->sprite
+        );
     }
 
-    // @recomp wrap texture rendering call to adjust for player viewport + screen layout
-    pushViewportCallbackBySlot(state->renderPriority, 1, setPlayerFloatingItemHudAlign, state);
+    // @recomp Queue the player's item alignment last so it runs before the original sprite draw.
+    pushViewportCallbackBySlot(arg0->renderPriority, VIEWPORT_CALLBACK_LAYER_OPAQUE, setPlayerFloatingItemHudAlign, arg0);
 }
 
 RECOMP_PATCH void initPlayerLapCounterTask(LapCounterState* state) {
@@ -1106,7 +1103,7 @@ RECOMP_PATCH void initPlayerLapCounterTask(LapCounterState* state) {
                                                  &lapCounterMultiplayerIconAsset_ROM_END, 0x98);
         state->spriteIndex = 0;
         state->digitsAsset = 0;
-        _Sprintf(textBuffer, D_8009E868_9F468, 1, gameState->finalLapNumber + 1);
+        _Sprintf(textBuffer, sLapCounterFormat, 1, gameState->finalLapNumber + 1);
         state->textPaletteIndex = 1;
         state->lapText = textBuffer;
     }
