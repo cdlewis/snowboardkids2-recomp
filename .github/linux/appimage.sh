@@ -1,3 +1,5 @@
+set -e
+
 ARCH=$(uname -m)
 LINUX_DEPLOY_ARCH=$(uname -m)
 
@@ -18,9 +20,9 @@ curl -sSfLO "https://github.com/linuxdeploy/linuxdeploy-plugin-gtk/raw/master/li
 chmod a+x linuxdeploy*
 
 mkdir -p AppDir/usr/bin
-cp SnowboardKids2Recompiled AppDir/usr/bin/
-cp -r assets/ AppDir/usr/bin/
-cp recompcontrollerdb.txt AppDir/usr/bin/
+cp cmake-build/SnowboardKids2Recompiled AppDir/usr/bin/
+cp -R cmake-build/assets AppDir/usr/bin/
+cp cmake-build/recompcontrollerdb.txt AppDir/usr/bin/
 cp icons/512.png AppDir/SnowboardKids2Recompiled.png
 cp .github/linux/SnowboardKids2Recompiled.desktop AppDir/
 
