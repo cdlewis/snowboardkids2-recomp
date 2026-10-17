@@ -122,7 +122,20 @@ void zelda64::init_config() {
         TwoPlayerSplitScreenDirection::Vertical
     );
 
-    recompui::config::create_graphics_tab();
+    auto& graphics_config = recompui::config::create_graphics_tab();
+    // Swap the two inherently hidden options before loading settings so the visible options keep their order.
+    // Neither option has index-based callbacks or dependencies; update their ID lookup entries after the swap.
+    auto& graphics_schema = const_cast<recomp::config::ConfigSchema&>(graphics_config.get_config_schema());
+    auto& developer_mode_index = graphics_schema.options_by_id.at(recompui::config::graphics::options::developer_mode);
+    auto& framebuffer_index = graphics_schema.options_by_id.at(recompui::config::graphics::options::hpfb_option);
+    std::swap(graphics_schema.options[developer_mode_index], graphics_schema.options[framebuffer_index]);
+    std::swap(developer_mode_index, framebuffer_index);
+    auto& developer_mode_option = graphics_schema.options[developer_mode_index];
+    // update_option_hidden cannot override the schema's inherent hidden flag.
+    developer_mode_option.hidden = false;
+    developer_mode_option.description =
+        "Enables the RT64 debugger and texture dumping tools. Apply this setting and restart the game for changes to "
+        "take effect. Press F1 during gameplay to open the debugger.";
 
     set_control_descriptions();
     recompui::config::create_controls_tab();
