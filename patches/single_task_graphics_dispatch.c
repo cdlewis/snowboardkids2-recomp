@@ -125,7 +125,6 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
     Gfx* mergedGfx = NULL;
     s32 msgCount = 0;
     s32 groupCount = 0;
-    s32 nextDisplayBufferIndex;
 
     temp = gRootViewport.renderNext;
     gDisplayFramePending = 0;
@@ -134,8 +133,8 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
     }
 
     // @recomp Prepare merge state before the original task-submission walk.
-    // If this frame has multiple graphics groups, start a synthetic display list
-    // that embeds the next framebuffer-init task before the grouped draws.
+    // If this frame has graphics groups, start a synthetic display list
+    // that embeds the current framebuffer-init task before the grouped draws.
     node = temp;
     while (node != NULL) {
         GraphicsTask* msg = node->graphicsTask;
@@ -144,8 +143,9 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
             Gfx* wrapper = (Gfx*) msg->task.t.data_ptr;
 
             msgCount++;
-            // @recomp Only merge patched wrappers whose second command jumps to the real draw list.
-            if ((wrapper[1].words.w0 >> 24) == G_DL) {
+            // @recomp Recognize draw-list wrappers and empty pipe-sync wrappers.
+            if (((wrapper[1].words.w0 >> 24) == G_DL) ||
+                ((wrapper[1].words.w0 >> 24) == G_RDPPIPESYNC)) {
                 groupCount++;
                 if (firstMsg == NULL) {
                     firstMsg = msg;
@@ -156,12 +156,10 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
 
         node = node->renderNext;
     }
-    if ((groupCount > 1) && (groupCount == msgCount)) {
-        nextDisplayBufferIndex = gCurrentDisplayBufferIndex + 1;
-        if (nextDisplayBufferIndex >= 3) {
-            nextDisplayBufferIndex = 0;
-        }
-        initMsg = (GraphicsTask*) ((u8*) gDisplayBufferMsgs + (nextDisplayBufferIndex * sizeof(DisplayBufferTask)));
+    // @recomp Initialize a merged display list when all task wrappers are recognized.
+    if ((groupCount > 0) && (groupCount == msgCount)) {
+        // @recomp Include the current framebuffer's clear in the merged display list.
+        initMsg = (GraphicsTask*) ((u8*) gDisplayBufferMsgs + (gCurrentDisplayBufferIndex * sizeof(DisplayBufferTask)));
 
         mergedDL = (Gfx*) graphicsAlloc(48 * (s32) sizeof(Gfx));
         mergedGfx = mergedDL;
@@ -173,16 +171,19 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
     if (node != NULL) {
         do {
             if (node->graphicsTask != NULL) {
-                // @recomp Merge multi-group frames instead of submitting one task per group.
-                if ((groupCount > 1) && (groupCount == msgCount)) {
+                // @recomp Merge graphics groups instead of submitting one task per group.
+                if ((groupCount > 0) && (groupCount == msgCount)) {
                     Gfx* wrapper = (Gfx*) node->graphicsTask->task.t.data_ptr;
 
                     Gfx* gfx = mergedGfx;
                     u32 drawsAddr = wrapper[1].words.w1;
 
-                    gSPLoadUcode(gfx++, node->graphicsTask->task.t.ucode, node->graphicsTask->task.t.ucode_data);
-                    gSPSegment(gfx++, 0, 0);
-                    gSPDisplayList(gfx++, drawsAddr);
+                    // @recomp Only wrappers with a display-list call contain draws to execute.
+                    if ((wrapper[1].words.w0 >> 24) == G_DL) {
+                        gSPLoadUcode(gfx++, node->graphicsTask->task.t.ucode, node->graphicsTask->task.t.ucode_data);
+                        gSPSegment(gfx++, 0, 0);
+                        gSPDisplayList(gfx++, drawsAddr);
+                    }
 
                     mergedGfx = gfx;
                     gFrameBufferFlags[gCurrentDoubleBufferIndex] = 1;
@@ -194,8 +195,8 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
             node = node->renderNext;
         } while (node != NULL);
     }
-    // @recomp submit a single, merged task list if there was more than one task
-    if ((groupCount > 1) && (groupCount == msgCount)) {
+    // @recomp Submit the merged display list as a single graphics task.
+    if ((groupCount > 0) && (groupCount == msgCount)) {
         GraphicsTask* msg = firstMsg;
 
         gDPFullSync(mergedGfx++);
@@ -221,8 +222,8 @@ RECOMP_PATCH void processDisplayFrameUpdate(void) {
         gCurrentDisplayBufferIndex = 0;
     }
 
-    if ((groupCount <= 1) || (groupCount != msgCount)) {
-        // @recomp Non-merged frames submit the display-buffer init task just like the original.
+    // @recomp Non-merged frames submit the display-buffer init task just like the original.
+    if ((groupCount == 0) || (groupCount != msgCount)) {
         submitDisplayTask((OSMesg) ((u8*) gDisplayBufferMsgs + (gCurrentDisplayBufferIndex * sizeof(DisplayBufferTask))));
     }
 }
