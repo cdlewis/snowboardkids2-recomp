@@ -224,6 +224,8 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
         exit_error("Failed to create window: %s\n", SDL_GetError());
     }
 
+    SDL_SetWindowMinimumSize(window, 1, 240);
+
 #if defined(_WIN32) || defined(__APPLE__) || (defined(__linux__) && !defined(__ANDROID__))
     if (test_resolution_applied) {
         int border_top = 0;

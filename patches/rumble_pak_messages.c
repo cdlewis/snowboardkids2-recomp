@@ -16,7 +16,6 @@
 #include "ui/save_slot_gfx.h"
 #include "ui/save_slot_select.h"
 
-// @recomp Inline fixed-size save copies to avoid emitting calls to the game memcpy symbol as host libc memcpy.
 #define memcpy __builtin_memcpy_inline
 
 // @recomp Replace the save-slot state machine to bypass obsolete Rumble Pak confirmations.

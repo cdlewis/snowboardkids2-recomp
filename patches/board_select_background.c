@@ -9,14 +9,12 @@ static TileMapScrollRenderState *sCharSelectBackdrop;
 // @recomp Register the scrolling backdrop without changing other callers of the shared tile renderer.
 RECOMP_PATCH void setupCharSelectBackgroundEffect(CharSelectTiledBackgroundState *state) {
     initScrollingTileMapState(&state->renderState, state->tileMapAsset);
-    // @recomp Identify this task's tilemap until its cleanup so foreground tilemaps retain native clipping.
     sCharSelectBackdrop = &state->renderState;
     setCallback(updateCharSelectBackgroundEffect);
 }
 
 // @recomp Forget the backdrop before task memory can be reused by another screen.
 RECOMP_PATCH void cleanupCharSelectBackgroundEffect(CharSelectTiledBackgroundState *state) {
-    // @recomp Prevent a later tilemap allocation at this address from inheriting backdrop expansion.
     sCharSelectBackdrop = NULL;
     state->tileMapAsset = freeNodeMemory(state->tileMapAsset);
 }
