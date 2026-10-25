@@ -6,7 +6,7 @@
 
 You can read more about the Snowboard Kids 2 recompilation process [here](https://blog.chrislewis.au/snowboard-kids-2-is-recompiled/).
 
-Join the [Snowboard Kids Community Discord](https://discord.gg/bwQ85rUED) to discuss this and other Snowboard Kids games/projects.
+Join the [Snowboard Kids Community Discord](https://discord.gg/PJzG4F8SpF) to discuss this and other Snowboard Kids games/projects.
 
 [![Discord Invitation](https://discordapp.com/api/guilds/729856662357278750/widget.png?style=banner2 "Snowboard Kids")](https://discord.gg/PJzG4F8SpF)
 
